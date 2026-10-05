@@ -7,7 +7,12 @@ node_modules/
 dist/
 dist-ssr/
 build/
+target/
+server/target/
 *.local
+*.class
+*.jar
+*.war
 
 # Environment files
 .env

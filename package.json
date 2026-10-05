@@ -1,0 +1,20 @@
+{
+  "name": "sba391-group6-monolithic-project",
+  "version": "1.0.0",
+  "description": "Production Monolithic Full-Stack Project - SBA391 Group 6 (React 18 Vite + Spring Boot 3 + MongoDB)",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n \"SERVER,CLIENT\" -c \"bgBlue.bold,bgGreen.bold\" \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:client": "npm run dev --prefix client",
+    "dev:server": "mvn spring-boot:run -f server/pom.xml",
+    "install:client": "npm install --prefix client",
+    "install:all": "npm install && npm run install:client",
+    "build:client": "npm run build --prefix client",
+    "build:server": "mvn clean package -DskipTests -f server/pom.xml",
+    "build": "npm run build:client && npm run build:server",
+    "test:server": "mvn test -f server/pom.xml"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

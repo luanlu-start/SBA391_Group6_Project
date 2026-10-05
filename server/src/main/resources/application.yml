@@ -1,0 +1,41 @@
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
+
+spring:
+  application:
+    name: sba391-group6-server
+  profiles:
+    active: dev
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/group6_project_db}
+      auto-index-creation: true
+
+# SpringDoc OpenAPI / Swagger 3 Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui/index.html
+    tags-sorter: alpha
+    operations-sorter: method
+    display-request-duration: true
+
+# Actuator Health Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# Application Custom Properties
+app:
+  cors:
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173}
+  api-prefix: /api/v1
