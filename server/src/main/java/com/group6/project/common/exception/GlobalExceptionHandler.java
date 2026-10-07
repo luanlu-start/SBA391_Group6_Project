@@ -25,38 +25,49 @@ public class GlobalExceptionHandler {
             errors.put(error.getField(), error.getDefaultMessage());
         }
 
-        ApiResponse<Void> response = ApiResponse.<Void>builder()
-                .success(false)
-                .status(HttpStatus.BAD_REQUEST.value())
-                .message("Validation failed")
-                .errors(errors)
-                .build();
+        ApiResponse<Void> response = ApiResponse.error(
+                GlobalErrorCode.INVALID_REQUEST, "Validation failed", errors);
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @ExceptionHandler(org.springframework.validation.BindException.class)
+    public ResponseEntity<ApiResponse<Void>> handleBindingErrors(org.springframework.validation.BindException ex) {
+        Map<String, String> errors = new HashMap<>();
+        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
+            errors.putIfAbsent(error.getField(), error.isBindingFailure()
+                    ? "Invalid value" : error.getDefaultMessage());
+        }
+        return ResponseEntity.badRequest().body(ApiResponse.error(
+                GlobalErrorCode.INVALID_REQUEST, "Invalid request parameters", errors));
+    }
+
+    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Void>> handleParameterTypeMismatch(
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException ex) {
+        return ResponseEntity.badRequest().body(ApiResponse.error(GlobalErrorCode.INVALID_REQUEST));
     }
 
     @ExceptionHandler(AppException.class)
     public ResponseEntity<ApiResponse<Void>> handleAppException(AppException ex) {
         log.warn("Application exception: {}", ex.getMessage());
 
-        ApiResponse<Void> response = ApiResponse.<Void>builder()
-                .success(false)
-                .status(ex.getErrorCode().getCode())
-                .message(ex.getMessage())
-                .build();
+        ApiResponse<Void> response = ApiResponse.error(ex.getErrorCode(), ex.getMessage(), null);
 
         return ResponseEntity.status(ex.getErrorCode().getHttpStatus()).body(response);
+    }
+
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnreadableRequest(
+            org.springframework.http.converter.HttpMessageNotReadableException ex) {
+        return ResponseEntity.badRequest().body(ApiResponse.error(GlobalErrorCode.INVALID_REQUEST));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
         log.error("Unhandled exception caught: ", ex);
 
-        ApiResponse<Void> response = ApiResponse.<Void>builder()
-                .success(false)
-                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .message(ex.getMessage() != null ? ex.getMessage() : "An unexpected server error occurred")
-                .build();
+        ApiResponse<Void> response = ApiResponse.error(GlobalErrorCode.INTERNAL_SERVER_ERROR);
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }

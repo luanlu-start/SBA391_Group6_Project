@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Server, 
@@ -63,7 +63,7 @@ export default function HomePage() {
           SBA391 <span className="gradient-text">Enterprise Full-Stack</span> Platform
         </h1>
         <p className="hero-subtitle">
-          Cấu trúc dự án chuẩn doanh nghiệp kết hợp <strong>React 18 SPA (Vite)</strong> và <strong>Java 21 Spring Boot 3</strong> theo mô hình 3-Tier Layered Architecture với Spring Data MongoDB (ODM / JPA Pattern).
+          Cấu trúc dự án chuẩn doanh nghiệp kết hợp <strong>React 18 SPA (Vite)</strong> và <strong>Java 21 Spring Boot 3</strong> theo mô hình 3-Tier Layered Architecture với SQL Server (JPA/Hibernate) và MongoDB.
         </p>
 
         <div className="hero-actions">
@@ -207,12 +207,12 @@ export default function HomePage() {
             <div className="layer-icon-wrapper bg-emerald">
               <Database size={28} />
             </div>
-            <h3 className="layer-title">Services & MongoDB (ODM)</h3>
+            <h3 className="layer-title">Services & Databases</h3>
             <ul className="layer-features">
               <li><strong>Service Layer:</strong> Xử lý toàn bộ Business Rules độc lập với Controller</li>
-              <li><strong>Spring Data ODM / JPA Pattern:</strong> Ánh xạ Document <code>@Document</code> qua <code>MongoRepository</code></li>
+              <li><strong>JPA/Hibernate:</strong> Ánh xạ Entity <code>@Entity</code> qua <code>JpaRepository</code></li>
               <li><strong>Derived Queries:</strong> Tìm kiếm, lọc theo danh mục, phân trang tự động</li>
-              <li><strong>Resilient Store:</strong> Hỗ trợ MongoDB thật và fallback thông minh giúp demo mượt mà</li>
+              <li><strong>SQL Server / MongoDB:</strong> Sản phẩm lưu SQL, lịch sử hoạt động lưu Mongo</li>
             </ul>
           </div>
         </div>
@@ -246,7 +246,7 @@ export default function HomePage() {
     └── product/              # Reference Module mẫu:
         ├── controller/       # Nhận HTTP request & validation
         ├── service/          # Business logic & Interface
-        ├── repository/       # MongoRepository kết nối DB
+        ├── repository/       # JPA / Mongo repository theo module
         ├── model/            # Document Entity (@Document)
         └── dto/              # Request / Response Transfer`}
               </pre>

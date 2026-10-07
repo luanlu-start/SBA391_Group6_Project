@@ -1,4 +1,3 @@
-import React from 'react';
 import { Database, ShieldCheck, Terminal, Cpu } from 'lucide-react';
 
 export default function Footer() {
@@ -9,7 +8,7 @@ export default function Footer() {
           <div className="footer-col">
             <h4 className="footer-heading">SBA391 Monolithic Architecture</h4>
             <p className="footer-desc">
-              Production-ready enterprise boilerplate integrating React 18 (Vite) Single Page Application with Java 21 Spring Boot 3 Backend, MongoDB (Spring Data ODM), and OpenAPI Swagger 3.
+              Group 6 full-stack development base with React, Spring Boot, SQL Server and MongoDB.
             </p>
           </div>
 
@@ -18,7 +17,7 @@ export default function Footer() {
             <ul className="footer-list">
               <li><Cpu size={14} /> Frontend: React 18 + Vite + Axios + React Router</li>
               <li><Terminal size={14} /> Backend: Spring Boot 3.3.4 (Java 21)</li>
-              <li><Database size={14} /> Persistence: MongoDB (Spring Data ODM / JPA Pattern)</li>
+              <li><Database size={14} /> Persistence: SQL Server & MongoDB</li>
               <li><ShieldCheck size={14} /> Documentation: OpenAPI 3 / Swagger UI</li>
             </ul>
           </div>

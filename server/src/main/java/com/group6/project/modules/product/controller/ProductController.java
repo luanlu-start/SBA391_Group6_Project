@@ -12,7 +12,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import com.group6.project.common.response.PageResponse;
+import com.group6.project.modules.product.dto.ProductSearchRequest;
+import org.springdoc.core.annotations.ParameterObject;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/products")
@@ -23,18 +26,16 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping
-    @Operation(summary = "Get all products", description = "Retrieve list of products with optional keyword search or category filter")
-    public ResponseEntity<ApiResponse<List<ProductResponse>>> getAllProducts(
-            @RequestParam(required = false) String search,
-            @RequestParam(required = false) String category
-    ) {
-        List<ProductResponse> products = productService.getAllProducts(search, category);
-        return ResponseEntity.ok(ApiResponse.success("Products retrieved successfully", products));
+    @Operation(summary = "Search products", description = "Optional filters combined with pagination and sorting")
+    public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getAllProducts(
+            @Valid @ModelAttribute @ParameterObject ProductSearchRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Products retrieved successfully",
+                productService.getAllProducts(request)));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Get product by ID", description = "Retrieve detailed information of a specific product")
-    public ResponseEntity<ApiResponse<ProductResponse>> getProductById(@PathVariable String id) {
+    public ResponseEntity<ApiResponse<ProductResponse>> getProductById(@PathVariable UUID id) {
         ProductResponse product = productService.getProductById(id);
         return ResponseEntity.ok(ApiResponse.success("Product found", product));
     }
@@ -50,7 +51,7 @@ public class ProductController {
     @PutMapping("/{id}")
     @Operation(summary = "Update an existing product", description = "Update details of an existing product")
     public ResponseEntity<ApiResponse<ProductResponse>> updateProduct(
-            @PathVariable String id,
+            @PathVariable UUID id,
             @Valid @RequestBody ProductRequest request
     ) {
         ProductResponse updated = productService.updateProduct(id, request);
@@ -59,7 +60,7 @@ public class ProductController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete a product", description = "Remove a product from the database by ID")
-    public ResponseEntity<ApiResponse<Void>> deleteProduct(@PathVariable String id) {
+    public ResponseEntity<ApiResponse<Void>> deleteProduct(@PathVariable UUID id) {
         productService.deleteProduct(id);
         return ResponseEntity.ok(ApiResponse.success("Product deleted successfully", null));
     }

@@ -1,17 +1,10 @@
 package com.group6.project.modules.product.repository;
 
 import com.group6.project.modules.product.model.Product;
-import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-import java.util.List;
+import java.util.UUID;
 
-@Repository
-public interface ProductRepository extends MongoRepository<Product, String> {
-
-    List<Product> findByCategory(String category);
-
-    List<Product> findByNameContainingIgnoreCase(String name);
-
-    List<Product> findByStatus(String status);
+public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpecificationExecutor<Product> {
 }

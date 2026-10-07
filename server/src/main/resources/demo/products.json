@@ -1,0 +1,29 @@
+[
+  {
+    "id": "00000000-0000-4000-8000-000000000001",
+    "name": "MacBook Pro M3 Max",
+    "description": "High-performance laptop for enterprise software engineers",
+    "price": 3199.0,
+    "category": "Electronics",
+    "stock": 15,
+    "status": "ACTIVE"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000002",
+    "name": "Keychron Q1 Pro Mechanical Keyboard",
+    "description": "Custom wireless mechanical keyboard with QMK/VIA support",
+    "price": 199.0,
+    "category": "Accessories",
+    "stock": 40,
+    "status": "ACTIVE"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000003",
+    "name": "Dell UltraSharp 32 4K Monitor",
+    "description": "IPS Black technology display with 98% DCI-P3 color gamut",
+    "price": 899.0,
+    "category": "Electronics",
+    "stock": 8,
+    "status": "ACTIVE"
+  }
+]
