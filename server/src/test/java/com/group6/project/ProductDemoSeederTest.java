@@ -1,6 +1,6 @@
 package com.group6.project;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.group6.project.modules.product.config.ProductDemoSeeder;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;

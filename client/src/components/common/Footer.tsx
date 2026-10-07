@@ -15,8 +15,8 @@ export default function Footer() {
           <div className="footer-col">
             <h4 className="footer-heading">Stack Components</h4>
             <ul className="footer-list">
-              <li><Cpu size={14} /> Frontend: React 18 + Vite + Axios + React Router</li>
-              <li><Terminal size={14} /> Backend: Spring Boot 3.3.4 (Java 21)</li>
+              <li><Cpu size={14} /> Frontend: React 19.3 + TypeScript + Vite 8 + Axios + React Router</li>
+              <li><Terminal size={14} /> Backend: Spring Boot 4.1.1 (Java 25)</li>
               <li><Database size={14} /> Persistence: SQL Server & MongoDB</li>
               <li><ShieldCheck size={14} /> Documentation: OpenAPI 3 / Swagger UI</li>
             </ul>

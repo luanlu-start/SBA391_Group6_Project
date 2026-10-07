@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import type { HealthInfo } from '../types/api';
+import { getApiError } from '../api/ApiError';
 import { Link } from 'react-router-dom';
 import { 
   Server, 
@@ -19,9 +21,9 @@ import {
 import { healthApi } from '../api/healthApi';
 
 export default function HomePage() {
-  const [healthData, setHealthData] = useState(null);
+  const [healthData, setHealthData] = useState<HealthInfo | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchHealth = async () => {
     setLoading(true);
@@ -34,7 +36,7 @@ export default function HomePage() {
         setError('Server responded with an unexpected status');
       }
     } catch (err) {
-      setError(err.message || 'Cannot connect to backend service');
+      setError(getApiError(err).message || 'Cannot connect to backend service');
     } finally {
       setLoading(false);
     }
@@ -44,7 +46,7 @@ export default function HomePage() {
     fetchHealth();
   }, []);
 
-  const formatUptime = (ms) => {
+  const formatUptime = (ms?: number) => {
     if (!ms) return '0s';
     const seconds = Math.floor((ms / 1000) % 60);
     const minutes = Math.floor((ms / (1000 * 60)) % 60);
@@ -63,7 +65,7 @@ export default function HomePage() {
           SBA391 <span className="gradient-text">Enterprise Full-Stack</span> Platform
         </h1>
         <p className="hero-subtitle">
-          Cấu trúc dự án chuẩn doanh nghiệp kết hợp <strong>React 18 SPA (Vite)</strong> và <strong>Java 21 Spring Boot 3</strong> theo mô hình 3-Tier Layered Architecture với SQL Server (JPA/Hibernate) và MongoDB.
+          Cấu trúc dự án chuẩn doanh nghiệp kết hợp <strong>React 19.3 SPA (Vite)</strong> và <strong>Java 25 Spring Boot 4.1</strong> theo mô hình 3-Tier Layered Architecture với SQL Server (JPA/Hibernate) và MongoDB.
         </p>
 
         <div className="hero-actions">
@@ -135,7 +137,7 @@ export default function HomePage() {
             <div className="health-stat-box">
               <span className="stat-label">JVM Version</span>
               <div className="stat-value">
-                {healthData?.jvmVersion || 'Java 21'}
+                {healthData?.jvmVersion || 'Java 25'}
               </div>
             </div>
 
@@ -177,10 +179,10 @@ export default function HomePage() {
             <div className="layer-icon-wrapper bg-blue">
               <Cpu size={28} />
             </div>
-            <h3 className="layer-title">React 18 + Vite SPA</h3>
+            <h3 className="layer-title">React 19.3 + Vite SPA</h3>
             <ul className="layer-features">
               <li><strong>Axios Interceptors:</strong> Tự động gắn token, format dữ liệu & bắt lỗi tập trung</li>
-              <li><strong>React Router v6:</strong> Định tuyến phân trang declarative</li>
+              <li><strong>React Router v7:</strong> Định tuyến phân trang declarative</li>
               <li><strong>Modular Structure:</strong> Tách biệt components, pages, api services, layouts</li>
               <li><strong>Responsive CSS Tokens:</strong> Thiết kế giao diện hiện đại không phụ thuộc nặng thư viện</li>
             </ul>
@@ -245,9 +247,9 @@ export default function HomePage() {
     ├── health/               # Endpoint kiểm tra Server
     └── product/              # Reference Module mẫu:
         ├── controller/       # Nhận HTTP request & validation
-        ├── service/          # Business logic & Interface
+        ├── service/          # Business logic, một class @Service
         ├── repository/       # JPA / Mongo repository theo module
-        ├── model/            # Document Entity (@Document)
+        ├── model/            # JPA Entity (@Entity)
         └── dto/              # Request / Response Transfer`}
               </pre>
             </div>
@@ -259,16 +261,16 @@ export default function HomePage() {
               <pre className="tree-code">
 {`client/src/
 ├── api/                      # Giao tiếp HTTP với Backend
-│   ├── axiosClient.js        # Cấu hình Axios & Interceptors
-│   ├── healthApi.js          # API check server
-│   └── productApi.js         # API CRUD Product
+│   ├── axiosClient.ts        # Cấu hình Axios & Interceptors
+│   ├── healthApi.ts          # API check server
+│   └── productApi.ts         # API CRUD Product
 ├── components/               # Components tái sử dụng
 │   ├── common/               # Navbar, Footer, StatusBadge...
 │   └── ui/                   # Modal, Card...
 ├── layouts/                  # Layout bọc ứng dụng (MainLayout)
 ├── pages/                    # Các trang (Home, Products, 404)
 ├── routes/                   # Cấu hình React Router
-└── styles/index.css          # Design system & tokens`}
+└── index.css          # Design system & tokens`}
               </pre>
             </div>
           </div>

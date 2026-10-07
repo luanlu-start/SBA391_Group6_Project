@@ -19,16 +19,39 @@ Module Product cung cấp ví dụ CRUD; module Activity cung cấp ví dụ lư
 
 ## Công nghệ
 
+Stack của dự án:
+
 | Thành phần | Công nghệ |
 | --- | --- |
-| Frontend | React 18, Vite 5, React Router 6, Axios |
-| Backend | Java 21, Spring Boot 3.3.4 |
-| Dữ liệu quan hệ | SQL Server 2022, Spring Data JPA, Hibernate |
-| Dữ liệu document | MongoDB 7, Spring Data MongoDB |
+| Frontend | React 19.3, TypeScript 6, Vite 8, React Router 7, Axios |
+| Backend | Spring Boot 4.1.1, Java 25 LTS, Spring Web MVC |
+| Database | Microsoft SQL Server 2025 và MongoDB 7 |
+| ORM / ODM | Spring Data JPA + Hibernate; Spring Data MongoDB |
+| DB driver | Microsoft JDBC Driver; MongoDB Java Driver |
+| Quản lý schema | Code first, Hibernate `ddl-auto: update` |
 | Mapping và validation | MapStruct 1.6.3, Jakarta Bean Validation |
 | Tài liệu API | OpenAPI, Swagger UI |
-| Kiểm thử | JUnit 5, Mockito, MockMvc, H2 |
-| Chạy ứng dụng | Docker Compose, Nginx |
+| Kiểm thử | JUnit Jupiter, Mockito, MockMvc, H2 |
+| Container | Docker + Docker Compose |
+| Frontend production | Nginx |
+| Node.js | 24 LTS |
+
+Kiến trúc chính:
+
+```text
+React + TypeScript
+  |
+  | REST API
+  v
+Spring Boot (Controller -> Service -> Repository)
+  |
+  +-- Spring Data JPA / Hibernate --> SQL Server 2025 (Product)
+  |
+  +-- Spring Data MongoDB ---------> MongoDB 7 (Activity Log)
+```
+
+Nhật ký hoạt động được ghi vào MongoDB sau khi transaction SQL commit.
+Schema SQL vẫn được quản lý bằng entity và Hibernate; dự án chưa dùng Flyway.
 
 ## Cấu trúc dự án
 
@@ -45,14 +68,16 @@ SBA391_Group6_Project/
 │   │   ├── layouts/
 │   │   ├── pages/
 │   │   ├── routes/
-│   │   ├── App.jsx
-│   │   └── main.jsx
+│   │   ├── types/                     # Kiểu dữ liệu API và nghiệp vụ
+│   │   ├── App.tsx
+│   │   └── main.tsx
 │   ├── .env.example
 │   ├── .dockerignore
 │   ├── Dockerfile
 │   ├── nginx.conf
 │   ├── package.json
-│   └── vite.config.js
+│   ├── tsconfig.json
+│   └── vite.config.ts
 ├── server/
 │   ├── src/
 │   │   ├── main/
@@ -151,10 +176,11 @@ docker compose down
 
 Khi sửa code, chạy lại `docker compose up --build -d`.
 Dữ liệu nằm trong volumes `sqlserver-data` và `mongo-data`, được giữ khi dừng stack.
+Nếu đã có dữ liệu từ SQL Server 2022, sao lưu trước khi chạy container SQL Server 2025.
 
 ### Chạy trên máy để phát triển
 
-Yêu cầu Node.js 18 trở lên, Java 21 và Maven trên PATH.
+Yêu cầu Node.js 24, JDK 25 và Maven trên PATH; đặt `JAVA_HOME` trỏ tới JDK 25.
 Từ thư mục gốc, cài dependencies và khởi động hai database:
 
 ```powershell
@@ -294,7 +320,7 @@ direction là `ASC` hoặc `DESC`. Danh sách luôn nằm trong `data.content`.
 | Xử lý lỗi | `AppException` + enum mã lỗi của module; handler chung xử lý response |
 | Database | SQL dùng JPA/Specification; Mongo dùng MongoRepository; tiền dùng `BigDecimal` |
 | Frontend | API đặt trong `src/api`, dùng `axiosClient`; component chung ở `components` |
-| Format | Java thụt 4 spaces, JS/JSX thụt 2 spaces; format trước khi commit |
+| Format | Java thụt 4 spaces, TypeScript/TSX thụt 2 spaces; format trước khi commit |
 | Seed và test | Seed riêng theo module; kiểm thử nghiệp vụ, validation và query quan trọng |
 
 Không đặt nghiệp vụ trong controller, không trả trực tiếp entity/document,
@@ -310,6 +336,7 @@ Chạy từ thư mục gốc:
 
 ```powershell
 npm run test:server
+npm run typecheck --prefix client
 npm run lint --prefix client
 npm run build:client
 npm run build:server
@@ -320,6 +347,7 @@ seed và transaction. Test JPA dùng H2 chế độ MSSQL; cần kiểm tra SQL 
 thật bằng Docker khi sửa phần liên quan database.
 
 `build:server` hiện bỏ qua test; chạy `test:server` trước khi build.
+Build frontend chạy TypeScript trước khi Vite đóng gói.
 Dockerfile backend chạy test khi đóng gói; Dockerfile frontend chạy lint và build.
 
 ## Quy trình Git
@@ -333,7 +361,7 @@ Dockerfile backend chạy test khi đóng gói; Dockerfile frontend chạy lint 
 Tên nhánh dùng chữ thường, ngăn cách bằng dấu gạch nối.
 Ví dụ: `feature/project-base`, `feature/authentication`, `feature/shipment-management`.
 
-Khi nhánh `develop` đã có trên remote, bắt đầu chức năng từ nhánh đó:
+Bắt đầu chức năng từ nhánh `develop`:
 
 ```powershell
 git switch develop

@@ -1,7 +1,6 @@
-import PropTypes from 'prop-types';
 import { Loader2 } from 'lucide-react';
 
-export default function LoadingSpinner({ text = 'Loading...' }) {
+export default function LoadingSpinner({ text = 'Loading...' }: { text?: string }) {
   return (
     <div className="loading-container">
       <Loader2 className="spinner-icon" size={28} />
@@ -9,5 +8,3 @@ export default function LoadingSpinner({ text = 'Loading...' }) {
     </div>
   );
 }
-
-LoadingSpinner.propTypes = { text: PropTypes.string };

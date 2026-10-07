@@ -2,7 +2,7 @@ name: sba391-group6
 
 services:
   sqlserver:
-    image: mcr.microsoft.com/mssql/server:2022-latest
+    image: mcr.microsoft.com/mssql/server:2025-latest
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_PID: Developer
@@ -19,7 +19,7 @@ services:
       start_period: 30s
 
   sqlserver-init:
-    image: mcr.microsoft.com/mssql/server:2022-latest
+    image: mcr.microsoft.com/mssql/server:2025-latest
     environment:
       SQLCMDPASSWORD: ${SQLSERVER_PASSWORD:?Set SQLSERVER_PASSWORD in the root .env file}
     depends_on:
