@@ -356,20 +356,28 @@ Dockerfile backend chạy test khi đóng gói; Dockerfile frontend chạy lint 
 | --- | --- |
 | `main` | Phiên bản ổn định |
 | `develop` | Tích hợp các chức năng của nhóm |
-| `feature/<ten-chuc-nang>` | Phát triển từng chức năng |
+| `feature/<ma-uc>-<ten-chuc-nang>` | Phát triển chức năng gắn với mã Use Case |
+| `docs/<mo-ta>` | Cập nhật tài liệu không thuộc UC |
+| `chore/<mo-ta>` | Cấu hình, hạ tầng hoặc bảo trì không thuộc UC |
 
-Tên nhánh dùng chữ thường, ngăn cách bằng dấu gạch nối.
-Ví dụ: `feature/project-base`, `feature/authentication`, `feature/shipment-management`.
+Tên nhánh dùng chữ thường, phần mô tả bằng tiếng Anh và ngăn cách bằng dấu gạch nối.
+Nhánh chức năng phải có mã UC lấy từ sheet Use Case của nhóm, viết thường trong tên nhánh.
+Ví dụ minh họa: UC001 đăng nhập dùng `feature/uc001-login`, UC012 tạo đơn chuyển phát
+dùng `feature/uc012-create-shipment`. Các mã này chỉ là ví dụ, chưa phải phân công UC thực tế.
+Giữ đúng mã và số thứ tự trong sheet; không tự đặt mã khi chưa được thống nhất.
+Tài liệu hoặc hạ tầng không thuộc UC dùng nhánh `docs/` hoặc `chore/`, không gán mã UC giả.
 
 Bắt đầu chức năng từ nhánh `develop`:
 
 ```powershell
 git switch develop
 git pull --ff-only origin develop
-git switch -c feature/shipment-management
+git switch -c feature/uc012-create-shipment
 ```
 
+Thay mã UC và tên chức năng trong ví dụ bằng UC được phân công.
 Sau khi commit và push nhánh feature, mở Pull Request vào `develop` để review và tích hợp.
+Tiêu đề PR chức năng ghi mã UC, ví dụ `[UC012] Create shipment`, để đối chiếu với sheet.
 Chỉ đưa phiên bản ổn định từ `develop` vào `main`.
 
 ## Tài liệu
