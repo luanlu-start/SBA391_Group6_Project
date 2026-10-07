@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Plus, 
   Search, 
@@ -31,6 +31,10 @@ export default function ProductsPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [submittedSearch, setSubmittedSearch] = useState('');
+  const [page, setPage] = useState(0);
+  const [pagination, setPagination] = useState({ totalPages: 0, totalElements: 0 });
+  const latestRequest = useRef(0);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [error, setError] = useState(null);
   const [toast, setToast] = useState(null);
@@ -43,33 +47,46 @@ export default function ProductsPage() {
   const [formErrors, setFormErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
-  // Fetch Products
-  const loadProducts = async () => {
+  // Use committed search text; paging does not apply unfinished text edits.
+  const loadProducts = useCallback(async () => {
+    const requestId = ++latestRequest.current;
     setLoading(true);
     setError(null);
     try {
-      const params = {};
-      if (search.trim()) params.search = search.trim();
+      const params = { page, size: 12 };
+      if (submittedSearch) params.search = submittedSearch;
       if (selectedCategory !== 'All') params.category = selectedCategory;
-
       const res = await productApi.getAll(params);
-      if (res && res.success) {
-        setProducts(res.data || []);
+      if (requestId !== latestRequest.current) return;
+      if (res?.success) {
+        const result = res.data;
+        if (page > 0 && page >= result.totalPages) {
+          setPage(Math.max(0, result.totalPages - 1));
+          return;
+        }
+        setProducts(result.content);
+        setPagination({ totalPages: result.totalPages, totalElements: result.totalElements });
       }
     } catch (err) {
-      setError(err.message || 'Không thể tải danh sách sản phẩm');
+      if (requestId === latestRequest.current) {
+        setError(err.message || 'Không thể tải danh sách sản phẩm');
+      }
     } finally {
-      setLoading(false);
+      if (requestId === latestRequest.current) setLoading(false);
     }
-  };
+  }, [page, submittedSearch, selectedCategory]);
 
   useEffect(() => {
     loadProducts();
-  }, [selectedCategory]);
+    return () => { latestRequest.current += 1; };
+  }, [loadProducts]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    loadProducts();
+    const keyword = search.trim();
+    if (page === 0 && submittedSearch === keyword) loadProducts();
+    setSubmittedSearch(keyword);
+    setPage(0);
   };
 
   const showToast = (message, type = 'success') => {
@@ -93,7 +110,7 @@ export default function ProductsPage() {
     setFormData({
       name: prod.name || '',
       description: prod.description || '',
-      price: prod.price || '',
+      price: prod.price ?? '',
       category: prod.category || 'Electronics',
       stock: prod.stock || 0,
       status: prod.status || 'ACTIVE',
@@ -163,7 +180,7 @@ export default function ProductsPage() {
           </div>
           <h1 className="page-title">Quản lý Sản phẩm (Products)</h1>
           <p className="page-subtitle">
-            Dữ liệu kết nối trực tiếp với Spring Boot 3 API (<code>/api/v1/products</code>) và lưu trữ qua Spring Data MongoDB.
+            Tạo, tìm kiếm và quản lý thông tin sản phẩm.
           </p>
         </div>
 
@@ -205,13 +222,13 @@ export default function ProductsPage() {
             <button
               key={cat}
               className={`chip-btn ${selectedCategory === cat ? 'active' : ''}`}
-              onClick={() => setSelectedCategory(cat)}
+              onClick={() => { setSelectedCategory(cat); setPage(0); }}
             >
               {cat}
             </button>
           ))}
           <button
-            onClick={loadProducts}
+            onClick={() => loadProducts()}
             className="btn btn-icon btn-ghost"
             title="Tải lại danh sách"
           >
@@ -226,7 +243,7 @@ export default function ProductsPage() {
           <AlertCircle size={20} />
           <div>
             <strong>Lỗi tải dữ liệu:</strong> {error}
-            <button onClick={loadProducts} className="btn btn-sm btn-outline mt-2">
+            <button onClick={() => loadProducts()} className="btn btn-sm btn-outline mt-2">
               Thử lại
             </button>
           </div>
@@ -288,6 +305,16 @@ export default function ProductsPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {!loading && !error && pagination.totalPages > 0 && (
+        <nav className="filter-card mt-4" aria-label="Phân trang sản phẩm">
+          <button className="btn btn-secondary" disabled={page === 0}
+            onClick={() => setPage((current) => current - 1)}>Trang trước</button>
+          <span>Trang {page + 1} / {pagination.totalPages} · {pagination.totalElements} sản phẩm</span>
+          <button className="btn btn-secondary" disabled={page + 1 >= pagination.totalPages}
+            onClick={() => setPage((current) => current + 1)}>Trang sau</button>
+        </nav>
       )}
 
       {/* Modal for Add / Edit */}

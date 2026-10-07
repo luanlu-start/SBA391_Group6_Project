@@ -1,4 +1,4 @@
-import React from 'react';
+import PropTypes from 'prop-types';
 import { Loader2 } from 'lucide-react';
 
 export default function LoadingSpinner({ text = 'Loading...' }) {
@@ -9,3 +9,5 @@ export default function LoadingSpinner({ text = 'Loading...' }) {
     </div>
   );
 }
+
+LoadingSpinner.propTypes = { text: PropTypes.string };

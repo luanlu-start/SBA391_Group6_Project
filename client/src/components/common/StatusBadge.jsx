@@ -1,6 +1,6 @@
-import React from 'react';
+import PropTypes from 'prop-types';
 
-export default function StatusBadge({ status, type = 'default' }) {
+export default function StatusBadge({ status }) {
   const isHealthy = status === 'UP' || status === 'ACTIVE' || status === 'SUCCESS';
   const isPending = status === 'PENDING' || status === 'CONNECTING';
   
@@ -16,3 +16,5 @@ export default function StatusBadge({ status, type = 'default' }) {
     </span>
   );
 }
+
+StatusBadge.propTypes = { status: PropTypes.string };

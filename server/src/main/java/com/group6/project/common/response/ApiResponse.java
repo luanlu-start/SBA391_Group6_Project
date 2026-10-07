@@ -1,6 +1,8 @@
 package com.group6.project.common.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.group6.project.common.exception.ErrorCode;
+import com.group6.project.common.exception.GlobalErrorCode;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,6 +21,9 @@ public class ApiResponse<T> {
     private boolean success = true;
 
     private int status;
+
+    @Builder.Default
+    private int code = GlobalErrorCode.SUCCESS.getCode();
 
     private String message;
 
@@ -59,22 +64,17 @@ public class ApiResponse<T> {
                 .build();
     }
 
-    public static <T> ApiResponse<T> error(int status, String message) {
-        return ApiResponse.<T>builder()
-                .success(false)
-                .status(status)
-                .message(message)
-                .timestamp(Instant.now())
-                .build();
+    public static <T> ApiResponse<T> error(ErrorCode errorCode) {
+        return error(errorCode, errorCode.getMessage(), null);
     }
 
-    public static <T> ApiResponse<T> error(int status, String message, Object errors) {
+    public static <T> ApiResponse<T> error(ErrorCode errorCode, String message, Object errors) {
         return ApiResponse.<T>builder()
                 .success(false)
-                .status(status)
+                .status(errorCode.getHttpStatus().value())
+                .code(errorCode.getCode())
                 .message(message)
                 .errors(errors)
-                .timestamp(Instant.now())
                 .build();
     }
 }

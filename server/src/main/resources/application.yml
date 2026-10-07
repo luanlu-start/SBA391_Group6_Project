@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
   error:
     include-message: always
     include-binding-errors: always
@@ -8,7 +8,20 @@ spring:
   application:
     name: sba391-group6-server
   profiles:
-    active: dev
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  datasource:
+    url: ${SQLSERVER_URL:jdbc:sqlserver://localhost:1433;databaseName=group6_project_db;encrypt=true;trustServerCertificate=true}
+    username: ${SQLSERVER_USERNAME:sa}
+    password: ${SQLSERVER_PASSWORD}
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
   data:
     mongodb:
       uri: ${MONGODB_URI:mongodb://localhost:27017/group6_project_db}

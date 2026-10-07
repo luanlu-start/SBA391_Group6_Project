@@ -50,6 +50,7 @@ axiosClient.interceptors.response.use(
       message,
       originalError: error,
       status: error.response?.status,
+      code: error.response?.data?.code,
       errors: error.response?.data?.errors,
     });
   }
