@@ -1,4 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import type { FormEvent } from 'react';
+import type { Product, ProductSearchRequest, ProductStatus } from '../types/product';
+import { getApiError } from '../api/ApiError';
 import { 
   Plus, 
   Search, 
@@ -18,17 +21,26 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 
 const CATEGORIES = ['All', 'Electronics', 'Accessories', 'Software', 'Gadgets'];
 
-const INITIAL_FORM = {
+interface ProductForm {
+  name: string;
+  description: string;
+  price: string;
+  category: string;
+  stock: string;
+  status: ProductStatus;
+}
+
+const INITIAL_FORM: ProductForm = {
   name: '',
   description: '',
   price: '',
   category: 'Electronics',
-  stock: 10,
+  stock: '10',
   status: 'ACTIVE',
 };
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [submittedSearch, setSubmittedSearch] = useState('');
@@ -36,15 +48,15 @@ export default function ProductsPage() {
   const [pagination, setPagination] = useState({ totalPages: 0, totalElements: 0 });
   const latestRequest = useRef(0);
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [error, setError] = useState(null);
-  const [toast, setToast] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [currentId, setCurrentId] = useState(null);
+  const [currentId, setCurrentId] = useState<string | null>(null);
   const [formData, setFormData] = useState(INITIAL_FORM);
-  const [formErrors, setFormErrors] = useState({});
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
   // Use committed search text; paging does not apply unfinished text edits.
@@ -53,7 +65,7 @@ export default function ProductsPage() {
     setLoading(true);
     setError(null);
     try {
-      const params = { page, size: 12 };
+      const params: ProductSearchRequest = { page, size: 12 };
       if (submittedSearch) params.search = submittedSearch;
       if (selectedCategory !== 'All') params.category = selectedCategory;
       const res = await productApi.getAll(params);
@@ -69,7 +81,7 @@ export default function ProductsPage() {
       }
     } catch (err) {
       if (requestId === latestRequest.current) {
-        setError(err.message || 'Không thể tải danh sách sản phẩm');
+        setError(getApiError(err).message || 'Không thể tải danh sách sản phẩm');
       }
     } finally {
       if (requestId === latestRequest.current) setLoading(false);
@@ -81,7 +93,7 @@ export default function ProductsPage() {
     return () => { latestRequest.current += 1; };
   }, [loadProducts]);
 
-  const handleSearchSubmit = (e) => {
+  const handleSearchSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const keyword = search.trim();
     if (page === 0 && submittedSearch === keyword) loadProducts();
@@ -89,7 +101,7 @@ export default function ProductsPage() {
     setPage(0);
   };
 
-  const showToast = (message, type = 'success') => {
+  const showToast = (message: string, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
   };
@@ -104,15 +116,15 @@ export default function ProductsPage() {
   };
 
   // Open Modal for Edit
-  const handleOpenEdit = (prod) => {
+  const handleOpenEdit = (prod: Product) => {
     setIsEditing(true);
     setCurrentId(prod.id);
     setFormData({
       name: prod.name || '',
       description: prod.description || '',
-      price: prod.price ?? '',
+      price: String(prod.price),
       category: prod.category || 'Electronics',
-      stock: prod.stock || 0,
+      stock: String(prod.stock),
       status: prod.status || 'ACTIVE',
     });
     setFormErrors({});
@@ -120,7 +132,7 @@ export default function ProductsPage() {
   };
 
   // Delete
-  const handleDelete = async (id, name) => {
+  const handleDelete = async (id: string, name: string) => {
     if (!window.confirm(`Bạn có chắc chắn muốn xóa sản phẩm "${name}" không?`)) {
       return;
     }
@@ -129,12 +141,12 @@ export default function ProductsPage() {
       showToast(`Đã xóa sản phẩm "${name}" thành công!`);
       loadProducts();
     } catch (err) {
-      alert(`Xóa thất bại: ${err.message}`);
+      alert(`Xóa thất bại: ${getApiError(err).message}`);
     }
   };
 
   // Submit Create or Edit
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSubmitting(true);
     setFormErrors({});
@@ -150,6 +162,7 @@ export default function ProductsPage() {
       };
 
       if (isEditing) {
+        if (!currentId) throw new Error('Missing product ID');
         await productApi.update(currentId, payload);
         showToast('Cập nhật sản phẩm thành công!');
       } else {
@@ -160,10 +173,11 @@ export default function ProductsPage() {
       setIsModalOpen(false);
       loadProducts();
     } catch (err) {
-      if (err.errors) {
-        setFormErrors(err.errors);
+      const apiError = getApiError(err);
+      if (apiError.errors) {
+        setFormErrors(apiError.errors);
       } else {
-        alert(err.message || 'Thao tác không thành công');
+        alert(apiError.message || 'Thao tác không thành công');
       }
     } finally {
       setSubmitting(false);
@@ -388,7 +402,7 @@ export default function ProductsPage() {
               <select
                 className="form-input"
                 value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as ProductStatus })}
               >
                 <option value="ACTIVE">ACTIVE</option>
                 <option value="INACTIVE">INACTIVE</option>
@@ -399,7 +413,7 @@ export default function ProductsPage() {
           <div className="form-group">
             <label className="form-label">Mô tả sản phẩm</label>
             <textarea
-              rows="3"
+              rows={3}
               className="form-input form-textarea"
               placeholder="Nhập mô tả ngắn gọn về sản phẩm..."
               value={formData.description}

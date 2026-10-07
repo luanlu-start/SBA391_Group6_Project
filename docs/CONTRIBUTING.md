@@ -11,14 +11,14 @@ Product là module mẫu SQL Server/JPA; Activity là module mẫu MongoDB.
 | Java class/interface/enum | PascalCase | `ProductService`, `ProductErrorCode` |
 | Java field/method | camelCase | `createdAt`, `getProductById` |
 | Hằng số, enum value | UPPER_SNAKE_CASE | `PRODUCT_NOT_FOUND`, `IN_TRANSIT` |
-| React component/page/layout | PascalCase, file cùng tên | `ProductsPage.jsx`, `Modal.jsx` |
+| React component/page/layout | PascalCase, file cùng tên | `ProductsPage.tsx`, `Modal.tsx` |
 | Custom hook | Bắt đầu bằng use | `useShipments` |
-| File API frontend | camelCase, hậu tố Api | `productApi.js`, `shipmentApi.js` |
+| File API frontend | camelCase, hậu tố Api | `productApi.ts`, `shipmentApi.ts` |
 | SQL table/column | snake_case | `products`, `created_at` |
 | Endpoint | Danh từ số nhiều, kebab-case | `/products`, `/activity-logs` |
 | Nhánh chức năng | feature/kebab-case | `feature/shipment-management` |
 
-Dùng tiếng Anh cho tên code. Java thụt 4 spaces; JS/JSX thụt 2 spaces.
+Dùng tiếng Anh cho tên code. Java thụt 4 spaces; TypeScript/TSX thụt 2 spaces.
 Giữ style của file đang sửa, chạy formatter IDE và ESLint, xóa import/biến không dùng.
 Comment giải thích lý do hoặc điều kiện nghiệp vụ khó nhận ra; không lặp lại nguyên nội dung code.
 
@@ -165,17 +165,19 @@ Seeder Product đọc `demo/products.json`, không tạo ActivityLog và không 
 - Form có kiểm tra đầu vào và hiển thị lỗi field từ backend.
 - Không mutate trực tiếp state; cập nhật bằng setter.
 - Request cũ không được ghi đè kết quả của bộ lọc/trang mới.
-- Component nhận props khai báo PropTypes theo cấu hình ESLint hiện có.
+- Component nhận props khai báo type/interface TypeScript; không dùng PropTypes. API và state phải có kiểu dữ liệu rõ ràng, không dùng any để bỏ qua lỗi type.
 
 Interceptor trả thẳng payload ApiResponse. Ví dụ:
 
-```javascript
+```typescript
 const response = await productApi.getAll({ page: 0, size: 12 });
 const products = response.data.content;
 ```
 
 Không đọc thêm `response.data.data` vì Axios response đã được unwrap.
-Khi xử lý lỗi, đọc `error.message`, `error.code`, `error.errors` từ axiosClient.
+Kiểu dùng chung đặt trong `src/types`; API khai báo `ApiResponse<T>` và `PageResponse<T>`.
+Lỗi từ axiosClient là `ApiError`. Trong `catch`, dùng `getApiError(error)` để đọc
+`message`, `code`, `errors` mà không bỏ qua kiểm tra kiểu của TypeScript.
 
 ## 9. Kiểm thử, cấu hình và đóng góp
 
@@ -188,6 +190,7 @@ Trước khi gửi Pull Request, chạy từ thư mục gốc:
 
 ```powershell
 npm run test:server
+npm run typecheck --prefix client
 npm run lint --prefix client
 npm run build:client
 ```

@@ -10,10 +10,10 @@ import com.group6.project.modules.product.service.ProductService;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -40,7 +40,7 @@ class ActivityTransactionTest {
     @Autowired private ProductService products;
     @Autowired private ProductRepository productRepository;
     @Autowired private PlatformTransactionManager transactionManager;
-    @MockBean private ActivityLogRepository logs;
+    @MockitoBean private ActivityLogRepository logs;
 
     @Test
     void writesHistoryOnlyAfterSqlTransactionCommits() {

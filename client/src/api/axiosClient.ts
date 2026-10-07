@@ -1,4 +1,7 @@
 import axios from 'axios';
+import type { AxiosError } from 'axios';
+import type { ApiResponse } from '../types/api';
+import { ApiError } from './ApiError';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
 
@@ -31,7 +34,7 @@ axiosClient.interceptors.response.use(
     // Return backend ApiResponse payload directly
     return response.data;
   },
-  (error) => {
+  (error: AxiosError<ApiResponse<unknown>>) => {
     let message = 'An unexpected network error occurred';
     
     if (error.response) {
@@ -46,13 +49,8 @@ axiosClient.interceptors.response.use(
       message = 'Cannot connect to backend server. Make sure Spring Boot is running on port 8080.';
     }
 
-    return Promise.reject({
-      message,
-      originalError: error,
-      status: error.response?.status,
-      code: error.response?.data?.code,
-      errors: error.response?.data?.errors,
-    });
+    return Promise.reject(new ApiError(message, error.response?.status,
+      error.response?.data?.code, error.response?.data?.errors, error));
   }
 );
 

@@ -45,3 +45,6 @@ Thumbs.db
 
 # IntelliJ module metadata
 *.iml
+
+# Local toolchains used for build verification
+.tools/

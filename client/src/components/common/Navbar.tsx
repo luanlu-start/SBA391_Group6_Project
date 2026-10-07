@@ -5,7 +5,7 @@ import { healthApi } from '../../api/healthApi';
 
 export default function Navbar() {
   const location = useLocation();
-  const [serverHealth, setServerHealth] = useState({ status: 'CHECKING', uptimeMs: null });
+  const [serverHealth, setServerHealth] = useState({ status: 'CHECKING' });
   const [isChecking, setIsChecking] = useState(false);
 
   const checkStatus = async () => {
@@ -13,12 +13,12 @@ export default function Navbar() {
     try {
       const res = await healthApi.getHealth();
       if (res && res.success) {
-        setServerHealth({ status: 'ONLINE', details: res.data });
+        setServerHealth({ status: 'ONLINE' });
       } else {
-        setServerHealth({ status: 'OFFLINE', details: null });
+        setServerHealth({ status: 'OFFLINE' });
       }
     } catch {
-      setServerHealth({ status: 'OFFLINE', details: null });
+      setServerHealth({ status: 'OFFLINE' });
     } finally {
       setIsChecking(false);
     }

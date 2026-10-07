@@ -6,7 +6,7 @@ checklist theo yêu cầu trong đề SBA301 đã xác nhận.
 ## Đã có nền tảng
 
 - [x] React SPA + React Router, giao diện CRUD mẫu có modal/xác nhận xóa.
-- [x] Spring Boot 3 Controller → Service → Repository.
+- [x] Spring Boot 4 Controller → Service → Repository.
 - [x] SQL Server + JPA/Hibernate: Product CRUD và UUID.
 - [x] MongoDB + Spring Data MongoDB: collection activity_logs ghi lịch sử CRUD.
 - [x] DTO, MapStruct, validation, ControllerAdvice và mã nghiệp vụ.

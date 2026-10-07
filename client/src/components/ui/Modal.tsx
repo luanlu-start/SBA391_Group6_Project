@@ -1,10 +1,17 @@
-import PropTypes from 'prop-types';
+import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
 
-export default function Modal({ isOpen, onClose, title, children }) {
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title?: string;
+  children?: ReactNode;
+}
+
+export default function Modal({ isOpen, onClose, title, children }: ModalProps) {
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
         onClose();
       }
@@ -31,10 +38,3 @@ export default function Modal({ isOpen, onClose, title, children }) {
     </div>
   );
 }
-
-Modal.propTypes = {
-  isOpen: PropTypes.bool.isRequired,
-  onClose: PropTypes.func.isRequired,
-  title: PropTypes.string,
-  children: PropTypes.node,
-};
