@@ -66,6 +66,25 @@ SBA391_Group6_Project/
 │   │   │   │   │   ├── activity/
 │   │   │   │   │   ├── health/
 │   │   │   │   │   └── product/
+│   │   │   │   │       ├── config/
+│   │   │   │   │       │   └── ProductDemoSeeder.java
+│   │   │   │   │       ├── controller/
+│   │   │   │   │       │   └── ProductController.java
+│   │   │   │   │       ├── dto/
+│   │   │   │   │       │   ├── ProductRequest.java
+│   │   │   │   │       │   ├── ProductResponse.java
+│   │   │   │   │       │   └── ProductSearchRequest.java
+│   │   │   │   │       ├── exception/
+│   │   │   │   │       │   └── ProductErrorCode.java
+│   │   │   │   │       ├── mapper/
+│   │   │   │   │       │   └── ProductMapper.java
+│   │   │   │   │       ├── model/
+│   │   │   │   │       │   └── Product.java
+│   │   │   │   │       ├── repository/
+│   │   │   │   │       │   ├── ProductRepository.java
+│   │   │   │   │       │   └── ProductSpecification.java
+│   │   │   │   │       └── service/
+│   │   │   │   │           └── ProductService.java
 │   │   │   │   └── Application.java
 │   │   │   └── resources/
 │   │   │       ├── demo/products.json
