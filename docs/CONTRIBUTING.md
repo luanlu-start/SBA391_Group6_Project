@@ -16,7 +16,7 @@ Product là module mẫu SQL Server/JPA; Activity là module mẫu MongoDB.
 | File API frontend | camelCase, hậu tố Api | `productApi.ts`, `shipmentApi.ts` |
 | SQL table/column | snake_case | `products`, `created_at` |
 | Endpoint | Danh từ số nhiều, kebab-case | `/products`, `/activity-logs` |
-| Nhánh chức năng | feature/kebab-case | `feature/shipment-management` |
+| Nhánh chức năng | feature/mã-uc-kebab-case | `feature/uc012-create-shipment` |
 
 Dùng tiếng Anh cho tên code. Java thụt 4 spaces; TypeScript/TSX thụt 2 spaces.
 Giữ style của file đang sửa, chạy formatter IDE và ESLint, xóa import/biến không dùng.
@@ -202,10 +202,16 @@ Biến môi trường tham khảo `.env.example`; không commit mật khẩu, fi
 node_modules, dist hoặc target. Trong container dùng sqlserver:1433/mongodb:27017;
 chạy trên máy dùng localhost với cổng đã cấu hình.
 
-Nhánh chức năng theo `feature/<ten-chuc-nang>`, bắt đầu từ develop.
+Nhánh chức năng theo `feature/<ma-uc>-<ten-chuc-nang>`, bắt đầu từ develop.
+Mã UC lấy từ sheet Use Case của nhóm, chuyển thành chữ thường và giữ đúng số thứ tự.
+Phần tên chức năng dùng tiếng Anh, kebab-case. Ví dụ minh họa: `feature/uc001-login`,
+`feature/uc012-create-shipment`; thay bằng mã UC thực tế được phân công, không tự đặt mã.
+Việc tài liệu hoặc hạ tầng không thuộc UC dùng `docs/<mo-ta>` hoặc `chore/<mo-ta>`.
 Commit mô tả thay đổi; có thể dùng `feat(shipment): add shipment creation`,
 `fix(product): validate price range`, `docs: update setup instructions`.
 Pull Request vào develop ghi rõ thay đổi và cách kiểm tra.
+PR chức năng có mã UC trong tiêu đề, ví dụ `[UC012] Create shipment`, và tham chiếu UC
+trong mô tả để đối chiếu yêu cầu, cách kiểm tra và tiến độ trên sheet.
 Không gộp sửa định dạng toàn dự án vào một thay đổi nghiệp vụ nhỏ.
 
 Base hiện cung cấp Product/Activity mẫu. Yêu cầu còn lại theo nghiệp vụ nhóm và hướng dẫn
