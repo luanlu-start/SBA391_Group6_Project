@@ -8,10 +8,10 @@ BE/FE là mã thành viên TV1–TV6; `—` là ô trống trong nguồn. Sprint
 
 ## Quy ước nhánh và PR
 
-Giữ mã `UC-xx` đúng sheet, viết thường trong tên nhánh:
+Giữ mã `UC-xx` đúng sheet và ví dụ SPEC; mô tả không dấu, dùng gạch nối:
 
-- UC-03 Đăng nhập: `feature/uc-03-login`, PR `[UC-03] Login`.
-- UC-12 Tạo đơn giao hàng: `feature/uc-12-create-order`, PR `[UC-12] Create order`.
+- UC-03 Đăng nhập: `feature/UC-03-dang-nhap`, PR `[UC-03] Đăng nhập`.
+- UC-12 Tạo đơn giao hàng: `feature/UC-12-tao-don`, PR `[UC-12] Tạo đơn`.
 - Công việc chung không thuộc UC: `docs/<mo-ta>` hoặc `chore/<mo-ta>`.
 
 Nhánh bắt đầu từ `develop`, PR vào `develop`. Mã UC là mã yêu cầu;

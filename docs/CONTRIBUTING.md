@@ -12,7 +12,7 @@ trước khi nhiều thành viên viết module nghiệp vụ.
 
 | Loại | Quy ước | Ví dụ |
 | --- | --- | --- |
-| Java package/module | Chữ thường | `modules.product`, `modules.order` |
+| Java package/module | Chữ thường | `com.fptpost.modules.product`, `com.fptpost.modules.order` |
 | Java class/interface/enum | PascalCase | `ProductService`, `ProductErrorCode` |
 | Java field/method | camelCase | `createdAt`, `getProductById` |
 | Hằng số, enum value | UPPER_SNAKE_CASE | `PRODUCT_NOT_FOUND`, `IN_TRANSIT` |
@@ -21,7 +21,7 @@ trước khi nhiều thành viên viết module nghiệp vụ.
 | File API frontend | camelCase, hậu tố Api | `productApi.ts`, `orderApi.ts` |
 | SQL table/column | snake_case | `products`, `created_at` |
 | Endpoint | Danh từ số nhiều, kebab-case | `/products`, `/activity-logs` |
-| Nhánh chức năng | feature/mã-uc-kebab-case | `feature/uc-12-create-order` |
+| Nhánh chức năng | feature/mã-UC-mô-tả-kebab-case | `feature/UC-12-tao-don` |
 
 Dùng tiếng Anh cho tên code. Java thụt 4 spaces; TypeScript/TSX thụt 2 spaces.
 Giữ style của file đang sửa, chạy formatter IDE và ESLint, xóa import/biến không dùng.
@@ -32,7 +32,7 @@ Order/useOrders là ví dụ cho module FPTPost tương lai, chưa phải chức
 ## 2. Tổ chức module backend
 
 ```text
-modules/<module>/
+com/fptpost/modules/<module>/
 ├── controller/
 ├── service/
 ├── repository/
@@ -62,8 +62,8 @@ Chỉ tách interface/implementation khi có nhu cầu thực tế.
 Dependency injection qua constructor, có thể dùng `@RequiredArgsConstructor` và field `final`.
 
 Module khác giao tiếp qua facade/interface hoặc sự kiện, không gọi repository nội bộ của nhau.
-Ranh giới theo [kiến trúc FPTPost](LOGISTICS-BASE.md); package bốn tầng trong SPEC
-chưa thay thế cấu trúc base, cần chốt trước khi tạo nhiều module.
+Ranh giới theo [kiến trúc FPTPost](LOGISTICS-BASE.md). Nhóm chọn package com.fptpost
+với các tầng controller/service/repository/model/dto/mapper, không thêm bốn tầng trùng chức năng.
 
 ## 3. DTO, mapping và validation
 
@@ -156,14 +156,16 @@ Không dùng ActivityLog mẫu làm bằng chứng duy nhất cho trạng thái 
 Chỉ module ledger được ghi bút toán; ghi lịch sử trạng thái và bút toán liên quan trong
 cùng transaction SQL, có kiểm tra quyền và điều kiện. Xem [database](DATABASE.md).
 
-## 7. Code first và seed data
+## 7. Migration và seed data
 
-Cấu hình nằm trong một `application.yml`; Hibernate dùng `ddl-auto: update`, chưa dùng Flyway.
-Sửa entity để tạo/cập nhật schema; khai báo giới hạn cột, index và check constraint tại entity.
-Đổi tên/xóa cột hoặc chuyển đổi dữ liệu phức tạp cần xử lý riêng.
+Cấu hình trong một `application.yml`; Flyway quản lý schema, Hibernate dùng `ddl-auto: validate`.
+Sửa entity kèm migration mới với unique/foreign key/check/index cần thiết trong cùng PR.
+Không sửa migration đã áp dụng; không dùng Hibernate update/create để né migration.
+Filtered unique index, trigger và quyền bảo vệ ledger phải có migration T-SQL và test
+SQL Server khi module tương ứng được tạo; chưa có các bảng ledger trong base.
 
-Khi cần dựng lại bảng, đổi thành `create`; dữ liệu SQL cũ bị xóa.
-Bật profile demo để seeder nạp lại mẫu. DDL chỉ tạo schema, không tạo dữ liệu mẫu.
+Seed demo tách khỏi migration schema. Database cũ do Hibernate tạo phải được kiểm tra
+và baseline một lần theo [hướng dẫn migration](DATABASE-MIGRATIONS.md), giữ dữ liệu cũ.
 
 Mỗi module có seeder riêng nếu cần. Không gom mẫu của mọi module vào service hoặc một AppInit quá lớn.
 Seed dùng mã/ID ổn định để kiểm tra bản ghi tồn tại, chỉ thêm mẫu còn thiếu.
@@ -217,9 +219,9 @@ node_modules, dist hoặc target. Trong container dùng sqlserver:1433/mongodb:2
 chạy trên máy dùng localhost với cổng đã cấu hình.
 
 Nhánh chức năng theo `feature/<ma-uc>-<ten-chuc-nang>`, bắt đầu từ develop.
-Mã UC lấy từ sheet `04_UC`, chuyển chữ thường, giữ dấu gạch nối và hai chữ số `UC-xx`.
-Phần tên chức năng dùng tiếng Anh, kebab-case. Theo v1.0: `feature/uc-03-login`,
-`feature/uc-12-create-order`; chọn mã từ [danh mục UC](USE-CASES.md), không tự đặt mã.
+Mã UC lấy từ sheet `04_UC`, giữ chữ hoa `UC`, dấu gạch nối và hai chữ số `UC-xx`.
+Phần mô tả không dấu, kebab-case. Theo SPEC: `feature/UC-03-dang-nhap`,
+`feature/UC-12-tao-don`; chọn mã từ [danh mục UC](USE-CASES.md), không tự đặt mã.
 Việc tài liệu hoặc hạ tầng không thuộc UC dùng `docs/<mo-ta>` hoặc `chore/<mo-ta>`.
 Commit mô tả thay đổi; có thể dùng `feat(order): UC-12 create order`,
 `fix(product): validate price range`, `docs: update setup instructions`.

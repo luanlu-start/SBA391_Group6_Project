@@ -56,10 +56,10 @@ Product hay tạo Branch/Parcel/COD theo ví dụ chuyển phát trước đây.
 - Ledger là nơi duy nhất ghi bút toán tiền; tránh gọi dịch vụ ngoài trong transaction SQL dài.
 - Ghi nghiệp vụ/lịch sử/outbox cùng transaction; worker chống trùng và retry.
 
-SPEC đề xuất api/application/domain/infrastructure; base dùng
-controller/service/repository/model/dto/mapper. Chưa tái cấu trúc package trong lần
-bổ sung tài liệu. Chốt tại [SPEC-ALIGNMENT.md](SPEC-ALIGNMENT.md) trước khi nhiều
-module được tạo; chỉ tạo class/thư mục phục vụ chức năng thực tế.
+Nhóm đã chọn namespace com.fptpost và giữ
+controller/service/repository/model/dto/mapper theo module. SPEC v1.0 đề xuất
+api/application/domain/infrastructure; lựa chọn mới được ghi tại
+[SPEC-ALIGNMENT.md](SPEC-ALIGNMENT.md). Chỉ tạo class/thư mục phục vụ chức năng thực tế.
 
 ## Dùng module mẫu
 
@@ -73,7 +73,7 @@ Chưa xóa hoặc đổi tên module demo khi chưa có luồng thay thế.
 
 ## Bắt đầu triển khai
 
-1. Chốt contract API, phân trang, ID và package trong bảng đối chiếu.
+1. Chốt contract API, phân trang và ID trong bảng đối chiếu; package đã thống nhất.
 2. Dựa vào sheet UC/phân công để xác định phụ thuộc, hoàn thiện ERD/DTO/contract.
 3. Triển khai nền tài khoản/role/OTP, catalog/tham số, ví/VNPay sandbox theo sprint.
 4. Hoàn thiện tạo đơn → sàn/chào giá → ký quỹ → giao nhận → giải ngân cùng ngoại lệ.

@@ -1,7 +1,7 @@
 # API hiện tại và danh mục FPTPost
 
 API chạy được tra cứu trong Swagger UI tại `/swagger-ui/index.html`; OpenAPI runtime
-tại `/v3/api-docs`. Danh mục FPTPost dự kiến lấy từ
+tại `/api-docs` (đường dẫn đã cấu hình trong application.yml). Danh mục FPTPost dự kiến lấy từ
 [Excel v1.0](sources/fptpost-br-uc-v1.0.xlsx), sheet `10_API`, dòng 5–171,
 và [SPEC](sources/fptpost-spec-v1.0.pdf), mục 6.
 

@@ -6,13 +6,14 @@ checklist theo yêu cầu trong đề SBA301 đã xác nhận.
 ## Đã có nền tảng
 
 - [x] React SPA + React Router, giao diện CRUD mẫu có modal/xác nhận xóa.
-- [x] Spring Boot 4 Controller → Service → Repository.
+- [x] Spring Boot 3, Java 21, package com.fptpost, Controller → Service → Repository.
 - [x] SQL Server + JPA/Hibernate: Product CRUD và UUID.
 - [x] MongoDB + Spring Data MongoDB: collection activity_logs ghi lịch sử CRUD.
 - [x] DTO, MapStruct, validation, ControllerAdvice và mã nghiệp vụ.
 - [x] Phân trang, sorting, filtering tại database.
 - [x] Swagger/OpenAPI.
 - [x] Seed demo tách riêng, không chạy trong prod.
+- [x] Flyway migration SQL; Hibernate validate; quy trình baseline database cũ.
 - [x] JUnit 5, Mockito, MockMvc và test JPA.
 - [x] Docker Compose, cấu hình qua môi trường (phần Docker là điểm cộng).
 
