@@ -28,18 +28,18 @@ Stack của dự án:
 
 | Thành phần | Công nghệ |
 | --- | --- |
-| Frontend | React 19.3, TypeScript 6, Vite 8, React Router 7, Axios |
-| Backend | Spring Boot 4.1.1, Java 25 LTS, Spring Web MVC |
-| Database | Microsoft SQL Server 2025 và MongoDB 7 |
+| Frontend | React 18.3, TypeScript 5.9, Vite 5.4, React Router 6, Axios |
+| Backend | Spring Boot 3.5.16, Java 21 LTS, Spring Web MVC |
+| Database | Microsoft SQL Server 2022 và MongoDB 7 |
 | ORM / ODM | Spring Data JPA + Hibernate; Spring Data MongoDB |
 | DB driver | Microsoft JDBC Driver; MongoDB Java Driver |
-| Quản lý schema | Code first, Hibernate `ddl-auto: update` |
+| Quản lý schema | Flyway 11.20.3 + T-SQL; Hibernate `ddl-auto: validate` |
 | Mapping và validation | MapStruct 1.6.3, Jakarta Bean Validation |
 | Tài liệu API | OpenAPI, Swagger UI |
 | Kiểm thử | JUnit Jupiter, Mockito, MockMvc, H2 |
 | Container | Docker + Docker Compose |
 | Frontend production | Nginx |
-| Node.js | 24 LTS |
+| Node.js | 21.7.x theo SPEC |
 
 Kiến trúc base đang chạy (thiết kế FPTPost xem [tài liệu kiến trúc](docs/LOGISTICS-BASE.md)):
 
@@ -50,13 +50,13 @@ React + TypeScript
   v
 Spring Boot (Controller -> Service -> Repository)
   |
-  +-- Spring Data JPA / Hibernate --> SQL Server 2025 (Product)
+  +-- Spring Data JPA / Hibernate --> SQL Server 2022 (Product)
   |
   +-- Spring Data MongoDB ---------> MongoDB 7 (Activity Log)
 ```
 
 Nhật ký hoạt động được ghi vào MongoDB sau khi transaction SQL commit.
-Schema SQL vẫn được quản lý bằng entity và Hibernate; dự án chưa dùng Flyway.
+Schema SQL được quản lý bằng migration Flyway; Hibernate kiểm tra entity khớp schema.
 
 ## Cấu trúc dự án
 
@@ -86,7 +86,7 @@ SBA391_Group6_Project/
 ├── server/
 │   ├── src/
 │   │   ├── main/
-│   │   │   ├── java/com/group6/project/
+│   │   │   ├── java/com/fptpost/
 │   │   │   │   ├── common/
 │   │   │   │   │   ├── exception/
 │   │   │   │   │   ├── request/
@@ -117,9 +117,10 @@ SBA391_Group6_Project/
 │   │   │   │   │           └── ProductService.java
 │   │   │   │   └── Application.java
 │   │   │   └── resources/
+│   │   │       ├── db/migration/V1__create_products.sql
 │   │   │       ├── demo/products.json
 │   │   │       └── application.yml
-│   │   └── test/java/com/group6/project/
+│   │   └── test/java/com/fptpost/
 │   ├── .env.example
 │   ├── .dockerignore
 │   ├── Dockerfile
@@ -130,6 +131,7 @@ SBA391_Group6_Project/
 │   ├── USE-CASES.md
 │   ├── LOGISTICS-BASE.md
 │   ├── DATABASE.md
+│   ├── DATABASE-MIGRATIONS.md
 │   ├── API.md
 │   ├── SPEC-ALIGNMENT.md
 │   ├── SBA301-CHECKLIST.md
@@ -186,12 +188,14 @@ docker compose down
 ```
 
 Khi sửa code, chạy lại `docker compose up --build -d`.
-Dữ liệu nằm trong volumes `sqlserver-data` và `mongo-data`, được giữ khi dừng stack.
-Nếu đã có dữ liệu từ SQL Server 2022, sao lưu trước khi chạy container SQL Server 2025.
+Dữ liệu nằm trong volumes `sqlserver-2022-data` và `mongo-data`, được giữ khi dừng stack.
+Compose dùng volume SQL 2022 riêng, không gắn volume `sqlserver-data` của cấu hình cũ.
+Volume cũ vẫn được giữ. Nếu chứa dữ liệu SQL 2025 cần chuyển, xuất/nhập dữ liệu sang
+database SQL 2022; không chạy SQL 2022 trên các file database đã nâng lên SQL 2025.
 
 ### Chạy trên máy để phát triển
 
-Yêu cầu Node.js 24, JDK 25 và Maven trên PATH; đặt `JAVA_HOME` trỏ tới JDK 25.
+Yêu cầu Node.js 21.7.x, JDK 21 và Maven trên PATH; đặt `JAVA_HOME` trỏ tới JDK 21.
 Từ thư mục gốc, cài dependencies và khởi động hai database:
 
 ```powershell
@@ -229,6 +233,7 @@ Compose tự đọc `.env` ở thư mục gốc; Spring Boot chạy ngoài Docke
 | `SQLSERVER_PASSWORD` | Compose/backend | Mật khẩu SQL Server |
 | `SQLSERVER_URL`, `SQLSERVER_USERNAME` | Backend | Kết nối SQL Server |
 | `MONGODB_URI` | Backend | Kết nối MongoDB |
+| `FLYWAY_BASELINE_ON_MIGRATE` | Compose | Mặc định false; chỉ bật một lần cho schema cũ đã kiểm tra |
 | `SERVER_PORT` | Backend | Cổng HTTP, mặc định 8080 |
 | `SPRING_PROFILES_ACTIVE` | Backend | Profile, mặc định `dev` |
 | `ALLOWED_ORIGINS` | Backend | Danh sách origin được phép |
@@ -243,12 +248,13 @@ Các file `.env.example` là mẫu cấu hình. File `.env` chứa cấu hình l
 | Product | SQL Server, bảng `products` |
 | Nhật ký thao tác Product | MongoDB, collection `activity_logs` |
 
-Backend dùng **code first** với `spring.jpa.hibernate.ddl-auto: update`.
-Sửa entity và khởi động lại để Hibernate tạo/cập nhật schema. UUID, giới hạn cột,
-index và check constraint được khai báo trên entity. Base chưa dùng Flyway.
+Flyway chạy migration tại `server/src/main/resources/db/migration` trước khi JPA khởi tạo.
+Hibernate dùng `ddl-auto: validate`; thay entity kèm migration mới trong cùng PR.
+V1 tạo bảng Product, primary key, check constraint và index. Không sửa migration đã áp dụng.
 
-Khi cần tạo lại bảng, đổi `ddl-auto` thành `create`; dữ liệu trong các bảng JPA sẽ bị xóa.
-Đổi tên/xóa cột hoặc chuyển đổi dữ liệu phức tạp cần xử lý riêng.
+Database mới được dựng từ migration. Database cũ do Hibernate tạo cần đối chiếu schema
+và baseline một lần theo [hướng dẫn Flyway](docs/DATABASE-MIGRATIONS.md), không xóa volumes
+để chuyển sang Flyway. Baseline tự động tắt theo mặc định.
 
 Dữ liệu mẫu nằm trong `server/src/main/resources/demo/products.json`.
 `ProductDemoSeeder` chỉ thêm các UUID mẫu còn thiếu, không ghi đè dữ liệu đã sửa.
@@ -257,7 +263,7 @@ Seeder chạy khi có `demo` và không có `prod`; mặc định không nạp m
 - Docker: đặt `BACKEND_PROFILES=dev,demo` trong `.env`, rồi chạy lại Compose.
 - Chạy trên máy: đặt `SPRING_PROFILES_ACTIVE=dev,demo` trước khi chạy backend.
 
-Hibernate tạo schema trước khi seeder chạy. `ddl-auto` không tự nạp dữ liệu mẫu.
+Flyway tạo schema trước khi seeder chạy. Migration schema không tự nạp dữ liệu mẫu.
 Mỗi module bổ sung seeder riêng khi cần.
 
 Theo thiết kế FPTPost, SQL lưu tài khoản, đơn, ví/sổ cái/ký quỹ; Mongo lưu vị trí,
@@ -331,7 +337,7 @@ direction là `ASC` hoặc `DESC`. Danh sách luôn nằm trong `data.content`.
 
 | Nội dung | Quy ước của nhóm |
 | --- | --- |
-| Tổ chức backend | Theo `modules/<module>`; controller → service → repository |
+| Tổ chức backend | Package `com.fptpost.modules/<module>`; controller → service → repository |
 | Đặt tên | Class/component `PascalCase`, biến/hàm `camelCase`, constant `UPPER_SNAKE_CASE` |
 | Service | Một class `@Service` nếu chỉ có một implementation; constructor injection |
 | DTO và mapping | Request có validation, response tách khỏi entity; dùng MapStruct |
@@ -379,10 +385,9 @@ Dockerfile backend chạy test khi đóng gói; Dockerfile frontend chạy lint 
 | `docs/<mo-ta>` | Cập nhật tài liệu không thuộc UC |
 | `chore/<mo-ta>` | Cấu hình, hạ tầng hoặc bảo trì không thuộc UC |
 
-Tên nhánh dùng chữ thường, phần mô tả bằng tiếng Anh và ngăn cách bằng dấu gạch nối.
-Nhánh chức năng phải có mã UC lấy từ sheet Use Case của nhóm, viết thường trong tên nhánh.
-Theo sheet v1.0: UC-03 đăng nhập dùng `feature/uc-03-login`, UC-12 tạo đơn giao hàng
-dùng `feature/uc-12-create-order`. Xem mã, phân công và sprint trong
+Nhánh chức năng giữ nguyên mã `UC-xx` từ sheet; mô tả không dấu, ngăn cách bằng gạch nối.
+Theo ví dụ SPEC: UC-03 đăng nhập dùng `feature/UC-03-dang-nhap`, UC-12 tạo đơn giao hàng
+dùng `feature/UC-12-tao-don`. Xem mã, phân công và sprint trong
 [danh mục UC](docs/USE-CASES.md). Giữ dấu gạch nối và hai chữ số của mã `UC-xx`;
 không tự đổi số thứ tự hoặc đặt mã mới.
 Tài liệu hoặc hạ tầng không thuộc UC dùng nhánh `docs/` hoặc `chore/`, không gán mã UC giả.
@@ -392,12 +397,12 @@ Bắt đầu chức năng từ nhánh `develop`:
 ```powershell
 git switch develop
 git pull --ff-only origin develop
-git switch -c feature/uc-12-create-order
+git switch -c feature/UC-12-tao-don
 ```
 
 Thay mã UC và tên chức năng trong ví dụ bằng UC được phân công.
 Sau khi commit và push nhánh feature, mở Pull Request vào `develop` để review và tích hợp.
-Tiêu đề PR chức năng ghi mã UC, ví dụ `[UC-12] Create order`, để đối chiếu với sheet.
+Tiêu đề PR chức năng ghi mã UC, ví dụ `[UC-12] Tạo đơn`, để đối chiếu với sheet.
 Chỉ đưa phiên bản ổn định từ `develop` vào `main`.
 
 ## Tài liệu
@@ -407,6 +412,7 @@ Chỉ đưa phiên bản ổn định từ `develop` vào `main`.
 - [Danh mục UC, phân công và quy ước mã nhánh](docs/USE-CASES.md)
 - [Kiến trúc và ranh giới module FPTPost](docs/LOGISTICS-BASE.md)
 - [Database và từ điển dữ liệu dự kiến](docs/DATABASE.md)
+- [Migration Flyway và tiếp nhận database cũ](docs/DATABASE-MIGRATIONS.md)
 - [API hiện tại và danh mục thiết kế](docs/API.md)
 - [Lựa chọn đã chốt, khác biệt với SPEC và câu hỏi còn mở](docs/SPEC-ALIGNMENT.md)
 - [Tài liệu nguồn BR/UC và SPEC v1.0](docs/sources/README.md)

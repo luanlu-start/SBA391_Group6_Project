@@ -7,18 +7,20 @@ toàn bộ đặc tả. [Bản gốc](sources/README.md) được giữ nguyên.
 
 ## Lựa chọn đã chốt cho repository
 
-Theo trao đổi của nhóm khi xây base, các lựa chọn sau được ưu tiên so với cấu hình
-khác trong v1.0 và cần phản ánh vào phiên bản đặc tả tiếp theo.
+Theo lựa chọn mới ngày 09/10/2026, nhóm đưa runtime về Java 21/Boot 3,
+React 18/Router 6/Node 21, dùng Flyway và namespace com.fptpost. Quyết định này
+thay thế lựa chọn stack mới và code first trong lần xây base trước đó.
 
 | Nội dung | SPEC/Excel v1.0 | Lựa chọn của repository |
 | --- | --- | --- |
-| Backend | Java 21, Spring Boot 3 | Java 25, Spring Boot 4.1.1 |
-| Frontend | React 18, Router 6, Node 21; JS/JSDoc, TS còn mở | React 19.3, Router 7, Vite 8, TypeScript 6, Node 24 |
-| Database | SQL Server + MongoDB | Giữ cả hai; SQL Server 2025 + MongoDB 7 |
-| Schema | Flyway, migration bất biến (ADR-10) | Code first, Hibernate update; chưa thêm Flyway khi xây app |
+| Backend | Java 21, Spring Boot 3 | Java 21, Spring Boot 3.5.16, springdoc 2.8.17 |
+| Frontend | React 18, Router 6, Node 21; JS/JSDoc, TS còn mở | React 18.3, Router 6, Node 21.7; giữ TypeScript 5.9, dùng Vite 5.4 tương thích |
+| Database | SQL Server + MongoDB | Theo lựa chọn mới: SQL Server 2022 + MongoDB 7; volume SQL 2022 riêng |
+| Schema | Flyway, migration bất biến (ADR-10) | Flyway V1 cho Product, Hibernate validate; seed demo riêng |
 | Cấu hình | Nhiều môi trường/profile | Một application.yml, biến môi trường; demo seed có profile riêng |
 | Git | Feature/rebase trên main, tích hợp vào main | Feature từ develop, PR vào develop; bản ổn định sang main |
-| Tên nhánh | Ví dụ feature/UC-12-tao-don | Chữ thường, mô tả tiếng Anh: feature/uc-12-create-order |
+| Tên nhánh | Ví dụ feature/UC-12-tao-don | Giữ mã UC-xx, mô tả không dấu: feature/UC-12-tao-don |
+| Package/tầng | com.fptpost, api/app/domain/infra | com.fptpost.modules, controller/service/repository/model/dto/mapper |
 
 Tên thư viện trong SPEC không có nghĩa đã cài hoặc cấu hình trong base.
 
@@ -29,10 +31,10 @@ Tên thư viện trong SPEC không có nghĩa đã cài hoặc cấu hình trong
 | ALIGN-01 | API lỗi/thành công | ApiResponse, code số, errors map | Problem Details, code chữ, errors array; ví dụ thành công payload trực tiếp | Một contract BE/FE/OpenAPI; chưa đổi code |
 | ALIGN-02 | Phân trang | data.content, mặc định 12, sortBy/direction | content, mặc định 20, sort=field,asc; cursor chat/thông báo | Chốt cùng contract API; giữ content |
 | ALIGN-03 | Khóa dữ liệu | Product UUID làm khóa chính | BIGINT nội bộ + UUID public_id | Chiến lược chung trước khi tạo entity FPTPost; chưa chuyển ID mẫu |
-| ALIGN-04 | Tiền | Product demo BigDecimal/DECIMAL | Số nguyên VND, long/BIGINT | Thống nhất nghiệp vụ VND theo SPEC; chưa đổi kiểu/đơn vị demo |
-| ALIGN-05 | Package | com.group6.project, controller/service/repository/model/dto/mapper | com.fptpost, api/application/domain/infrastructure | Chốt trước khi nhiều module được tạo; chưa tái cấu trúc base |
+| ALIGN-04 | Tiền | Product demo BigDecimal/DECIMAL | Số nguyên VND, long/BIGINT | Giữ demo như đã chọn; module tiền VND mới theo thiết kế SPEC |
+| ALIGN-05 | Package | Đã chuyển com.fptpost, giữ các tầng hiện tại | api/application/domain/infrastructure | Đã chốt namespace và cấu trúc ở bảng trên |
 | ALIGN-06 | Mã môn | Repository/artifact SBA391 | Tài liệu ghi SBA301 | Xác nhận tên khi nộp; chưa đổi repository/artifact |
-| ALIGN-07 | Ràng buộc DB | Hibernate update | Filtered unique index, trigger/quyền bảo vệ ledger, migration | Cách quản lý/kiểm tra DDL đặc thù; update không tự thay thế mọi DDL |
+| ALIGN-07 | Ràng buộc DB | Flyway V1: PK/check/index Product; Hibernate validate | Filtered unique index, trigger/quyền ledger, migration | Đã chọn migration; viết và test các ràng buộc nghiệp vụ khi tạo module ledger/order |
 
 Cả hai kiểu response/ID có thể được thiết kế nhất quán. Cần quyết định rõ để tránh
 từng thành viên viết khác nhau. Thay contract phải cập nhật client, handler, DTO,
@@ -53,9 +55,9 @@ OpenAPI và test trong cùng thay đổi.
 | Kiểm thử | Test base, JPA dùng H2 | SQL Server/Mongo thật; cạnh tranh, idempotency, invariant, E2E |
 | CI/quan sát/hạ tầng phụ trợ | Chưa có pipeline theo SPEC | CI/scan/coverage gate, correlationId, MinIO/Mailpit khi triển khai |
 
-Ready/Done trong SPEC mục 11.5 là mục tiêu làm việc. Các mục CI, migration và review
-cần phản ánh quyết định code first/hạ tầng thực tế; không đánh dấu đạt khi chưa có
-bằng chứng chạy và nghiệm thu các BR.
+Ready/Done trong SPEC mục 11.5 là mục tiêu làm việc. Migration phải cập nhật cùng entity;
+CI và review cần được hiện thực theo hạ tầng thực tế. Không đánh dấu đạt khi chưa có
+bằng chứng chạy và nghiệm thu các BR. Xem [quy trình Flyway](DATABASE-MIGRATIONS.md).
 
 ## Câu hỏi còn mở trong SPEC
 

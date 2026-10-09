@@ -2,7 +2,7 @@ name: sba391-group6
 
 services:
   sqlserver:
-    image: mcr.microsoft.com/mssql/server:2025-latest
+    image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_PID: Developer
@@ -10,7 +10,7 @@ services:
     ports:
       - "127.0.0.1:${SQLSERVER_PORT:-1433}:1433"
     volumes:
-      - sqlserver-data:/var/opt/mssql
+      - sqlserver-2022-data:/var/opt/mssql
     healthcheck:
       test: ["CMD-SHELL", "SQLCMDPASSWORD=\"$$MSSQL_SA_PASSWORD\" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -C -b -Q 'SELECT 1' -o /dev/null"]
       interval: 5s
@@ -19,7 +19,7 @@ services:
       start_period: 30s
 
   sqlserver-init:
-    image: mcr.microsoft.com/mssql/server:2025-latest
+    image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
       SQLCMDPASSWORD: ${SQLSERVER_PASSWORD:?Set SQLSERVER_PASSWORD in the root .env file}
     depends_on:
@@ -52,6 +52,7 @@ services:
       SQLSERVER_USERNAME: sa
       SQLSERVER_PASSWORD: ${SQLSERVER_PASSWORD:?Set SQLSERVER_PASSWORD in the root .env file}
       MONGODB_URI: mongodb://mongodb:27017/group6_project_db
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: ${FLYWAY_BASELINE_ON_MIGRATE:-false}
       ALLOWED_ORIGINS: http://localhost:${FRONTEND_PORT:-5173},http://127.0.0.1:${FRONTEND_PORT:-5173}
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
@@ -84,5 +85,5 @@ services:
       retries: 6
 
 volumes:
-  sqlserver-data:
+  sqlserver-2022-data:
   mongo-data:

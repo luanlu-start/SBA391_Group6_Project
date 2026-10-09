@@ -65,7 +65,7 @@ export default function HomePage() {
           SBA391 <span className="gradient-text">Enterprise Full-Stack</span> Platform
         </h1>
         <p className="hero-subtitle">
-          Cấu trúc dự án chuẩn doanh nghiệp kết hợp <strong>React 19.3 SPA (Vite)</strong> và <strong>Java 25 Spring Boot 4.1</strong> theo mô hình 3-Tier Layered Architecture với SQL Server (JPA/Hibernate) và MongoDB.
+          Base phát triển kết hợp <strong>React 18.3 SPA (Vite)</strong> và <strong>Java 21 Spring Boot 3.5</strong> theo mô hình Controller → Service → Repository với SQL Server (JPA/Hibernate, Flyway) và MongoDB.
         </p>
 
         <div className="hero-actions">
@@ -137,7 +137,7 @@ export default function HomePage() {
             <div className="health-stat-box">
               <span className="stat-label">JVM Version</span>
               <div className="stat-value">
-                {healthData?.jvmVersion || 'Java 25'}
+                {healthData?.jvmVersion || 'Java 21'}
               </div>
             </div>
 
@@ -179,7 +179,7 @@ export default function HomePage() {
             <div className="layer-icon-wrapper bg-blue">
               <Cpu size={28} />
             </div>
-            <h3 className="layer-title">React 19.3 + Vite SPA</h3>
+            <h3 className="layer-title">React 18.3 + Vite SPA</h3>
             <ul className="layer-features">
               <li><strong>Axios Interceptors:</strong> Tự động gắn token, format dữ liệu & bắt lỗi tập trung</li>
               <li><strong>React Router v7:</strong> Định tuyến phân trang declarative</li>
@@ -237,7 +237,7 @@ export default function HomePage() {
                 <Code2 size={16} /> <strong>Backend (server/src/main/java/...)</strong>
               </div>
               <pre className="tree-code">
-{`com.group6.project/
+{`com.fptpost/
 ├── Application.java          # Entry point
 ├── common/                   # Dùng chung toàn hệ thống
 │   ├── response/             # ApiResponse<T> chuẩn hoá
@@ -250,7 +250,8 @@ export default function HomePage() {
         ├── service/          # Business logic, một class @Service
         ├── repository/       # JPA / Mongo repository theo module
         ├── model/            # JPA Entity (@Entity)
-        └── dto/              # Request / Response Transfer`}
+        ├── dto/              # Request / Response Transfer
+        └── mapper/           # MapStruct Entity / DTO`}
               </pre>
             </div>
 
