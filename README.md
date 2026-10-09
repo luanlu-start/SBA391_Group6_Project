@@ -1,7 +1,12 @@
-# SBA391 — Group 6 Project
+# FPTPost — Group 6 Project
 
-Base full-stack để nhóm phát triển ứng dụng chuyển phát, sử dụng React và Spring Boot.
-Module Product cung cấp ví dụ CRUD; module Activity cung cấp ví dụ lưu nhật ký hoạt động.
+FPTPost là nền tảng giao hàng tiện đường P2P, kết nối người gửi với người giao,
+hỗ trợ KYC, sàn đơn/chào giá, ký quỹ, theo dõi và thanh toán theo đặc tả của nhóm.
+Repository hiện cung cấp base React/Spring Boot: Product CRUD mẫu và Activity Log mẫu;
+các module nghiệp vụ FPTPost chưa triển khai.
+
+Đọc [thông tin dự án](docs/PROJECT-INFO.md), [63 Use Case](docs/USE-CASES.md) và
+[đối chiếu SPEC với base](docs/SPEC-ALIGNMENT.md) trước khi bắt đầu chức năng.
 
 ## Mục lục
 
@@ -36,7 +41,7 @@ Stack của dự án:
 | Frontend production | Nginx |
 | Node.js | 24 LTS |
 
-Kiến trúc chính:
+Kiến trúc base đang chạy (thiết kế FPTPost xem [tài liệu kiến trúc](docs/LOGISTICS-BASE.md)):
 
 ```text
 React + TypeScript
@@ -121,8 +126,14 @@ SBA391_Group6_Project/
 │   └── pom.xml
 ├── docs/
 │   ├── CONTRIBUTING.md
+│   ├── PROJECT-INFO.md
+│   ├── USE-CASES.md
 │   ├── LOGISTICS-BASE.md
-│   └── SBA301-CHECKLIST.md
+│   ├── DATABASE.md
+│   ├── API.md
+│   ├── SPEC-ALIGNMENT.md
+│   ├── SBA301-CHECKLIST.md
+│   └── sources/                     # Bản gốc BR/UC và SPEC v1.0
 ├── .env.example
 ├── .gitignore
 ├── compose.yaml
@@ -249,10 +260,18 @@ Seeder chạy khi có `demo` và không có `prod`; mặc định không nạp m
 Hibernate tạo schema trước khi seeder chạy. `ddl-auto` không tự nạp dữ liệu mẫu.
 Mỗi module bổ sung seeder riêng khi cần.
 
+Theo thiết kế FPTPost, SQL lưu tài khoản, đơn, ví/sổ cái/ký quỹ; Mongo lưu vị trí,
+chat, thông báo, audit. Xem [từ điển dữ liệu](docs/DATABASE.md) và chiến lược outbox
+cần triển khai; Product/Activity hiện chỉ là ví dụ kỹ thuật.
+
 Nhật ký MongoDB được ghi sau khi transaction SQL commit. Cơ chế hiện tại không có retry/outbox,
 nên có thể thiếu nhật ký nếu MongoDB lỗi. Chi tiết nằm trong [quy ước backend](docs/CONTRIBUTING.md).
 
 ## API
+
+Xem [tài liệu API](docs/API.md) để phân biệt 7 endpoint base đã có và 167 mục API
+trong thiết kế FPTPost. Contract response của SPEC khác base và cần thống nhất
+trước khi triển khai nghiệp vụ; phần bên dưới mô tả **API đang chạy**.
 
 ### Endpoint
 
@@ -318,7 +337,7 @@ direction là `ASC` hoặc `DESC`. Danh sách luôn nằm trong `data.content`.
 | DTO và mapping | Request có validation, response tách khỏi entity; dùng MapStruct |
 | API | `/api/v1/<resources>`; trả `ApiResponse`, danh sách dùng `PageResponse.content` |
 | Xử lý lỗi | `AppException` + enum mã lỗi của module; handler chung xử lý response |
-| Database | SQL dùng JPA/Specification; Mongo dùng MongoRepository; tiền dùng `BigDecimal` |
+| Database | SQL dùng JPA/Specification; Mongo dùng MongoRepository; nghiệp vụ VND theo SPEC dùng số nguyên `long`/`BIGINT`, Product demo hiện dùng `BigDecimal` |
 | Frontend | API đặt trong `src/api`, dùng `axiosClient`; component chung ở `components` |
 | Format | Java thụt 4 spaces, TypeScript/TSX thụt 2 spaces; format trước khi commit |
 | Seed và test | Seed riêng theo module; kiểm thử nghiệp vụ, validation và query quan trọng |
@@ -362,9 +381,10 @@ Dockerfile backend chạy test khi đóng gói; Dockerfile frontend chạy lint 
 
 Tên nhánh dùng chữ thường, phần mô tả bằng tiếng Anh và ngăn cách bằng dấu gạch nối.
 Nhánh chức năng phải có mã UC lấy từ sheet Use Case của nhóm, viết thường trong tên nhánh.
-Ví dụ minh họa: UC001 đăng nhập dùng `feature/uc001-login`, UC012 tạo đơn chuyển phát
-dùng `feature/uc012-create-shipment`. Các mã này chỉ là ví dụ, chưa phải phân công UC thực tế.
-Giữ đúng mã và số thứ tự trong sheet; không tự đặt mã khi chưa được thống nhất.
+Theo sheet v1.0: UC-03 đăng nhập dùng `feature/uc-03-login`, UC-12 tạo đơn giao hàng
+dùng `feature/uc-12-create-order`. Xem mã, phân công và sprint trong
+[danh mục UC](docs/USE-CASES.md). Giữ dấu gạch nối và hai chữ số của mã `UC-xx`;
+không tự đổi số thứ tự hoặc đặt mã mới.
 Tài liệu hoặc hạ tầng không thuộc UC dùng nhánh `docs/` hoặc `chore/`, không gán mã UC giả.
 
 Bắt đầu chức năng từ nhánh `develop`:
@@ -372,18 +392,24 @@ Bắt đầu chức năng từ nhánh `develop`:
 ```powershell
 git switch develop
 git pull --ff-only origin develop
-git switch -c feature/uc012-create-shipment
+git switch -c feature/uc-12-create-order
 ```
 
 Thay mã UC và tên chức năng trong ví dụ bằng UC được phân công.
 Sau khi commit và push nhánh feature, mở Pull Request vào `develop` để review và tích hợp.
-Tiêu đề PR chức năng ghi mã UC, ví dụ `[UC012] Create shipment`, để đối chiếu với sheet.
+Tiêu đề PR chức năng ghi mã UC, ví dụ `[UC-12] Create order`, để đối chiếu với sheet.
 Chỉ đưa phiên bản ổn định từ `develop` vào `main`.
 
 ## Tài liệu
 
 - [Quy ước code backend/frontend và hướng dẫn đóng góp](docs/CONTRIBUTING.md)
-- [Hướng thiết kế ứng dụng chuyển phát](docs/LOGISTICS-BASE.md)
+- [Thông tin dự án, phạm vi và tác nhân](docs/PROJECT-INFO.md)
+- [Danh mục UC, phân công và quy ước mã nhánh](docs/USE-CASES.md)
+- [Kiến trúc và ranh giới module FPTPost](docs/LOGISTICS-BASE.md)
+- [Database và từ điển dữ liệu dự kiến](docs/DATABASE.md)
+- [API hiện tại và danh mục thiết kế](docs/API.md)
+- [Lựa chọn đã chốt, khác biệt với SPEC và câu hỏi còn mở](docs/SPEC-ALIGNMENT.md)
+- [Tài liệu nguồn BR/UC và SPEC v1.0](docs/sources/README.md)
 - [Checklist tham chiếu đề SBA301](docs/SBA301-CHECKLIST.md)
 
 Checklist đề gốc cần đối chiếu với các điều chỉnh của giảng viên khi áp dụng cho nhóm.
@@ -394,5 +420,7 @@ Base có Product CRUD, paging/filter/sort, MapStruct, validation, mã lỗi,
 Swagger, seed demo, nhật ký MongoDB và Docker Compose.
 Frontend có trang chủ, trang quản lý Product và trang 404.
 
-Các module Shipment, Parcel, bưu cục, COD, JWT/phân quyền và giao diện chuyển phát
-cần được phát triển theo nghiệp vụ nhóm thống nhất.
+Các module identity/KYC, order, market, pricing, ledger/payment, tracking, reputation,
+dispute, messaging và admin/audit cần triển khai theo BR/UC. COD, bưu cục/kho và AI/eKYC
+tự động nằm ngoài phạm vi v1.0. Demo thanh toán theo tài liệu dùng sandbox/tiền mô phỏng.
+Tài liệu là dự thảo, không phải chứng nhận các UC đã hoàn thành.
