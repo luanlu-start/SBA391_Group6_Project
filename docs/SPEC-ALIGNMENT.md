@@ -30,7 +30,7 @@ Tên thư viện trong SPEC không có nghĩa đã cài hoặc cấu hình trong
 | --- | --- | --- | --- | --- |
 | ALIGN-01 | API lỗi/thành công | ApiResponse, code số, errors map | Problem Details, code chữ, errors array; ví dụ thành công payload trực tiếp | Một contract BE/FE/OpenAPI; chưa đổi code |
 | ALIGN-02 | Phân trang | data.content, mặc định 12, sortBy/direction | content, mặc định 20, sort=field,asc; cursor chat/thông báo | Chốt cùng contract API; giữ content |
-| ALIGN-03 | Khóa dữ liệu | Product UUID làm khóa chính | BIGINT nội bộ + UUID public_id | Chiến lược chung trước khi tạo entity FPTPost; chưa chuyển ID mẫu |
+| ALIGN-03 | Khóa dữ liệu | Product UUID làm khóa chính; Identity mới dùng BIGINT nội bộ/public UUID | BIGINT nội bộ + UUID public_id | Identity theo SPEC; giữ ID demo, module mới áp dụng cùng chiến lược |
 | ALIGN-04 | Tiền | Product demo BigDecimal/DECIMAL | Số nguyên VND, long/BIGINT | Giữ demo như đã chọn; module tiền VND mới theo thiết kế SPEC |
 | ALIGN-05 | Package | Đã chuyển com.fptpost, giữ các tầng hiện tại | api/application/domain/infrastructure | Đã chốt namespace và cấu trúc ở bảng trên |
 | ALIGN-06 | Mã môn | Repository/artifact SBA391 | Tài liệu ghi SBA301 | Xác nhận tên khi nộp; chưa đổi repository/artifact |
@@ -44,7 +44,7 @@ OpenAPI và test trong cùng thay đổi.
 
 | Thành phần theo SPEC | Hiện trạng | Cần hiện thực |
 | --- | --- | --- |
-| Tài khoản/JWT/KYC | Chưa có | Access/refresh rotation, role + ownership, KYC thủ công, dữ liệu nhạy cảm |
+| Tài khoản/JWT/KYC | UC-01 đăng ký/consent/OTP gửi email; chưa kích hoạt | UC-02 xác thực/gửi lại, access/refresh rotation, role + ownership, KYC |
 | Đơn/sàn/chào giá/chuyến | Chưa có | State machine/guard, cạnh tranh nhận đơn, lịch sử, giá snapshot |
 | Ledger/ví/ký quỹ | Chưa có | Bút toán kép, bất biến số dư, locking/idempotency, SQL transaction |
 | VNPay/payout/đối soát | Chưa có | Sandbox, callback xác minh, chống trùng, Mock/thủ công, duyệt tách biệt |

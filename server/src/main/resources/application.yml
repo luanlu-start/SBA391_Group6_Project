@@ -31,6 +31,17 @@ spring:
     mongodb:
       uri: ${MONGODB_URI:mongodb://localhost:27017/group6_project_db}
       auto-index-creation: true
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${SMTP_AUTH:false}
+      mail.smtp.starttls.enable: ${SMTP_STARTTLS:false}
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
 
 # SpringDoc OpenAPI / Swagger 3 Configuration
 springdoc:
@@ -57,3 +68,10 @@ app:
   cors:
     allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173}
   api-prefix: /api/v1
+  registration:
+    password-min-length: 8
+    otp-ttl-minutes: 5
+    requests-per-minute: 10
+    terms-version: ${TERMS_VERSION:draft-2026-10-09}
+    privacy-version: ${PRIVACY_VERSION:draft-2026-10-09}
+    mail-from: ${MAIL_FROM:no-reply@fptpost.local}

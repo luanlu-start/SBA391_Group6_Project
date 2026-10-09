@@ -407,6 +407,11 @@ Chỉ đưa phiên bản ổn định từ `develop` vào `main`.
 
 ## Tài liệu
 
+UC-01 đăng ký đã có tại `/register`: tạo tài khoản chờ xác thực và gửi OTP email.
+Docker chạy Mailpit, xem email tại `http://localhost:8025`. Xác thực OTP và đăng nhập
+là các UC tiếp theo. Xem [Identity đăng ký](docs/IDENTITY-REGISTRATION.md) để tra contract,
+schema, cấu hình SMTP và các giới hạn hiện tại.
+
 - [Quy ước code backend/frontend và hướng dẫn đóng góp](docs/CONTRIBUTING.md)
 - [Thông tin dự án, phạm vi và tác nhân](docs/PROJECT-INFO.md)
 - [Danh mục UC, phân công và quy ước mã nhánh](docs/USE-CASES.md)

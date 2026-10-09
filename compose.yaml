@@ -42,6 +42,12 @@ services:
       retries: 12
       start_period: 10s
 
+  mailpit:
+    image: axllent/mailpit:v1.27.4
+    ports:
+      - "127.0.0.1:${MAILPIT_PORT:-8025}:8025"
+      - "127.0.0.1:${SMTP_PORT:-1025}:1025"
+
   server:
     build:
       context: ./server
@@ -53,6 +59,8 @@ services:
       SQLSERVER_PASSWORD: ${SQLSERVER_PASSWORD:?Set SQLSERVER_PASSWORD in the root .env file}
       MONGODB_URI: mongodb://mongodb:27017/group6_project_db
       SPRING_FLYWAY_BASELINE_ON_MIGRATE: ${FLYWAY_BASELINE_ON_MIGRATE:-false}
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
       ALLOWED_ORIGINS: http://localhost:${FRONTEND_PORT:-5173},http://127.0.0.1:${FRONTEND_PORT:-5173}
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
@@ -61,6 +69,8 @@ services:
         condition: service_completed_successfully
       mongodb:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/actuator/health"]
       interval: 10s

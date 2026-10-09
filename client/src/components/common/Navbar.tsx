@@ -44,6 +44,9 @@ export default function Navbar() {
         </Link>
 
         <nav className="navbar-links">
+          <Link to="/register" className={`nav-link ${location.pathname === '/register' ? 'active' : ''}`}>
+            <span>Đăng ký</span>
+          </Link>
           <Link
             to="/"
             className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}

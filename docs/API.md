@@ -16,9 +16,12 @@ và [SPEC](sources/fptpost-spec-v1.0.pdf), mục 6.
 | PUT | /api/v1/products/{id} | Sửa Product |
 | DELETE | /api/v1/products/{id} | Xóa Product; HTTP 200 kèm envelope |
 | GET | /api/v1/activity-logs | Phân trang nhật ký; lọc entityId |
+| GET | /api/v1/auth/registration-policies | Nội dung/phiên bản chính sách đăng ký |
+| POST | /api/v1/auth/register | UC-01 đăng ký chờ xác thực, gửi OTP email; HTTP 201 |
 
 Product CRUD là ví dụ kỹ thuật, không tương ứng UC-12 hay các API orders.
-Base chưa có JWT, quyền truy cập, VNPay, WebSocket hoặc các endpoint FPTPost dưới đây.
+UC-01 đã có API đăng ký; xem [contract và giới hạn Identity](IDENTITY-REGISTRATION.md).
+Base chưa có xác thực OTP, JWT, quyền truy cập, VNPay hoặc WebSocket.
 
 ## Contract đang chạy
 
