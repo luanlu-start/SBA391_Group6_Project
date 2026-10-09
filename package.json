@@ -1,18 +1,22 @@
 {
   "name": "sba391-group6-monolithic-project",
   "version": "1.0.0",
-  "description": "Production Monolithic Full-Stack Project - SBA391 Group 6 (React 18 Vite + Spring Boot 3 + MongoDB)",
+  "description": "Full-Stack Development Base - Group 6 (React + Spring Boot + SQL Server + MongoDB)",
   "private": true,
   "scripts": {
     "dev": "concurrently -n \"SERVER,CLIENT\" -c \"bgBlue.bold,bgGreen.bold\" \"npm run dev:server\" \"npm run dev:client\"",
     "dev:client": "npm run dev --prefix client",
     "dev:server": "mvn spring-boot:run -f server/pom.xml",
-    "install:client": "npm install --prefix client",
-    "install:all": "npm install && npm run install:client",
+    "install:client": "npm ci --prefix client",
+    "install:all": "npm ci && npm run install:client",
     "build:client": "npm run build --prefix client",
     "build:server": "mvn clean package -DskipTests -f server/pom.xml",
     "build": "npm run build:client && npm run build:server",
-    "test:server": "mvn test -f server/pom.xml"
+    "test:server": "mvn test -f server/pom.xml",
+    "docker:up": "docker compose up --build -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:db": "docker compose up -d sqlserver-init mongodb"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
