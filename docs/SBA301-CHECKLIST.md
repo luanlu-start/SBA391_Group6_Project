@@ -18,7 +18,8 @@ checklist theo yêu cầu trong đề SBA301 đã xác nhận.
 
 ## Cần hoàn thành theo nghiệp vụ
 
-- [ ] Chốt bài toán/domain và phân công module theo từng thành viên.
+- [x] Có đặc tả FPTPost v1.0, BR/UC, danh mục dữ liệu/API và kế hoạch phân công TV1–TV6.
+- [ ] Nhóm rà soát/duyệt phạm vi, phân công và các điểm khác biệt với base.
 - [ ] Ít nhất 5 domain entity có CRUD đầy đủ, ít nhất 5 bảng SQL có ý nghĩa.
 - [ ] Có quan hệ 1–N và N–N thực tế; Product.category hiện là chuỗi, chưa thể hiện quan hệ.
 - [ ] Hoàn thiện ERD SQL và tài liệu schema Mongo.
@@ -51,7 +52,9 @@ Seed không tạo log. Không cho sửa/xóa lịch sử qua API mẫu.
 
 ## Gợi ý phát triển tiếp
 
-Nhóm chọn hướng chuyển phát như FPost. Xem LOGISTICS-BASE.md để phân chia module và dữ liệu.
-User/Role có thể dùng N–N, Shipment/Parcel dùng 1–N, Branch/Shipment dùng 1–N theo vai trò bưu cục.
-Product chỉ là module tham khảo kỹ thuật; không bắt buộc giữ danh mục sản phẩm trong ứng dụng chuyển phát.
-Các module chuyển phát chưa được triển khai. Cần chốt quy trình và hoàn thiện ERD trước khi tạo schema.
+Theo [đặc tả nguồn](sources/README.md), FPTPost là nền tảng giao hàng tiện đường P2P;
+bưu cục/kho và COD nằm ngoài phạm vi. User–Role N–N, Order–Offer/Photo/StatusHistory
+1–N là các quan hệ theo thiết kế, chưa tạo trong schema hiện tại.
+Product/Activity là ví dụ kỹ thuật, chưa thay thế module order hoặc audit nghiệp vụ.
+Xem [UC](USE-CASES.md), [database](DATABASE.md), [kiến trúc](LOGISTICS-BASE.md) và
+[các điểm cần chốt](SPEC-ALIGNMENT.md). Hoàn thiện ERD và contract trước khi chia việc code.

@@ -3,26 +3,31 @@
 Tài liệu thống nhất cách viết backend, frontend và tích hợp chức năng cho nhóm.
 Product là module mẫu SQL Server/JPA; Activity là module mẫu MongoDB.
 
+Khi triển khai FPTPost, đọc [thông tin dự án](PROJECT-INFO.md),
+[UC được phân công](USE-CASES.md) và [đối chiếu SPEC](SPEC-ALIGNMENT.md).
+Phần API/phân trang bên dưới mô tả contract base đang chạy; chốt các khác biệt
+trước khi nhiều thành viên viết module nghiệp vụ.
+
 ## 1. Đặt tên và format
 
 | Loại | Quy ước | Ví dụ |
 | --- | --- | --- |
-| Java package/module | Chữ thường | `modules.product`, `modules.shipment` |
+| Java package/module | Chữ thường | `modules.product`, `modules.order` |
 | Java class/interface/enum | PascalCase | `ProductService`, `ProductErrorCode` |
 | Java field/method | camelCase | `createdAt`, `getProductById` |
 | Hằng số, enum value | UPPER_SNAKE_CASE | `PRODUCT_NOT_FOUND`, `IN_TRANSIT` |
 | React component/page/layout | PascalCase, file cùng tên | `ProductsPage.tsx`, `Modal.tsx` |
-| Custom hook | Bắt đầu bằng use | `useShipments` |
-| File API frontend | camelCase, hậu tố Api | `productApi.ts`, `shipmentApi.ts` |
+| Custom hook | Bắt đầu bằng use | `useOrders` |
+| File API frontend | camelCase, hậu tố Api | `productApi.ts`, `orderApi.ts` |
 | SQL table/column | snake_case | `products`, `created_at` |
 | Endpoint | Danh từ số nhiều, kebab-case | `/products`, `/activity-logs` |
-| Nhánh chức năng | feature/mã-uc-kebab-case | `feature/uc012-create-shipment` |
+| Nhánh chức năng | feature/mã-uc-kebab-case | `feature/uc-12-create-order` |
 
 Dùng tiếng Anh cho tên code. Java thụt 4 spaces; TypeScript/TSX thụt 2 spaces.
 Giữ style của file đang sửa, chạy formatter IDE và ESLint, xóa import/biến không dùng.
 Comment giải thích lý do hoặc điều kiện nghiệp vụ khó nhận ra; không lặp lại nguyên nội dung code.
 
-Tên Shipment/useShipments trong tài liệu là ví dụ cho module tương lai, chưa phải chức năng đã có.
+Order/useOrders là ví dụ cho module FPTPost tương lai, chưa phải chức năng đã có.
 
 ## 2. Tổ chức module backend
 
@@ -55,6 +60,10 @@ Chỉ tạo thư mục/lớp cần dùng. Event đặt trong `event` nếu modul
 Service dùng một class `@Service` khi chỉ có một implementation.
 Chỉ tách interface/implementation khi có nhu cầu thực tế.
 Dependency injection qua constructor, có thể dùng `@RequiredArgsConstructor` và field `final`.
+
+Module khác giao tiếp qua facade/interface hoặc sự kiện, không gọi repository nội bộ của nhau.
+Ranh giới theo [kiến trúc FPTPost](LOGISTICS-BASE.md); package bốn tầng trong SPEC
+chưa thay thế cấu trúc base, cần chốt trước khi tạo nhiều module.
 
 ## 3. DTO, mapping và validation
 
@@ -123,7 +132,10 @@ Index dựa trên truy vấn thực tế; không giả định tìm kiếm conta
 
 SQL entity dùng `jakarta.persistence.Entity/Id`; Mongo document dùng `Document` và Spring Data `Id`.
 Không dùng `GeneratedValue` của JPA cho document MongoDB.
-Entity SQL có thể dùng `UUID` + `GenerationType.UUID`; tiền dùng `BigDecimal` và `DECIMAL`.
+Product mẫu dùng `UUID` + `GenerationType.UUID`, `BigDecimal`/`DECIMAL` cho giá.
+SPEC FPTPost dùng BIGINT nội bộ + UUID public_id; chiến lược ID cần chốt trước khi
+tạo entity nghiệp vụ. Tiền VND trong thiết kế dùng Java `long` và SQL `BIGINT`,
+không tự suy diễn đơn vị giá của Product demo là tiền VND nghiệp vụ.
 Timestamps dùng `Instant` theo quy ước UTC của base.
 
 Khi thêm quan hệ JPA, tránh đưa quan hệ vào toString/equals/hashCode khiến đọc dữ liệu ngoài ý muốn.
@@ -137,10 +149,12 @@ Product phát `ProductActivityEvent` trong transaction.
 Activity listener ghi MongoDB ở `AFTER_COMMIT`, tránh ghi lịch sử cho thao tác SQL rollback.
 Lịch sử hiện là best effort: lỗi Mongo được log sau SQL commit và có thể mất bản ghi.
 API đọc lịch sử vẫn trả lỗi khi Mongo không truy cập được.
-Nếu cần lịch sử đảm bảo không mất, thiết kế outbox/retry.
+Đối với sự kiện nghiệp vụ FPTPost, thiết kế SQL outbox cùng transaction,
+worker retry/idempotency theo eventId như SPEC yêu cầu; cơ chế này chưa triển khai.
 
-Không dùng ActivityLog mẫu làm bằng chứng duy nhất cho trạng thái đơn, COD hoặc đối soát;
-xem [hướng chuyển phát](LOGISTICS-BASE.md).
+Không dùng ActivityLog mẫu làm bằng chứng duy nhất cho trạng thái đơn, ví/ký quỹ hoặc đối soát.
+Chỉ module ledger được ghi bút toán; ghi lịch sử trạng thái và bút toán liên quan trong
+cùng transaction SQL, có kiểm tra quyền và điều kiện. Xem [database](DATABASE.md).
 
 ## 7. Code first và seed data
 
@@ -203,15 +217,15 @@ node_modules, dist hoặc target. Trong container dùng sqlserver:1433/mongodb:2
 chạy trên máy dùng localhost với cổng đã cấu hình.
 
 Nhánh chức năng theo `feature/<ma-uc>-<ten-chuc-nang>`, bắt đầu từ develop.
-Mã UC lấy từ sheet Use Case của nhóm, chuyển thành chữ thường và giữ đúng số thứ tự.
-Phần tên chức năng dùng tiếng Anh, kebab-case. Ví dụ minh họa: `feature/uc001-login`,
-`feature/uc012-create-shipment`; thay bằng mã UC thực tế được phân công, không tự đặt mã.
+Mã UC lấy từ sheet `04_UC`, chuyển chữ thường, giữ dấu gạch nối và hai chữ số `UC-xx`.
+Phần tên chức năng dùng tiếng Anh, kebab-case. Theo v1.0: `feature/uc-03-login`,
+`feature/uc-12-create-order`; chọn mã từ [danh mục UC](USE-CASES.md), không tự đặt mã.
 Việc tài liệu hoặc hạ tầng không thuộc UC dùng `docs/<mo-ta>` hoặc `chore/<mo-ta>`.
-Commit mô tả thay đổi; có thể dùng `feat(shipment): add shipment creation`,
+Commit mô tả thay đổi; có thể dùng `feat(order): UC-12 create order`,
 `fix(product): validate price range`, `docs: update setup instructions`.
 Pull Request vào develop ghi rõ thay đổi và cách kiểm tra.
-PR chức năng có mã UC trong tiêu đề, ví dụ `[UC012] Create shipment`, và tham chiếu UC
-trong mô tả để đối chiếu yêu cầu, cách kiểm tra và tiến độ trên sheet.
+PR chức năng có mã UC trong tiêu đề, ví dụ `[UC-12] Create order`, và tham chiếu UC/BR,
+API/màn hình ảnh hưởng, cách kiểm tra và kết quả trong mô tả để đối chiếu với sheet.
 Không gộp sửa định dạng toàn dự án vào một thay đổi nghiệp vụ nhỏ.
 
 Base hiện cung cấp Product/Activity mẫu. Yêu cầu còn lại theo nghiệp vụ nhóm và hướng dẫn
