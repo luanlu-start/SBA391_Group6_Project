@@ -1,0 +1,180 @@
+package com.fptpost.modules.identity.service;
+
+import com.fptpost.common.exception.*;
+import com.fptpost.modules.identity.config.AuthenticationProperties;
+import com.fptpost.modules.identity.dto.request.AuthenticationRequest;
+import com.fptpost.modules.identity.dto.response.*;
+import com.fptpost.modules.identity.dto.internal.AuthenticationResult;
+import com.fptpost.modules.identity.enums.UserStatus;
+import com.fptpost.modules.identity.exception.*;
+import com.fptpost.modules.identity.mapper.UserMapper;
+import com.fptpost.modules.identity.model.*;
+import com.fptpost.modules.identity.repository.*;
+import com.fptpost.modules.identity.security.LoginAttemptLimiter;
+import com.fptpost.modules.identity.util.ContactUtils;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.nio.charset.StandardCharsets;
+import java.security.*;
+import java.time.*;
+import java.util.*;
+
+@Service
+@RequiredArgsConstructor
+public class AuthenticationService {
+    private final UserRepository userRepository;
+    private final UserProfileRepository profileRepository;
+    private final AuthSessionRepository sessionRepository;
+    private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationProperties properties;
+    private final JwtTokenService jwtTokenService;
+    private final OtpService otpService;
+    private final LoginAttemptLimiter loginLimiter;
+    private final Clock identityClock;
+    private final SecureRandom identityRandom;
+    private String dummyPasswordHash;
+
+    @PostConstruct
+    void initializeDummyHash() {
+        dummyPasswordHash = passwordEncoder.encode(UUID.randomUUID().toString());
+    }
+
+    @Transactional(noRollbackFor = IdentityException.class)
+    public AuthenticationResult authenticate(AuthenticationRequest request, String ip, String userAgent) {
+        loginLimiter.check(ip);
+        String identifier = request.getIdentifier().trim().toLowerCase(Locale.ROOT);
+        if (identifier.matches("0[35789]\\d{8}")) identifier = ContactUtils.normalizePhone(identifier);
+        Long id = userRepository.findIdByIdentifier(identifier).orElse(null);
+        User user = id == null ? null : userRepository.findByIdForUpdate(id).orElse(null);
+        Instant now = identityClock.instant();
+        if (user != null && user.getLoginLockedUntil() != null) {
+            if (now.isBefore(user.getLoginLockedUntil())) throw locked(user.getLoginLockedUntil(), now);
+            user.setLoginLockedUntil(null);
+            user.setFailedLoginCount(0);
+        }
+        boolean validLength = request.getPassword().getBytes(StandardCharsets.UTF_8).length <= 72;
+        boolean correct = passwordEncoder.matches(validLength ? request.getPassword() : "invalid-long-password",
+                user == null ? dummyPasswordHash : user.getPasswordHash());
+        if (user == null || !validLength || !correct) {
+            if (user != null) {
+                user.setFailedLoginCount(user.getFailedLoginCount() + 1);
+                if (user.getFailedLoginCount() >= properties.getMaxLoginAttempts()) {
+                    user.setLoginLockedUntil(now.plusSeconds(properties.getLoginLockMinutes() * 60L));
+                }
+                userRepository.saveAndFlush(user);
+            }
+            loginLimiter.failure(ip);
+            throw new IdentityException(IdentityErrorCode.LOGIN_FAILED);
+        }
+        if (!user.isDeleted() && user.getStatus() == UserStatus.PENDING_VERIFICATION) {
+            // Only reveal the challenge after validating the password. Do not resend mail on each login.
+            OtpChallengeResponse verification = otpService.registrationChallenge(user);
+            user.setFailedLoginCount(0);
+            user.setLoginLockedUntil(null);
+            userRepository.saveAndFlush(user);
+            loginLimiter.success(ip);
+            throw new IdentityException(IdentityErrorCode.ACCOUNT_UNVERIFIED, verification);
+        }
+        requireActive(user);
+        user.setFailedLoginCount(0);
+        user.setLoginLockedUntil(null);
+        userRepository.saveAndFlush(user);
+        AuthenticationResult result = createSession(user, ip, userAgent);
+        loginLimiter.success(ip);
+        return result;
+    }
+
+    @Transactional(noRollbackFor = IdentityException.class)
+    public AuthenticationResult refresh(String token, String ip, String userAgent) {
+        if (token == null || !token.matches("[A-Za-z0-9_-]{43}")) throw invalidRefresh();
+        String hash = hash(token);
+        Long userId = sessionRepository.findUserIdByTokenHash(hash).orElseThrow(this::invalidRefresh);
+        User user = userRepository.findByIdForUpdate(userId).orElseThrow(this::invalidRefresh);
+        AuthSession old = sessionRepository.findByTokenHash(hash).orElseThrow(this::invalidRefresh);
+        Instant now = identityClock.instant();
+        if (old.getReplacedBy() != null) {
+            sessionRepository.revokeAll(userId, now);
+            throw new IdentityException(IdentityErrorCode.REFRESH_REUSED);
+        }
+        if (old.getRevokedAt() != null || !now.isBefore(old.getExpiresAt())) throw invalidRefresh();
+        requireActive(user);
+        old.setRevokedAt(now);
+        AuthenticationResult result = createSession(user, ip, userAgent);
+        String nextHash = hash(result.getRefreshToken());
+        old.setReplacedBy(sessionRepository.findByTokenHash(nextHash).orElseThrow().getPublicId());
+        sessionRepository.saveAndFlush(old);
+        return result;
+    }
+
+    @Transactional
+    public void logout(UUID userPublicId, UUID sessionId) {
+        User user = userRepository.findByPublicId(userPublicId).orElseThrow(this::invalidRefresh);
+        userRepository.findByIdForUpdate(user.getId()).orElseThrow(this::invalidRefresh);
+        AuthSession session = sessionRepository.findByPublicId(sessionId).orElseThrow(this::invalidRefresh);
+        if (!session.getUser().getId().equals(user.getId())) throw new AppException(GlobalErrorCode.FORBIDDEN);
+        session.setRevokedAt(identityClock.instant());
+        sessionRepository.saveAndFlush(session);
+    }
+
+    @Transactional(readOnly = true)
+    public UserResponse currentUser(UUID publicId) {
+        User user = userRepository.findByPublicId(publicId).orElseThrow(() -> new AppException(GlobalErrorCode.UNAUTHORIZED));
+        requireActive(user);
+        return response(user);
+    }
+
+    private AuthenticationResult createSession(User user, String ip, String userAgent) {
+        Instant now = identityClock.instant();
+        var active = sessionRepository.findByUserIdAndRevokedAtIsNullAndReplacedByIsNullAndExpiresAtAfterOrderByCreatedAtAscIdAsc(user.getId(), now);
+        while (active.size() >= properties.getMaxDevices()) {
+            AuthSession oldest = active.removeFirst();
+            oldest.setRevokedAt(now);
+            sessionRepository.save(oldest);
+        }
+        byte[] bytes = new byte[32];
+        identityRandom.nextBytes(bytes);
+        String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        String device = userAgent == null ? "Unknown device" : userAgent.replaceAll("\\p{Cntrl}", "");
+        AuthSession session = AuthSession.builder().publicId(UUID.randomUUID()).user(user).tokenHash(hash(token))
+                .ip(ip.length() > 45 ? "unknown" : ip).deviceInfo(device.substring(0, Math.min(255, device.length())))
+                .createdAt(now).expiresAt(now.plusSeconds(properties.getRefreshTtlDays() * 86400L)).build();
+        sessionRepository.saveAndFlush(session);
+        var jwt = jwtTokenService.issue(user, session);
+        return new AuthenticationResult(AuthenticationResponse.builder().accessToken(jwt.getTokenValue()).tokenType("Bearer")
+                .expiresAt(jwt.getExpiresAt()).user(response(user)).build(), token);
+    }
+
+    private UserResponse response(User user) {
+        var profile = profileRepository.findById(user.getId()).orElseThrow(() -> new IllegalStateException("Missing user profile"));
+        return userMapper.toUserResponse(user, profile);
+    }
+
+    private void requireActive(User user) {
+        if (user.isDeleted() || user.getStatus() == UserStatus.DELETED || user.getStatus() == UserStatus.LOCKED)
+            throw new AppException(IdentityErrorCode.ACCOUNT_DISABLED);
+        if (user.getStatus() != UserStatus.ACTIVE || user.getEmailVerifiedAt() == null)
+            throw new AppException(IdentityErrorCode.ACCOUNT_UNVERIFIED);
+    }
+
+    private IdentityException locked(Instant until, Instant now) {
+        return new IdentityException(IdentityErrorCode.LOGIN_LOCKED,
+                Math.max(1, (Duration.between(now, until).toMillis() + 999) / 1000));
+    }
+
+    private AppException invalidRefresh() {
+        return new AppException(IdentityErrorCode.REFRESH_INVALID);
+    }
+
+    private static String hash(String token) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.US_ASCII)));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 unavailable", exception);
+        }
+    }
+}

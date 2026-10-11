@@ -6,6 +6,10 @@ phân công/sprint dưới đây là kế hoạch, chưa phản ánh tiến đ�
 BE/FE là mã thành viên TV1–TV6; `—` là ô trống trong nguồn. Sprint lấy cột
 `Sprint hoàn thành`; xem riêng sprint BE/FE trong sheet nếu cần điều phối phụ thuộc.
 
+Phân công triển khai hiện tại theo nhóm chức năng, mỗi người làm cả FE và BE,
+xem [kế hoạch 6 thành viên](TEAM-PLAN.md). Bảng dưới giữ nguyên phân công trong
+tài liệu nguồn; không dùng các cột BE/FE này làm phân công mới của team.
+
 ## Quy ước nhánh và PR
 
 Giữ mã `UC-xx` đúng sheet và ví dụ SPEC; mô tả không dấu, dùng gạch nối:

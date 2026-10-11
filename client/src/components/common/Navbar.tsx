@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Layers, Activity, Package, FileCode, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import { healthApi } from '../../api/healthApi';
+import { useAuthentication } from '../../auth/useAuthentication';
 
 export default function Navbar() {
   const location = useLocation();
+  const { user } = useAuthentication();
   const [serverHealth, setServerHealth] = useState({ status: 'CHECKING' });
   const [isChecking, setIsChecking] = useState(false);
 
@@ -44,6 +46,12 @@ export default function Navbar() {
         </Link>
 
         <nav className="navbar-links">
+          {user ? <Link to="/account" className="nav-link">Tài khoản</Link> : <>
+          <Link to="/login" className={`nav-link ${location.pathname === '/login' ? 'active' : ''}`}>Đăng nhập</Link>
+          <Link to="/register" className={`nav-link ${location.pathname === '/register' ? 'active' : ''}`}>
+            <span>Đăng ký</span>
+          </Link>
+          </>}
           <Link
             to="/"
             className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}

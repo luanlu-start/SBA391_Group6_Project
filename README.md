@@ -2,8 +2,8 @@
 
 FPTPost là nền tảng giao hàng tiện đường P2P, kết nối người gửi với người giao,
 hỗ trợ KYC, sàn đơn/chào giá, ký quỹ, theo dõi và thanh toán theo đặc tả của nhóm.
-Repository hiện cung cấp base React/Spring Boot: Product CRUD mẫu và Activity Log mẫu;
-các module nghiệp vụ FPTPost chưa triển khai.
+Repository hiện cung cấp base React/Spring Boot với Product CRUD mẫu, Activity Log mẫu
+và UC-01–03 đăng ký, xác thực email, đăng nhập Identity. Các UC còn lại được triển khai theo tài liệu của nhóm.
 
 Đọc [thông tin dự án](docs/PROJECT-INFO.md), [63 Use Case](docs/USE-CASES.md) và
 [đối chiếu SPEC với base](docs/SPEC-ALIGNMENT.md) trước khi bắt đầu chức năng.
@@ -29,12 +29,15 @@ Stack của dự án:
 | Thành phần | Công nghệ |
 | --- | --- |
 | Frontend | React 18.3, TypeScript 5.9, Vite 5.4, React Router 6, Axios |
+| Form | React Hook Form, Zod; tách component/hook/schema theo chức năng |
 | Backend | Spring Boot 3.5.16, Java 21 LTS, Spring Web MVC |
 | Database | Microsoft SQL Server 2022 và MongoDB 7 |
 | ORM / ODM | Spring Data JPA + Hibernate; Spring Data MongoDB |
 | DB driver | Microsoft JDBC Driver; MongoDB Java Driver |
-| Quản lý schema | Flyway 11.20.3 + T-SQL; Hibernate `ddl-auto: validate` |
+| Quản lý schema | JPA/Hibernate code first; `ddl-auto: update` |
 | Mapping và validation | MapStruct 1.6.3, Jakarta Bean Validation |
+| Email | Spring Mail, template Thymeleaf; Mailpit cho môi trường phát triển |
+| Xác thực | Spring Security, JWT HS256, refresh token qua cookie HttpOnly |
 | Tài liệu API | OpenAPI, Swagger UI |
 | Kiểm thử | JUnit Jupiter, Mockito, MockMvc, H2 |
 | Container | Docker + Docker Compose |
@@ -50,13 +53,13 @@ React + TypeScript
   v
 Spring Boot (Controller -> Service -> Repository)
   |
-  +-- Spring Data JPA / Hibernate --> SQL Server 2022 (Product)
+  +-- Spring Data JPA / Hibernate --> SQL Server 2022 (Product, Identity)
   |
   +-- Spring Data MongoDB ---------> MongoDB 7 (Activity Log)
 ```
 
-Nhật ký hoạt động được ghi vào MongoDB sau khi transaction SQL commit.
-Schema SQL được quản lý bằng migration Flyway; Hibernate kiểm tra entity khớp schema.
+Nhật ký thao tác Product được ghi vào MongoDB sau khi transaction SQL commit.
+Schema SQL được tạo và cập nhật từ entity bằng Hibernate khi backend khởi động.
 
 ## Cấu trúc dự án
 
@@ -70,9 +73,13 @@ SBA391_Group6_Project/
 │   │   ├── components/
 │   │   │   ├── common/
 │   │   │   └── ui/
+│   │   ├── features/auth/             # Form, hook, schema đăng ký/đăng nhập; hộp thoại chính sách
+│   │   ├── i18n/                      # Câu chữ lỗi theo mã nghiệp vụ
 │   │   ├── layouts/
 │   │   ├── pages/
 │   │   ├── routes/
+│   │   ├── services/authService.ts    # Đăng ký, OTP, đăng nhập và quản lý phiên
+│   │   ├── styles/
 │   │   ├── types/                     # Kiểu dữ liệu API và nghiệp vụ
 │   │   ├── App.tsx
 │   │   └── main.tsx
@@ -89,12 +96,41 @@ SBA391_Group6_Project/
 │   │   │   ├── java/com/fptpost/
 │   │   │   │   ├── common/
 │   │   │   │   │   ├── exception/
+│   │   │   │   │   ├── mail/              # Service gửi mail và cấu hình dùng chung
 │   │   │   │   │   ├── request/
 │   │   │   │   │   └── response/
 │   │   │   │   ├── config/            # CORS, OpenAPI
 │   │   │   │   ├── modules/
 │   │   │   │   │   ├── activity/
 │   │   │   │   │   ├── health/
+│   │   │   │   │   ├── identity/
+│   │   │   │   │   │   ├── config/
+│   │   │   │   │   │   ├── controller/
+│   │   │   │   │   │   │   └── AuthenticationController.java
+│   │   │   │   │   │   ├── dto/
+│   │   │   │   │   │   │   ├── request/UserCreationRequest.java
+│   │   │   │   │   │   │   ├── internal/AuthenticationResult.java
+│   │   │   │   │   │   │   └── response/
+│   │   │   │   │   │   │       ├── RegisterResponse.java
+│   │   │   │   │   │   │       ├── RegistrationPoliciesResponse.java
+│   │   │   │   │   │   │       └── PolicyResponse.java
+│   │   │   │   │   │   ├── enums/
+│   │   │   │   │   │   │   └── UserStatus.java
+│   │   │   │   │   │   ├── exception/
+│   │   │   │   │   │   │   ├── IdentityErrorCode.java
+│   │   │   │   │   │   │   ├── IdentityException.java
+│   │   │   │   │   │   │   └── IdentityExceptionHandler.java
+│   │   │   │   │   │   ├── mapper/UserMapper.java
+│   │   │   │   │   │   ├── model/                  # Entity JPA
+│   │   │   │   │   │   ├── repository/
+│   │   │   │   │   │   ├── security/               # Limiter cho request/đăng nhập
+│   │   │   │   │   │   ├── util/ContactUtils.java
+│   │   │   │   │   │   └── service/
+│   │   │   │   │   │       ├── UserService.java
+│   │   │   │   │   │       ├── AuthenticationService.java
+│   │   │   │   │   │       ├── OtpService.java
+│   │   │   │   │   │       ├── JwtTokenService.java
+│   │   │   │   │   │       └── PolicyService.java
 │   │   │   │   │   └── product/
 │   │   │   │   │       ├── config/
 │   │   │   │   │       │   └── ProductDemoSeeder.java
@@ -117,8 +153,12 @@ SBA391_Group6_Project/
 │   │   │   │   │           └── ProductService.java
 │   │   │   │   └── Application.java
 │   │   │   └── resources/
-│   │   │       ├── db/migration/V1__create_products.sql
 │   │   │       ├── demo/products.json
+│   │   │       ├── messages/errors.properties        # Title/detail và lỗi validation
+│   │   │       ├── policies/
+│   │   │       │   ├── terms.json
+│   │   │       │   └── privacy.json
+│   │   │       ├── templates/mail/                   # HTML, text, tiêu đề email
 │   │   │       └── application.yml
 │   │   └── test/java/com/fptpost/
 │   ├── .env.example
@@ -127,12 +167,16 @@ SBA391_Group6_Project/
 │   └── pom.xml
 ├── docs/
 │   ├── CONTRIBUTING.md
+│   ├── IDENTITY-REGISTRATION.md
+│   ├── EMAIL.md
 │   ├── PROJECT-INFO.md
 │   ├── USE-CASES.md
+│   ├── TEAM-PLAN.md
 │   ├── LOGISTICS-BASE.md
 │   ├── DATABASE.md
-│   ├── DATABASE-MIGRATIONS.md
+│   ├── DATABASE-SCHEMA.md
 │   ├── API.md
+│   ├── API-ERRORS.md
 │   ├── SPEC-ALIGNMENT.md
 │   ├── SBA301-CHECKLIST.md
 │   └── sources/                     # Bản gốc BR/UC và SPEC v1.0
@@ -147,6 +191,15 @@ Backend tổ chức theo module. Module Product gồm `controller`, `service`, `
 `model`, `dto`, `mapper`, `exception` và `config` cho seeder.
 Controller nhận và validate request, service xử lý nghiệp vụ, repository truy cập database.
 MapStruct ánh xạ giữa DTO và entity; API trả DTO.
+Identity dùng DTO class Lombok chia `request/response`; đăng ký đi từ
+`AuthenticationController` → `UserService` → `OtpService` → `EmailService`.
+Mỗi DTO ở file cùng tên; `RegistrationPoliciesResponse` dùng `PolicyResponse` cho
+`terms` và `privacy`. Entity nằm ở `model`, enum nghiệp vụ như `UserStatus`, `OtpType` nằm ở
+`enums`; enum mã lỗi như `IdentityErrorCode` nằm ở `exception`.
+`EmailService` nằm trong `common/mail`, dùng chung cho các module;
+nội dung và giao diện email nằm trong template Thymeleaf.
+Hướng dẫn tùy chỉnh xem [email và template](docs/EMAIL.md).
+Chi tiết luồng và API xem [UC-01–02 đăng ký/xác thực](docs/IDENTITY-REGISTRATION.md).
 
 ## Khởi chạy
 
@@ -166,7 +219,7 @@ Copy-Item .env.example .env
 docker compose up --build -d
 ```
 
-Compose chạy SQL Server, MongoDB, backend và frontend. Service `sqlserver-init`
+Compose chạy SQL Server, MongoDB, Mailpit, backend và frontend. Service `sqlserver-init`
 tạo database nếu chưa tồn tại; service này kết thúc với exit code 0 là bình thường.
 Frontend được phục vụ qua Nginx và proxy `/api` tới backend.
 
@@ -176,6 +229,8 @@ Frontend được phục vụ qua Nginx và proxy `/api` tới backend.
 | Swagger UI | http://localhost:8080/swagger-ui/index.html |
 | API health | http://localhost:8080/api/v1/health |
 | Actuator health | http://localhost:8080/actuator/health |
+| Hộp thư Mailpit | http://localhost:8025 |
+| SMTP Mailpit | localhost:1025 |
 | SQL Server | localhost,1433 — database `group6_project_db` |
 | MongoDB | mongodb://localhost:27017/group6_project_db |
 
@@ -196,11 +251,12 @@ database SQL 2022; không chạy SQL 2022 trên các file database đã nâng l�
 ### Chạy trên máy để phát triển
 
 Yêu cầu Node.js 21.7.x, JDK 21 và Maven trên PATH; đặt `JAVA_HOME` trỏ tới JDK 21.
-Từ thư mục gốc, cài dependencies và khởi động hai database:
+Từ thư mục gốc, cài dependencies, khởi động hai database và Mailpit:
 
 ```powershell
 npm run install:all
 npm run docker:db
+docker compose up -d mailpit
 ```
 
 Đặt các biến backend theo `server/.env.example` trong terminal hoặc IDE.
@@ -211,6 +267,8 @@ $env:SQLSERVER_URL = 'jdbc:sqlserver://localhost:1433;databaseName=group6_projec
 $env:SQLSERVER_USERNAME = 'sa'
 $env:SQLSERVER_PASSWORD = '<mat-khau-trong-file-env>'
 $env:MONGODB_URI = 'mongodb://localhost:27017/group6_project_db'
+$env:SMTP_HOST = 'localhost'
+$env:SMTP_PORT = '1025'
 npm run dev
 ```
 
@@ -229,11 +287,18 @@ Compose tự đọc `.env` ở thư mục gốc; Spring Boot chạy ngoài Docke
 | `BACKEND_PORT` | Compose | Cổng backend, mặc định 8080 |
 | `SQLSERVER_PORT` | Compose | Cổng SQL Server, mặc định 1433 |
 | `MONGO_PORT` | Compose | Cổng MongoDB, mặc định 27017 |
+| `MAILPIT_PORT` | Compose | Cổng hộp thư Mailpit, mặc định 8025 |
+| `SMTP_PORT` | Compose/backend | Cổng SMTP; local mặc định 1025 |
+| `SMTP_HOST` | Backend | Local dùng localhost; container backend dùng mailpit |
+| `MAIL_FROM`, `MAIL_FROM_NAME` | Compose/backend | Địa chỉ và tên người gửi email |
+| `MAIL_TEMPLATE_CACHE` | Compose/backend | Cache template email, local mặc định false |
+| `TERMS_VERSION`, `PRIVACY_VERSION` | Backend | Phiên bản điều khoản/chính sách dùng khi đăng ký và lưu consent |
 | `BACKEND_PROFILES` | Compose | Profile backend, mặc định `dev` |
+| `JWT_SECRET` | Compose/backend | Khóa JWT Base64 chứa tối thiểu 32 byte ngẫu nhiên; giữ riêng trong `.env` |
+| `AUTH_COOKIE_SECURE` | Compose/backend | `false` cho localhost HTTP; `true` khi chạy production qua HTTPS |
 | `SQLSERVER_PASSWORD` | Compose/backend | Mật khẩu SQL Server |
 | `SQLSERVER_URL`, `SQLSERVER_USERNAME` | Backend | Kết nối SQL Server |
 | `MONGODB_URI` | Backend | Kết nối MongoDB |
-| `FLYWAY_BASELINE_ON_MIGRATE` | Compose | Mặc định false; chỉ bật một lần cho schema cũ đã kiểm tra |
 | `SERVER_PORT` | Backend | Cổng HTTP, mặc định 8080 |
 | `SPRING_PROFILES_ACTIVE` | Backend | Profile, mặc định `dev` |
 | `ALLOWED_ORIGINS` | Backend | Danh sách origin được phép |
@@ -241,20 +306,27 @@ Compose tự đọc `.env` ở thư mục gốc; Spring Boot chạy ngoài Docke
 
 Các file `.env.example` là mẫu cấu hình. File `.env` chứa cấu hình local và không được commit.
 
+Nội dung điều khoản và chính sách dữ liệu nằm trong
+[terms.json](server/src/main/resources/policies/terms.json) và
+[privacy.json](server/src/main/resources/policies/privacy.json).
+Service đọc file một lần khi khởi động, React nhận nội dung qua API.
+Khi chỉnh nội dung, đổi phiên bản tương ứng trong cấu hình triển khai và build/restart backend.
+Câu chữ lỗi backend nằm trong [errors.properties](server/src/main/resources/messages/errors.properties);
+enum mã lỗi quản lý code/HTTP status, resource quản lý title/detail và thông báo validation.
+
 ## Database và seed data
 
 | Dữ liệu | Database |
 | --- | --- |
 | Product | SQL Server, bảng `products` |
+| Tài khoản, role, hồ sơ, consent, OTP và blacklist | SQL Server, các bảng Identity |
 | Nhật ký thao tác Product | MongoDB, collection `activity_logs` |
 
-Flyway chạy migration tại `server/src/main/resources/db/migration` trước khi JPA khởi tạo.
-Hibernate dùng `ddl-auto: validate`; thay entity kèm migration mới trong cùng PR.
-V1 tạo bảng Product, primary key, check constraint và index. Không sửa migration đã áp dụng.
-
-Database mới được dựng từ migration. Database cũ do Hibernate tạo cần đối chiếu schema
-và baseline một lần theo [hướng dẫn Flyway](docs/DATABASE-MIGRATIONS.md), không xóa volumes
-để chuyển sang Flyway. Baseline tự động tắt theo mặc định.
+Hibernate dùng `ddl-auto: update`: tạo bảng/cột còn thiếu từ entity khi backend khởi động.
+Thành viên sửa entity trong module mình, pull code mới rồi chạy lại backend;
+không cần đăng ký số phiên bản V1/V2. Khóa ngoại, unique constraint, check và index
+được khai báo trong entity. `IdentityDataInitializer` thêm các role nền còn thiếu.
+Xem [quản lý schema code first](docs/DATABASE-SCHEMA.md) cho thay đổi dữ liệu cũ.
 
 Dữ liệu mẫu nằm trong `server/src/main/resources/demo/products.json`.
 `ProductDemoSeeder` chỉ thêm các UUID mẫu còn thiếu, không ghi đè dữ liệu đã sửa.
@@ -263,7 +335,7 @@ Seeder chạy khi có `demo` và không có `prod`; mặc định không nạp m
 - Docker: đặt `BACKEND_PROFILES=dev,demo` trong `.env`, rồi chạy lại Compose.
 - Chạy trên máy: đặt `SPRING_PROFILES_ACTIVE=dev,demo` trước khi chạy backend.
 
-Flyway tạo schema trước khi seeder chạy. Migration schema không tự nạp dữ liệu mẫu.
+Hibernate tạo/cập nhật schema trước khi initializer và seeder chạy.
 Mỗi module bổ sung seeder riêng khi cần.
 
 Theo thiết kế FPTPost, SQL lưu tài khoản, đơn, ví/sổ cái/ký quỹ; Mongo lưu vị trí,
@@ -275,9 +347,10 @@ nên có thể thiếu nhật ký nếu MongoDB lỗi. Chi tiết nằm trong [q
 
 ## API
 
-Xem [tài liệu API](docs/API.md) để phân biệt 7 endpoint base đã có và 167 mục API
-trong thiết kế FPTPost. Contract response của SPEC khác base và cần thống nhất
-trước khi triển khai nghiệp vụ; phần bên dưới mô tả **API đang chạy**.
+Xem [tài liệu API](docs/API.md) để phân biệt 7 endpoint base, 9 endpoint Identity đã có
+và 167 mục API trong thiết kế FPTPost. Phần bên dưới mô tả **API đang chạy**;
+các khác biệt còn lại về response thành công/phân trang được ghi trong
+[đối chiếu SPEC](docs/SPEC-ALIGNMENT.md).
 
 ### Endpoint
 
@@ -290,13 +363,22 @@ trước khi triển khai nghiệp vụ; phần bên dưới mô tả **API đan
 | PUT | `/api/v1/products/{id}` | Cập nhật sản phẩm |
 | DELETE | `/api/v1/products/{id}` | Xóa sản phẩm |
 | GET | `/api/v1/activity-logs` | Phân trang nhật ký, lọc theo `entityId` |
+| GET | `/api/v1/auth/registration-policies` | Điều khoản/chính sách và phiên bản hiện hành |
+| POST | `/api/v1/auth/register` | Tạo tài khoản chờ xác thực và gửi OTP email |
+| POST | `/api/v1/auth/otp/verify` | Xác thực OTP email và kích hoạt tài khoản |
+| POST | `/api/v1/auth/otp/resend` | Gửi lại OTP sau thời gian chờ |
+| GET | `/api/v1/auth/csrf` | CSRF token cho login/refresh/logout |
+| POST | `/api/v1/auth/login` | Đăng nhập bằng email hoặc SĐT |
+| POST | `/api/v1/auth/refresh` | Làm mới JWT và xoay vòng refresh cookie |
+| POST | `/api/v1/auth/logout` | Đăng xuất phiên hiện tại |
+| GET | `/api/v1/me` | Thông tin người dùng đang đăng nhập |
 
 Product ID và `entityId` của nhật ký dùng UUID.
 Xem request/response chi tiết trong Swagger UI.
 
 ### Response và phân trang
 
-Các API module sử dụng `ApiResponse<T>`. Ví dụ kết quả tìm kiếm rỗng:
+Response thành công dùng `ApiResponse<T>`. Ví dụ kết quả tìm kiếm rỗng:
 
 ```json
 {
@@ -317,10 +399,14 @@ Các API module sử dụng `ApiResponse<T>`. Ví dụ kết quả tìm kiếm r
 }
 ```
 
-`status` là HTTP status; `code` là mã nghiệp vụ.
-Lỗi validation có thêm `errors`; các trường null không xuất hiện trong JSON.
-Ví dụ: `1000` thành công, `1002` request không hợp lệ, `2001` Product không tồn tại,
-`9999` lỗi nội bộ. Các mã authentication/authorization đã dự trù, JWT chưa triển khai.
+Response thành công giữ `ApiResponse<T>` với `code: 1000`.
+Lỗi dùng Problem Details, Content-Type `application/problem+json`: `type`, `title`,
+`status`, `code` dạng chữ, `detail`, `correlationId` và `errors` dạng danh sách khi có validation.
+Ví dụ: `AUTH_EMAIL_ALREADY_EXISTS`, `PRODUCT_NOT_FOUND`, `SYS_INVALID_REQUEST`.
+Header `X-Correlation-Id` xuất hiện ở cả thành công/lỗi, có trong log để tra cứu.
+Backend nhận UUID hợp lệ hoặc sinh mới; frontend gửi UUID, ánh xạ mã lỗi và cho sao chép mã theo dõi.
+Chi tiết xem [contract lỗi](docs/API-ERRORS.md) và [JWT/phiên đăng nhập](docs/IDENTITY-LOGIN.md).
+Product/Activity yêu cầu đăng nhập; endpoint nội bộ mặc định cần Bearer.
 
 Product hỗ trợ `search`, `category`, `status`, `minPrice`, `maxPrice`,
 `page`, `size`, `sortBy` và `direction`:
@@ -338,10 +424,12 @@ direction là `ASC` hoặc `DESC`. Danh sách luôn nằm trong `data.content`.
 | Nội dung | Quy ước của nhóm |
 | --- | --- |
 | Tổ chức backend | Package `com.fptpost.modules/<module>`; controller → service → repository |
+| Package theo tầng | `controller`, `service`, `repository`, `model`, `mapper`; enum nghiệp vụ ở `enums`, mã lỗi ở `exception` |
 | Đặt tên | Class/component `PascalCase`, biến/hàm `camelCase`, constant `UPPER_SNAKE_CASE` |
 | Service | Một class `@Service` nếu chỉ có một implementation; constructor injection |
-| DTO và mapping | Request có validation, response tách khỏi entity; dùng MapStruct |
-| API | `/api/v1/<resources>`; trả `ApiResponse`, danh sách dùng `PageResponse.content` |
+| Entity JPA | `@Getter`, `@Setter`, `@Builder`, `@NoArgsConstructor`, `@AllArgsConstructor`; initializer dùng `@Builder.Default` |
+| DTO và mapping | Mỗi DTO một file; class Lombok trong `dto/request`, `dto/response`; request có validation, dùng MapStruct |
+| API | `/api/v1/<resources>`; thành công dùng `ApiResponse`, lỗi dùng Problem Details; danh sách dùng `PageResponse.content` |
 | Xử lý lỗi | `AppException` + enum mã lỗi của module; handler chung xử lý response |
 | Database | SQL dùng JPA/Specification; Mongo dùng MongoRepository; nghiệp vụ VND theo SPEC dùng số nguyên `long`/`BIGINT`, Product demo hiện dùng `BigDecimal` |
 | Frontend | API đặt trong `src/api`, dùng `axiosClient`; component chung ở `components` |
@@ -407,12 +495,19 @@ Chỉ đưa phiên bản ổn định từ `develop` vào `main`.
 
 ## Tài liệu
 
+UC-01–02 có tại `/register` → `/verify`: đăng ký, nhập OTP, gửi lại mã và kích hoạt tài khoản.
+Docker mặc định chạy Mailpit, xem email tại `http://localhost:8025`; có thể cấu hình SMTP thật
+bằng biến môi trường. UC-03 có tại `/login` → `/account`, hỗ trợ email/SĐT, JWT và refresh cookie.
+Xem [Identity đăng nhập](docs/IDENTITY-LOGIN.md) và [Identity đăng ký](docs/IDENTITY-REGISTRATION.md) để tra contract,
+schema, cấu hình SMTP và các giới hạn hiện tại.
+
 - [Quy ước code backend/frontend và hướng dẫn đóng góp](docs/CONTRIBUTING.md)
 - [Thông tin dự án, phạm vi và tác nhân](docs/PROJECT-INFO.md)
 - [Danh mục UC, phân công và quy ước mã nhánh](docs/USE-CASES.md)
+- [Phân công 6 thành viên, việc bắt đầu và thứ tự tích hợp](docs/TEAM-PLAN.md)
 - [Kiến trúc và ranh giới module FPTPost](docs/LOGISTICS-BASE.md)
 - [Database và từ điển dữ liệu dự kiến](docs/DATABASE.md)
-- [Migration Flyway và tiếp nhận database cũ](docs/DATABASE-MIGRATIONS.md)
+- [Code first, schema và seed data](docs/DATABASE-SCHEMA.md)
 - [API hiện tại và danh mục thiết kế](docs/API.md)
 - [Lựa chọn đã chốt, khác biệt với SPEC và câu hỏi còn mở](docs/SPEC-ALIGNMENT.md)
 - [Tài liệu nguồn BR/UC và SPEC v1.0](docs/sources/README.md)
@@ -424,9 +519,12 @@ Checklist đề gốc cần đối chiếu với các điều chỉnh của gi�
 
 Base có Product CRUD, paging/filter/sort, MapStruct, validation, mã lỗi,
 Swagger, seed demo, nhật ký MongoDB và Docker Compose.
-Frontend có trang chủ, trang quản lý Product và trang 404.
+Identity có UC-01–03: đăng ký, chính sách/consent, OTP email, đăng nhập JWT/refresh rotation và đăng xuất phiên hiện tại;
+service gửi mail/template dùng chung. Lỗi API dùng Problem Details và correlation ID.
+Frontend có trang chủ, Product, đăng ký, xác thực OTP, đăng nhập, tài khoản và trang 404.
 
-Các module identity/KYC, order, market, pricing, ledger/payment, tracking, reputation,
+Các phần Identity còn lại (quản lý từng thiết bị, quên/đổi mật khẩu, hồ sơ/KYC) và các module
+order, market, pricing, ledger/payment, tracking, reputation,
 dispute, messaging và admin/audit cần triển khai theo BR/UC. COD, bưu cục/kho và AI/eKYC
 tự động nằm ngoài phạm vi v1.0. Demo thanh toán theo tài liệu dùng sandbox/tiền mô phỏng.
 Tài liệu là dự thảo, không phải chứng nhận các UC đã hoàn thành.

@@ -46,9 +46,9 @@ số nguyên VND xuyên suốt DB, Java, DTO và giao diện.
   2dsphere cho vị trí, TTL theo tham số cho dữ liệu được phép hết hạn. Audit không áp TTL tùy tiện.
 
 Chi tiết trường, quan hệ, điều kiện và index xem sheet `09_Dữ_liệu` và SPEC mục 3.3–3.5.
-Unique index có điều kiện/trigger/quyền DB phải được viết trong migration Flyway.
+Unique index có điều kiện/trigger/quyền DB cần được thiết kế riêng khi triển khai module.
 Nhóm kiểm tra DDL và hành vi trên SQL Server thật khi hiện thực các ràng buộc này;
-không coi Hibernate validate là kiểm tra thay thế cho mọi index/trigger/quyền.
+không coi Hibernate update là kiểm tra thay thế cho mọi index/trigger/quyền.
 
 ## Danh mục thiết kế
 
@@ -113,17 +113,18 @@ Giữ nguyên mã phân hệ và cách viết phạm vi UC trong nguồn.
 | DB-054 | notifications | MongoDB | NTF | UC-53 |
 | DB-055 | audit_logs | MongoDB | ADM | UC-60 |
 
-## Schema hiện tại và migration
+## Schema hiện tại và code first
 
-Hiện chỉ có SQL `products` và Mongo `activity_logs` phục vụ ví dụ kỹ thuật;
-hai tên này không nằm trong danh mục nghiệp vụ v1.0. ActivityLog mẫu chưa phải audit_logs
+SQL có `products` phục vụ ví dụ và các bảng Identity cho UC-01–03:
+`users`, `roles`, `user_roles`, `user_profiles`, `consents`, `otp_codes`, `blacklist`.
+UC-03 thêm `sessions` lưu hash refresh token/phiên và bộ đếm khóa đăng nhập trong User.
+Mongo có `activity_logs` phục vụ ví dụ kỹ thuật. ActivityLog mẫu chưa phải audit_logs
 theo SPEC: chưa có actor, kiểm soát truy cập và đồng bộ outbox đảm bảo.
 
-Flyway có V1 tạo products; Hibernate `ddl-auto: validate`, cấu hình trong một
-`application.yml`. Migration đã áp dụng là bất biến, thay đổi schema bằng phiên bản mới.
-Seed riêng theo module/profile demo, chỉ thêm mẫu còn thiếu, không ghi đè dữ liệu đã sửa.
-Chưa có seed hay migration các bảng nghiệp vụ FPTPost. Database Hibernate cũ cần được
-kiểm tra và baseline theo [hướng dẫn Flyway](DATABASE-MIGRATIONS.md).
+Hibernate `ddl-auto: update` tạo/cập nhật schema từ entity, cấu hình trong một
+`application.yml`. Identity initializer tạo role nền; seed demo riêng theo module/profile,
+chỉ thêm mẫu còn thiếu, không ghi đè dữ liệu đã sửa.
+Xem [schema code first](DATABASE-SCHEMA.md) khi thay đổi cột có dữ liệu cũ.
 
 Việc tiếp theo: chốt chiến lược ID, vẽ ERD đầy đủ từ từ điển, xác định quan hệ/index và
 transaction từng UC trước khi tạo entity. Xem [SPEC-ALIGNMENT.md](SPEC-ALIGNMENT.md).

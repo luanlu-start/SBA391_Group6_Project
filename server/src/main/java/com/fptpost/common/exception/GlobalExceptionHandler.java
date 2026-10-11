@@ -1,74 +1,73 @@
 package com.fptpost.common.exception;
 
-import com.fptpost.common.response.ApiResponse;
+import com.fptpost.common.mail.exception.EmailDeliveryException;
+import com.fptpost.common.response.ApiProblem;
+import com.fptpost.common.response.FieldViolation;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
+import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.ServletWebRequest;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Comparator;
+import java.util.List;
 
 @RestControllerAdvice
-public class GlobalExceptionHandler {
-
+@RequiredArgsConstructor
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
-
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Void>> handleValidationExceptions(MethodArgumentNotValidException ex) {
-        Map<String, String> errors = new HashMap<>();
-        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
-            errors.put(error.getField(), error.getDefaultMessage());
-        }
-
-        ApiResponse<Void> response = ApiResponse.error(
-                GlobalErrorCode.INVALID_REQUEST, "Validation failed", errors);
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-    }
-
-    @ExceptionHandler(org.springframework.validation.BindException.class)
-    public ResponseEntity<ApiResponse<Void>> handleBindingErrors(org.springframework.validation.BindException ex) {
-        Map<String, String> errors = new HashMap<>();
-        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
-            errors.putIfAbsent(error.getField(), error.isBindingFailure()
-                    ? "Invalid value" : error.getDefaultMessage());
-        }
-        return ResponseEntity.badRequest().body(ApiResponse.error(
-                GlobalErrorCode.INVALID_REQUEST, "Invalid request parameters", errors));
-    }
-
-    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<ApiResponse<Void>> handleParameterTypeMismatch(
-            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException ex) {
-        return ResponseEntity.badRequest().body(ApiResponse.error(GlobalErrorCode.INVALID_REQUEST));
-    }
+    private final ProblemResponseFactory problems;
 
     @ExceptionHandler(AppException.class)
-    public ResponseEntity<ApiResponse<Void>> handleAppException(AppException ex) {
-        log.warn("Application exception: {}", ex.getMessage());
-
-        ApiResponse<Void> response = ApiResponse.error(ex.getErrorCode(), ex.getMessage(), null);
-
-        return ResponseEntity.status(ex.getErrorCode().getHttpStatus()).body(response);
+    public ResponseEntity<ApiProblem> handleAppException(AppException exception, HttpServletRequest request) {
+        log.warn("API failure code={}", exception.getErrorCode().getCode());
+        return problems.response(exception.getErrorCode(), request, List.of());
     }
 
-    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
-    public ResponseEntity<ApiResponse<Void>> handleUnreadableRequest(
-            org.springframework.http.converter.HttpMessageNotReadableException ex) {
-        return ResponseEntity.badRequest().body(ApiResponse.error(GlobalErrorCode.INVALID_REQUEST));
+    @ExceptionHandler(BindException.class)
+    public ResponseEntity<ApiProblem> handleBindingErrors(BindException exception, HttpServletRequest request) {
+        return problems.response(GlobalErrorCode.INVALID_REQUEST, request, violations(exception));
+    }
+
+    @ExceptionHandler(EmailDeliveryException.class)
+    public ResponseEntity<ApiProblem> handleEmailFailure(HttpServletRequest request) {
+        return problems.response(GlobalErrorCode.UPSTREAM_UNAVAILABLE, request, List.of());
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
-        log.error("Unhandled exception caught: ", ex);
+    public ResponseEntity<ApiProblem> handleGenericException(Exception exception, HttpServletRequest request) {
+        log.error("API failure code={} exceptionType={}", GlobalErrorCode.INTERNAL_SERVER_ERROR.getCode(),
+                exception.getClass().getSimpleName());
+        return problems.response(GlobalErrorCode.INTERNAL_SERVER_ERROR, request, List.of());
+    }
 
-        ApiResponse<Void> response = ApiResponse.error(GlobalErrorCode.INTERNAL_SERVER_ERROR);
+    @Override
+    protected ResponseEntity<Object> handleExceptionInternal(Exception exception, Object body, HttpHeaders headers,
+                                                              HttpStatusCode status, WebRequest webRequest) {
+        HttpServletRequest request = ((ServletWebRequest) webRequest).getRequest();
+        List<FieldViolation> errors = List.of();
+        if (exception instanceof MethodArgumentNotValidException invalid) {
+            errors = violations(invalid);
+        } else if (exception instanceof MethodArgumentTypeMismatchException mismatch) {
+            errors = List.of(problems.violation(mismatch.getName(), "TYPE_MISMATCH"));
+        }
+        var response = problems.response(GlobalErrorCode.forStatus(status.value()), status.value(), request, errors, headers);
+        return new ResponseEntity<>(response.getBody(), response.getHeaders(), response.getStatusCode());
+    }
 
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    private List<FieldViolation> violations(BindException exception) {
+        return exception.getBindingResult().getFieldErrors().stream().map(problems::violation)
+                .sorted(Comparator.comparing(FieldViolation::getField).thenComparing(FieldViolation::getCode))
+                .toList();
     }
 }

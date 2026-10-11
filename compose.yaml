@@ -42,18 +42,34 @@ services:
       retries: 12
       start_period: 10s
 
+  mailpit:
+    image: axllent/mailpit:v1.27.4
+    ports:
+      - "127.0.0.1:${MAILPIT_PORT:-8025}:8025"
+      - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
+
   server:
     build:
       context: ./server
     environment:
       SERVER_PORT: "8080"
+      JWT_SECRET: ${JWT_SECRET:-}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
       SPRING_PROFILES_ACTIVE: ${BACKEND_PROFILES:-dev}
       SQLSERVER_URL: jdbc:sqlserver://sqlserver:1433;databaseName=group6_project_db;encrypt=true;trustServerCertificate=true
       SQLSERVER_USERNAME: sa
       SQLSERVER_PASSWORD: ${SQLSERVER_PASSWORD:?Set SQLSERVER_PASSWORD in the root .env file}
       MONGODB_URI: mongodb://mongodb:27017/group6_project_db
-      SPRING_FLYWAY_BASELINE_ON_MIGRATE: ${FLYWAY_BASELINE_ON_MIGRATE:-false}
-      ALLOWED_ORIGINS: http://localhost:${FRONTEND_PORT:-5173},http://127.0.0.1:${FRONTEND_PORT:-5173}
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_AUTH: ${SMTP_AUTH:-false}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-false}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@fptpost.local}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-FPTPost}
+      MAIL_TEMPLATE_CACHE: ${MAIL_TEMPLATE_CACHE:-false}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:${FRONTEND_PORT:-5173},http://127.0.0.1:${FRONTEND_PORT:-5173},http://localhost:5173,http://127.0.0.1:5173}
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
     depends_on:
@@ -61,6 +77,8 @@ services:
         condition: service_completed_successfully
       mongodb:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/actuator/health"]
       interval: 10s
