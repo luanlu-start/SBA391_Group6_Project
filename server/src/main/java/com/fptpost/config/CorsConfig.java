@@ -33,7 +33,7 @@ public class CorsConfig {
         List<String> origins = Arrays.asList(allowedOrigins.split(","));
         config.setAllowedOriginPatterns(origins);
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(Arrays.asList("Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With", "X-Correlation-Id"));
+        config.setAllowedHeaders(Arrays.asList("Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With", "X-Correlation-Id", "X-XSRF-TOKEN"));
         config.setExposedHeaders(Arrays.asList("Authorization", "Link", "X-Total-Count", "X-Correlation-Id", "Retry-After"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);

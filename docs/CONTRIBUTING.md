@@ -40,9 +40,12 @@ com/fptpost/modules/<module>/
 ├── enums/
 ├── dto/
 │   ├── request/
-│   └── response/
+│   ├── response/
+│   └── internal/     # Kết quả giữa service/controller, không phải response public
 ├── mapper/
 ├── exception/
+├── security/         # Khi có limiter hoặc xử lý xác thực riêng
+├── util/             # Hàm hỗ trợ không giữ trạng thái
 └── config/          # Khi module có seed hoặc cấu hình riêng
 ```
 
@@ -63,6 +66,9 @@ Chỉ tạo thư mục/lớp cần dùng. Event đặt trong `event` nếu modul
 
 Enum nghiệp vụ đặt ở `modules.<module>.enums`, tách khỏi entity trong `model`.
 Enum mã lỗi như `IdentityErrorCode` vẫn ở `exception` cùng cơ chế xử lý lỗi.
+Enum lưu trong SQL dùng `@Enumerated(EnumType.STRING)`, tránh lưu ordinal.
+Validate request tại API; khai báo validation trên entity cho bất biến dữ liệu
+như email không trống/đúng định dạng, cùng constraint SQL phù hợp.
 
 Service dùng một class `@Service` khi chỉ có một implementation.
 Chỉ tách interface/implementation khi có nhu cầu thực tế.
@@ -74,7 +80,12 @@ API AUTH nhóm trong `AuthenticationController`. Đăng ký gọi `UserService.c
 service tài khoản gọi `OtpService` để sinh/lưu mã băm và `common.mail.service.EmailService`
 để gửi email theo template. Service gửi mail dùng chung không phụ thuộc vào Identity
 hoặc mã lỗi nghiệp vụ của module. Xem [hướng dẫn email](EMAIL.md).
-`AuthenticationService` phụ trách xác thực/phiên khi UC tương ứng được triển khai.
+`AuthenticationService` phụ trách xác thực và phiên đăng nhập.
+Identity hiện có 5 service: UserService (tài khoản), AuthenticationService
+(login/refresh/logout/current user), OtpService (sinh/gửi/xác thực mã), JwtTokenService
+(cấp access token), PolicyService (nội dung/phiên bản chính sách).
+AuthenticationRateLimiter và LoginAttemptLimiter nằm trong `security`; ContactUtils
+nằm trong `util`; AuthenticationResult nằm trong `dto.internal` và không trả trực tiếp qua API.
 Chỉ tạo method cho chức năng đã có, không tạo endpoint hoặc service rỗng.
 
 Module khác giao tiếp qua facade/interface hoặc sự kiện, không gọi repository nội bộ của nhau.
@@ -96,6 +107,10 @@ vào `toString()` hoặc serialize trả về client.
 
 - Request khai báo `@NotBlank`, `@NotNull`, `@Size`, `@Min`, `@Digits`... theo dữ liệu.
 - Controller dùng `@Valid`; kiểm tra nghiệp vụ cần đọc database nằm trong service.
+- Validation cần thông báo riêng dùng `message = "PASSWORD_INVALID"` và khai báo
+  `validation.PASSWORD_INVALID` trong messages/errors.properties. Mã nằm trong errors[].code.
+  Không ghi câu tiếng Việt trực tiếp trong annotation; constraint mặc định vẫn có mã dự phòng.
+  Checkbox bắt buộc dùng cả `@NotNull` và `@AssertTrue`; `@Size` dành cho độ dài chuỗi/collection.
 - Giới hạn DTO phải khớp độ dài, precision và scale của database.
 - Dùng MapStruct `componentModel = "spring"`, `unmappedTargetPolicy = ERROR`.
 - Bỏ qua ID và timestamps trong mapping từ input; các trường này do server quản lý.
@@ -113,6 +128,10 @@ Danh sách trả `ApiResponse<PageResponse<T>>`, không trả trực tiếp `Pag
 HTTP status phải khớp trường `status` trong response; `code` thể hiện kết quả nghiệp vụ.
 
 Service ném `AppException(<Module>ErrorCode...)` cho lỗi nghiệp vụ.
+Identity dùng chung IdentityException cho lỗi có Retry-After hoặc cần giữ lượt thử sai/
+thu hồi phiên khi refresh token bị dùng lại. Chỉ các method login, refresh, verifyOtp
+chủ động noRollbackFor với loại này; lỗi database, gửi mail và lỗi ngoài dự kiến vẫn rollback.
+Không dùng noRollbackFor cho mọi AppException hoặc mọi Exception.
 `GlobalExceptionHandler` xử lý response; không lặp try/catch ở mỗi controller/service
 và không trả chi tiết exception nội bộ cho client.
 
@@ -133,7 +152,9 @@ Không so sánh câu chữ để quyết định nghiệp vụ. Thêm `CODE.titl
 Không tự trả ApiResponse cho lỗi, không trả `exception.getMessage()` hoặc rejected value.
 Service gửi mã lỗi cho handler dùng chung; chi tiết xem [contract lỗi](API-ERRORS.md).
 Thêm mô tả API bằng OpenAPI theo controller mẫu.
-JWT/phân quyền chưa triển khai; khi bổ sung cần bảo vệ cả endpoint lẫn trang frontend.
+Spring Security/JWT và phiên đã có; endpoint mới mặc định cần xác thực.
+Kiểm tra role/ownership tại service, giao diện chỉ điều chỉnh menu theo quyền.
+Xem [đăng nhập và token](IDENTITY-LOGIN.md); không lưu access/refresh token trong localStorage.
 
 ## 5. Repository, tìm kiếm và phân trang
 
@@ -197,16 +218,18 @@ Không dùng ActivityLog mẫu làm bằng chứng duy nhất cho trạng thái 
 Chỉ module ledger được ghi bút toán; ghi lịch sử trạng thái và bút toán liên quan trong
 cùng transaction SQL, có kiểm tra quyền và điều kiện. Xem [database](DATABASE.md).
 
-## 7. Migration và seed data
+## 7. Code first và seed data
 
-Cấu hình trong một `application.yml`; Flyway quản lý schema, Hibernate dùng `ddl-auto: validate`.
-Sửa entity kèm migration mới với unique/foreign key/check/index cần thiết trong cùng PR.
-Không sửa migration đã áp dụng; không dùng Hibernate update/create để né migration.
-Filtered unique index, trigger và quyền bảo vệ ledger phải có migration T-SQL và test
+Cấu hình trong một `application.yml`; Hibernate dùng `ddl-auto: update`.
+Sửa entity kèm unique/foreign key/check/index cần thiết trong cùng PR; chạy lại backend
+để cập nhật schema. Không dùng các file SQL đánh số V1/V2.
+Filtered unique index, trigger và quyền bảo vệ ledger cần thiết kế riêng và test
 SQL Server khi module tương ứng được tạo; chưa có các bảng ledger trong base.
 
-Seed demo tách khỏi migration schema. Database cũ do Hibernate tạo phải được kiểm tra
-và baseline một lần theo [hướng dẫn migration](DATABASE-MIGRATIONS.md), giữ dữ liệu cũ.
+Seed demo tách khỏi việc tạo schema. Dữ liệu nền bắt buộc nằm trong initializer riêng;
+Identity khởi tạo role bằng `IdentityDataInitializer`, không phụ thuộc profile demo.
+Thay đổi tên cột/kiểu/nullability có dữ liệu cần kiểm tra theo
+[hướng dẫn code first](DATABASE-SCHEMA.md).
 
 Mỗi module có seeder riêng nếu cần. Không gom mẫu của mọi module vào service hoặc một AppInit quá lớn.
 Seed dùng mã/ID ổn định để kiểm tra bản ghi tồn tại, chỉ thêm mẫu còn thiếu.
@@ -217,6 +240,11 @@ Seeder Product đọc `demo/products.json`, không tạo ActivityLog và không 
 
 - Page và layout dùng function component/hooks; component dùng lại đặt trong `components`.
 - API theo module đặt trong `src/api` và gọi qua `axiosClient`.
+- Chức năng có nhiều logic form tách trong `features/<feature>/components`, `hooks`,
+  `schemas`. Page chỉ ghép layout/component; schema Zod và React Hook Form kiểm tra input;
+  hook gọi service và xử lý loading/lỗi/chuyển trang.
+- Auth dùng `services/authService.ts` gọi qua `axiosClient`, dùng chung cho đăng ký,
+  chính sách, OTP, login, refresh, logout và khôi phục phiên. Không tạo thêm wrapper API trùng nhiệm vụ.
 - Không hardcode URL backend trong page/component.
 - Xử lý loading, lỗi, dữ liệu rỗng và dữ liệu có kết quả.
 - Form có kiểm tra đầu vào và hiển thị lỗi field từ backend.

@@ -13,7 +13,7 @@ checklist theo yêu cầu trong đề SBA301 đã xác nhận.
 - [x] Phân trang, sorting, filtering tại database.
 - [x] Swagger/OpenAPI.
 - [x] Seed demo tách riêng, không chạy trong prod.
-- [x] Flyway migration SQL; Hibernate validate; quy trình baseline database cũ.
+- [x] Hibernate code first, tự cập nhật schema; initializer/seed data tách riêng.
 - [x] JUnit 5, Mockito, MockMvc và test JPA.
 - [x] Docker Compose, cấu hình qua môi trường (phần Docker là điểm cộng).
 
@@ -48,7 +48,8 @@ Collection activity_logs:
 | occurredAt | BSON date | Thời điểm thao tác |
 
 Index: (entityId ASC, occurredAt DESC, _id ASC) và (occurredAt DESC, _id ASC).
-Mongo không có foreign key tới SQL. Lịch sử chỉ ghi sau SQL commit, best effort; chưa có actor/user vì chưa có JWT.
+Mongo không có foreign key tới SQL. Lịch sử chỉ ghi sau SQL commit, best effort;
+JWT đã có nhưng ActivityLog demo chưa bổ sung actor/user hoặc outbox.
 Seed không tạo log. Không cho sửa/xóa lịch sử qua API mẫu.
 
 ## Gợi ý phát triển tiếp

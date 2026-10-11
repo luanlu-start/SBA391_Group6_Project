@@ -22,43 +22,43 @@ import java.util.Locale;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UserCreationRequest {
-    @NotBlank
-    @Size(max = 100)
+    @NotBlank(message = "FULLNAME_REQUIRED")
+    @Size(max = 100, message = "FULLNAME_INVALID")
     String fullName;
 
-    @NotBlank
-    @Email
-    @Size(max = 254)
+    @NotBlank(message = "EMAIL_REQUIRED")
+    @Email(message = "EMAIL_INVALID")
+    @Size(max = 254, message = "EMAIL_INVALID")
     String email;
 
-    @NotBlank
+    @NotBlank(message = "PHONE_REQUIRED")
     @Pattern(regexp = "(?:0[35789]\\d{8}|\\+84[35789]\\d{8})",
-            message = "Số điện thoại di động Việt Nam không hợp lệ")
+            message = "PHONE_INVALID")
     String phone;
 
-    @NotBlank
-    @Size(min = 8, max = 72)
+    @NotBlank(message = "PASSWORD_REQUIRED")
+    @Size(min = 8, max = 72, message = "PASSWORD_INVALID")
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     String password;
 
-    @NotNull
-    @AssertTrue(message = "Bạn cần xác nhận đủ 18 tuổi")
+    @NotNull(message = "ADULT_CONFIRMATION_REQUIRED")
+    @AssertTrue(message = "ADULT_CONFIRMATION_REQUIRED")
     Boolean adultConfirmed;
 
-    @NotNull
-    @AssertTrue(message = "Bạn cần đồng ý điều khoản sử dụng")
+    @NotNull(message = "TERMS_NOT_ACCEPTED")
+    @AssertTrue(message = "TERMS_NOT_ACCEPTED")
     Boolean termsAccepted;
 
-    @NotNull
-    @AssertTrue(message = "Bạn cần đồng ý chính sách dữ liệu")
+    @NotNull(message = "PRIVACY_NOT_ACCEPTED")
+    @AssertTrue(message = "PRIVACY_NOT_ACCEPTED")
     Boolean privacyAccepted;
 
-    @NotBlank
-    @Size(max = 50)
+    @NotBlank(message = "TERMS_VERSION_REQUIRED")
+    @Size(max = 50, message = "POLICY_VERSION_INVALID")
     String termsVersion;
 
-    @NotBlank
-    @Size(max = 50)
+    @NotBlank(message = "PRIVACY_VERSION_REQUIRED")
+    @Size(max = 50, message = "POLICY_VERSION_INVALID")
     String privacyVersion;
 
     public void setFullName(String fullName) {

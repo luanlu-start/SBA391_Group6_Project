@@ -23,4 +23,5 @@ public class RegisterResponse {
     String verificationChannel;
     String maskedTarget;
     Instant expiresAt;
+    Instant resendAvailableAt;
 }

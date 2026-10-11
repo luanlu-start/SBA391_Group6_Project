@@ -1,4 +1,5 @@
 import type { FieldViolation } from '../types/api';
+import type { OtpChallenge } from '../types/identity';
 
 export class ApiError extends Error {
   public readonly fieldErrors: Record<string, string>;
@@ -10,6 +11,8 @@ export class ApiError extends Error {
     public readonly errors: FieldViolation[] = [],
     public readonly correlationId?: string,
     cause?: unknown,
+    public readonly retryAfterSeconds?: number,
+    public readonly verification?: OtpChallenge,
   ) {
     super(message, { cause });
     this.name = 'ApiError';

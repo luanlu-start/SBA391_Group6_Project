@@ -15,6 +15,7 @@ import com.fptpost.modules.identity.repository.ConsentRepository;
 import com.fptpost.modules.identity.repository.RoleRepository;
 import com.fptpost.modules.identity.repository.UserProfileRepository;
 import com.fptpost.modules.identity.repository.UserRepository;
+import com.fptpost.modules.identity.util.ContactUtils;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -45,9 +46,9 @@ public class UserService {
     @Transactional
     public RegisterResponse createUser(UserCreationRequest request, String remoteAddress) {
         validatePolicyVersions(request);
-        String phone = RegistrationContact.normalizePhone(request.getPhone());
+        String phone = ContactUtils.normalizePhone(request.getPhone());
         validatePassword(request.getPassword(), request.getEmail(), phone, request.getPhone());
-        validateRegistrationContact(request.getEmail(), phone);
+        validateContactUtils(request.getEmail(), phone);
 
         Instant now = identityClock.instant();
         User user = userMapper.toUser(request);
@@ -58,7 +59,7 @@ public class UserService {
         user.setCreatedAt(now);
         user.setUpdatedAt(now);
         user.getRoles().add(roleRepository.findByCode("SENDER").orElseThrow(
-                () -> new IllegalStateException("Missing required SENDER role migration")));
+                () -> new IllegalStateException("Missing required SENDER role initialization")));
 
         // Flush unique constraints before sending anything to an external mail server.
         User savedUser = userRepository.saveAndFlush(user);
@@ -67,7 +68,7 @@ public class UserService {
         saveConsent(savedUser, "PRIVACY", request.getPrivacyVersion(), now, remoteAddress);
 
         var otp = otpService.generateAndSendOtp(savedUser, request.getFullName());
-        return userMapper.toRegisterResponse(savedUser, otp);
+        return userMapper.toRegisterResponse(savedUser, otp, registrationProperties);
     }
 
     private void validatePolicyVersions(UserCreationRequest request) {
@@ -77,8 +78,8 @@ public class UserService {
         }
     }
 
-    private void validateRegistrationContact(String email, String phone) {
-        if (blacklistRepository.existsByKindAndValueHash("PHONE", RegistrationContact.phoneHash(phone))) {
+    private void validateContactUtils(String email, String phone) {
+        if (blacklistRepository.existsByKindAndValueHash("PHONE", ContactUtils.phoneHash(phone))) {
             throw new AppException(IdentityErrorCode.REGISTRATION_NOT_ALLOWED);
         }
         if (userRepository.existsByEmail(email)) {

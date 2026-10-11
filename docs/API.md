@@ -18,10 +18,19 @@ và [SPEC](sources/fptpost-spec-v1.0.pdf), mục 6.
 | GET | /api/v1/activity-logs | Phân trang nhật ký; lọc entityId |
 | GET | /api/v1/auth/registration-policies | Nội dung/phiên bản chính sách đăng ký |
 | POST | /api/v1/auth/register | UC-01 đăng ký chờ xác thực, gửi OTP email; HTTP 201 |
+| POST | /api/v1/auth/otp/verify | UC-02 xác thực email, kích hoạt tài khoản; HTTP 200 |
+| POST | /api/v1/auth/otp/resend | UC-02 gửi lại OTP sau thời gian chờ; HTTP 200 |
+| GET | /api/v1/auth/csrf | CSRF token trước thao tác đăng nhập/refresh/logout |
+| POST | /api/v1/auth/login | UC-03 đăng nhập email/SĐT, JWT và refresh cookie |
+| POST | /api/v1/auth/refresh | UC-03 xoay vòng refresh cookie và cấp JWT mới |
+| POST | /api/v1/auth/logout | Đăng xuất phiên hiện tại |
+| GET | /api/v1/me | Thông tin người dùng đang đăng nhập |
 
 Product CRUD là ví dụ kỹ thuật, không tương ứng UC-12 hay các API orders.
-UC-01 đã có API đăng ký; xem [contract và giới hạn Identity](IDENTITY-REGISTRATION.md).
-Base chưa có xác thực OTP, JWT, quyền truy cập, VNPay hoặc WebSocket.
+UC-01–02 đã có luồng đăng ký và xác thực email; xem [contract và giới hạn Identity](IDENTITY-REGISTRATION.md).
+UC-03 có Spring Security/JWT và refresh rotation; xem [contract đăng nhập](IDENTITY-LOGIN.md).
+Product/Activity và các API nội bộ yêu cầu Bearer; health và các endpoint auth công khai
+được liệt kê trong SecurityConfig. Chưa có VNPay/WebSocket hoặc đầy đủ role/ownership cho các module chưa triển khai.
 
 ## Contract đang chạy
 
@@ -59,8 +68,8 @@ Response thành công vẫn dùng envelope ApiResponse; phân trang giữ mặc 
 `sortBy`/`direction`. SPEC minh họa payload thành công trực tiếp, mặc định 20,
 `sort=field,asc|desc`, cursor cho chat/thông báo. Các phần này chưa chuyển.
 
-Idempotency-Key cho thao tác tiền, ETag/If-Match cho PUT đơn/chuyến, JWT và quyền theo
-role/ownership sẽ triển khai ở UC tương ứng. Hạn request hiện chỉ có ở API đăng ký.
+Idempotency-Key cho thao tác tiền, ETag/If-Match cho PUT đơn/chuyến và quyền nghiệp vụ theo
+role/ownership sẽ triển khai ở UC tương ứng. JWT/phiên đã có; hạn request áp dụng đăng ký, OTP, login và refresh.
 Xem [đối chiếu SPEC](SPEC-ALIGNMENT.md).
 Danh mục bên dưới mới có method/path/quyền/UC, chưa thay thế OpenAPI có DTO, response,
 status, security scheme và ví dụ cho từng endpoint.

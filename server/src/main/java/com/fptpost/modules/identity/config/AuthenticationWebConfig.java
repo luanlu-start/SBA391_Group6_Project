@@ -1,7 +1,7 @@
 package com.fptpost.modules.identity.config;
 
 import com.fptpost.common.exception.AppException;
-import com.fptpost.modules.identity.service.RegistrationRateLimiter;
+import com.fptpost.modules.identity.security.AuthenticationRateLimiter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -12,8 +12,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 @RequiredArgsConstructor
-public class RegistrationWebConfig implements WebMvcConfigurer {
-    private final RegistrationRateLimiter limiter;
+public class AuthenticationWebConfig implements WebMvcConfigurer {
+    private final AuthenticationRateLimiter limiter;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
@@ -31,6 +31,6 @@ public class RegistrationWebConfig implements WebMvcConfigurer {
                 }
                 return true;
             }
-        }).addPathPatterns("/api/v1/auth/register");
+        }).addPathPatterns("/api/v1/auth/register", "/api/v1/auth/otp/verify", "/api/v1/auth/otp/resend", "/api/v1/auth/login", "/api/v1/auth/refresh");
     }
 }

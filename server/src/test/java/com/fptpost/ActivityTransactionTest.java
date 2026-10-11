@@ -29,7 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
-@DataJpaTest(properties = {"spring.flyway.enabled=false", "spring.jpa.hibernate.ddl-auto=create-drop",
+@DataJpaTest(properties = {"spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.datasource.url=jdbc:h2:mem:activitytx;MODE=MSSQLServer;DB_CLOSE_DELAY=-1",
         "spring.datasource.driver-class-name=org.h2.Driver", "spring.datasource.username=sa",
         "spring.datasource.password="})

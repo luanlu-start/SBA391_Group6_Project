@@ -69,7 +69,7 @@ export default function HomePage() {
           SBA391 <span className="gradient-text">Enterprise Full-Stack</span> Platform
         </h1>
         <p className="hero-subtitle">
-          Base phát triển kết hợp <strong>React 18.3 SPA (Vite)</strong> và <strong>Java 21 Spring Boot 3.5</strong> theo mô hình Controller → Service → Repository với SQL Server (JPA/Hibernate, Flyway) và MongoDB.
+          Base phát triển kết hợp <strong>React 18.3 SPA (Vite)</strong> và <strong>Java 21 Spring Boot 3.5</strong> theo mô hình Controller → Service → Repository với SQL Server (JPA/Hibernate code first) và MongoDB.
         </p>
 
         <div className="hero-actions">

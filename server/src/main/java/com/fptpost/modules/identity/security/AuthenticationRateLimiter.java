@@ -1,4 +1,4 @@
-package com.fptpost.modules.identity.service;
+package com.fptpost.modules.identity.security;
 
 import com.fptpost.common.exception.AppException;
 import com.fptpost.modules.identity.config.RegistrationProperties;
@@ -12,7 +12,7 @@ import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
-public class RegistrationRateLimiter {
+public class AuthenticationRateLimiter {
     private final RegistrationProperties properties;
     private final Clock clock;
     private final Map<String, Window> windows = new HashMap<>();

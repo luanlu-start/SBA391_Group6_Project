@@ -51,10 +51,16 @@ public class ProblemResponseFactory {
     }
 
     public FieldViolation violation(FieldError error) {
-        String constraint = error.isBindingFailure() ? "TYPE_MISMATCH" : error.getCode();
+        if (error.isBindingFailure()) return violation(error.getField(), "TYPE_MISMATCH");
+        String configuredCode = error.getDefaultMessage();
+        // Only registered message keys become public codes; never echo arbitrary messages or rejected values.
+        if (configuredCode != null && configuredCode.matches("[A-Z][A-Z0-9_]{0,63}")
+                && messageSource.getMessage("validation." + configuredCode, null, null, VI) != null) {
+            return violation(error.getField(), configuredCode);
+        }
+        String constraint = error.getCode();
         String code = constraint != null && CONSTRAINTS.contains(constraint)
                 ? constraint.replaceAll("([a-z])([A-Z])", "$1_$2").toUpperCase(Locale.ROOT) : "INVALID_VALUE";
-        if (error.isBindingFailure()) code = "TYPE_MISMATCH";
         return violation(error.getField(), code);
     }
 

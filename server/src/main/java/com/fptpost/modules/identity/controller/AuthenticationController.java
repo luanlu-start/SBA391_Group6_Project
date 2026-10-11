@@ -2,10 +2,24 @@ package com.fptpost.modules.identity.controller;
 
 import com.fptpost.common.response.ApiResponse;
 import com.fptpost.modules.identity.dto.request.UserCreationRequest;
+import com.fptpost.modules.identity.dto.request.OtpVerificationRequest;
+import com.fptpost.modules.identity.dto.request.OtpResendRequest;
+import com.fptpost.modules.identity.dto.response.OtpVerificationResponse;
+import com.fptpost.modules.identity.dto.response.OtpChallengeResponse;
 import com.fptpost.modules.identity.dto.response.RegisterResponse;
 import com.fptpost.modules.identity.dto.response.RegistrationPoliciesResponse;
-import com.fptpost.modules.identity.service.RegistrationPoliciesService;
+import com.fptpost.modules.identity.service.PolicyService;
 import com.fptpost.modules.identity.service.UserService;
+import com.fptpost.modules.identity.service.OtpService;
+import com.fptpost.modules.identity.service.AuthenticationService;
+import com.fptpost.modules.identity.config.AuthenticationCookies;
+import com.fptpost.modules.identity.dto.request.AuthenticationRequest;
+import com.fptpost.modules.identity.dto.response.AuthenticationResponse;
+import com.fptpost.modules.identity.dto.response.CsrfTokenResponse;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.web.csrf.CsrfToken;
+import java.util.UUID;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,13 +39,49 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Authentication", description = "Đăng ký và xác thực tài khoản FPTPost")
 public class AuthenticationController {
     UserService userService;
-    RegistrationPoliciesService registrationPoliciesService;
+    PolicyService policyService;
+    OtpService otpService;
+    AuthenticationService authenticationService;
+    AuthenticationCookies cookies;
+
+    @GetMapping("/csrf")
+    @Operation(summary = "Lấy CSRF token trước khi đăng nhập/làm mới/đăng xuất")
+    public ResponseEntity<ApiResponse<CsrfTokenResponse>> csrf(CsrfToken token) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(ApiResponse.success(
+                CsrfTokenResponse.builder().headerName(token.getHeaderName()).token(token.getToken()).build()));
+    }
+
+    @PostMapping("/login")
+    @Operation(summary = "UC-03: Đăng nhập bằng email hoặc SĐT; refresh token qua cookie HttpOnly")
+    public ResponseEntity<ApiResponse<AuthenticationResponse>> login(@Valid @RequestBody AuthenticationRequest request,
+            HttpServletRequest httpRequest) {
+        var result = authenticationService.authenticate(request, httpRequest.getRemoteAddr(), httpRequest.getHeader("User-Agent"));
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).header("Set-Cookie", cookies.issue(result.getRefreshToken()))
+                .body(ApiResponse.success("Đăng nhập thành công.", result.getResponse()));
+    }
+
+    @PostMapping("/refresh")
+    @Operation(summary = "UC-03: Làm mới access token và xoay vòng refresh cookie")
+    public ResponseEntity<ApiResponse<AuthenticationResponse>> refresh(
+            @CookieValue(name = AuthenticationCookies.REFRESH_COOKIE, required = false) String token, HttpServletRequest request) {
+        var result = authenticationService.refresh(token, request.getRemoteAddr(), request.getHeader("User-Agent"));
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).header("Set-Cookie", cookies.issue(result.getRefreshToken()))
+                .body(ApiResponse.success(result.getResponse()));
+    }
+
+    @PostMapping("/logout")
+    @Operation(summary = "Đăng xuất phiên hiện tại")
+    public ResponseEntity<ApiResponse<Void>> logout(@AuthenticationPrincipal Jwt jwt) {
+        authenticationService.logout(UUID.fromString(jwt.getSubject()), UUID.fromString(jwt.getClaimAsString("sid")));
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).header("Set-Cookie", cookies.clear())
+                .body(ApiResponse.success("Đã đăng xuất.", null));
+    }
 
     @GetMapping("/registration-policies")
     @Operation(summary = "Lấy nội dung và phiên bản chính sách đăng ký hiện tại")
     public ResponseEntity<ApiResponse<RegistrationPoliciesResponse>> getRegistrationPolicies() {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
-                .body(ApiResponse.success(registrationPoliciesService.getPolicies()));
+                .body(ApiResponse.success(policyService.getPolicies()));
     }
 
     @PostMapping("/register")
@@ -42,5 +92,21 @@ public class AuthenticationController {
         return ResponseEntity.status(HttpStatus.CREATED).cacheControl(CacheControl.noStore())
                 .body(ApiResponse.created("Đăng ký thành công. Vui lòng kiểm tra email xác thực.",
                         result));
+    }
+
+    @PostMapping("/otp/verify")
+    @Operation(summary = "UC-02: Xác thực OTP email và kích hoạt tài khoản")
+    public ResponseEntity<ApiResponse<OtpVerificationResponse>> verifyOtp(
+            @Valid @RequestBody OtpVerificationRequest request) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(ApiResponse.success("Xác thực email thành công.", otpService.verifyOtp(request)));
+    }
+
+    @PostMapping("/otp/resend")
+    @Operation(summary = "UC-02: Gửi lại OTP email sau thời gian chờ")
+    public ResponseEntity<ApiResponse<OtpChallengeResponse>> resendOtp(
+            @Valid @RequestBody OtpResendRequest request) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(ApiResponse.success("Đã gửi mã xác thực mới.", otpService.resendOtp(request.getChallengeId())));
     }
 }

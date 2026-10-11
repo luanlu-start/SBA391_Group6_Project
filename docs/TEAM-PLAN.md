@@ -1,7 +1,7 @@
 # Phân công triển khai FPTPost
 
 Mỗi thành viên phụ trách cả frontend và backend của nhóm chức năng được giao:
-màn hình, API, validation, phân quyền, migration, kiểm thử và tài liệu liên quan.
+màn hình, API, validation, phân quyền, entity/schema, kiểm thử và tài liệu liên quan.
 Hữu Luân phụ trách Identity và điều phối tích hợp. Các thành viên cùng review code,
 kiểm thử luồng xuyên suốt và sửa lỗi trong phần mình phụ trách.
 
@@ -39,8 +39,8 @@ trên ranh giới dữ liệu và khả năng triển khai song song. Điều ch
 
 Trước đợt code đầu, dành một buổi để review/tích hợp base UC-01, thống nhất các
 contract tối thiểu bên dưới và tạo các nhánh từ cùng một mốc `develop`.
-Mỗi người bàn giao sớm interface/DTO và migration nền mình sở hữu trong PR nhỏ;
-các bảng được tham chiếu và thứ tự foreign key cần được review/tích hợp trước
+Mỗi người bàn giao sớm interface/DTO và entity nền mình sở hữu trong PR nhỏ;
+các bảng được tham chiếu và foreign key cần được review/tích hợp trước
 khi chạy test database chung. Không cần triển khai hết nghiệp vụ mới công bố contract.
 
 ## Task đầu tiên cho cả 6 người
@@ -50,9 +50,9 @@ Mỗi người làm màn hình và API của phần mình, kèm kiểm thử ph�
 
 | Phụ trách | Task hiện tại | Phần FE + BE tự triển khai | Đầu vào để tự kiểm thử |
 | --- | --- | --- | --- |
-| Hữu Luân | UC-02, tiếp UC-03/04 | Nhập/gửi lại OTP, kích hoạt tài khoản; login/JWT/phiên và contract người dùng hiện tại | Tài khoản/OTP từ UC-01, mail adapter hiện có; chưa cần Order hoặc Payment |
+| Hữu Luân | Review/tích hợp UC-01–03, tiếp UC-04 | Đăng ký, nhập/gửi lại OTP, kích hoạt tài khoản; login/JWT/phiên và contract người dùng hiện tại | Luồng đăng ký/OTP và mail adapter hiện có; chưa cần Order hoặc Payment |
 | Lê Huy | UC-58, tiếp UC-46 | CRUD loại hàng trước; danh mục, tham số/biểu phí và màn hình quản trị; công bố contract cho UC-11 | Seed danh mục/tham số; mock người dùng ADMIN trong test, chưa cần có đơn hàng |
-| Quốc An | UC-12/13: phần tạo và xem đơn | Entity/migration, form tạo đơn, danh sách/chi tiết, validation và contract đọc/chuyển trạng thái đơn | Fixture người gửi; mock facade danh mục/tính giá theo contract trong test khi nhà cung cấp chưa xong |
+| Quốc An | UC-12/13: phần tạo và xem đơn | Entity/schema, form tạo đơn, danh sách/chi tiết, validation và contract đọc/chuyển trạng thái đơn | Fixture người gửi; mock facade danh mục/tính giá theo contract trong test khi nhà cung cấp chưa xong |
 | Công Thuận | Nền ledger + UC-39 và phần đọc UC-38; chuẩn bị VNPay sandbox cho UC-34/42 | Ví, lịch sử giao dịch, tài khoản ngân hàng và màn hình tương ứng; chuẩn bị thông tin tích hợp sandbox; công bố contract ký quỹ/hoàn/giải ngân | Fixture tài khoản, ví/bút toán trong database test; chưa cần đơn đã giao hoặc VNPay thật |
 | Phi Long | Phần CRUD UC-22/23, tiếp UC-16 | Form đăng chuyến, danh sách/chi tiết, cập nhật theo trạng thái; sau đó giao diện/API sàn, tìm kiếm/lọc/phân trang theo contract Order | Fixture người giao đủ điều kiện để test Trip; mock facade đọc đơn khi làm Market; không dựng lại entity/bảng Order |
 | Nguyễn Huy | Nền thông báo/outbox + phần đầu UC-53/63 | Danh sách/đọc/cấu hình thông báo; worker đọc sự kiện thử, retry/chống trùng; công bố contract lưu tệp | Fixture thông báo và sự kiện test; chưa cần Order/Payment phát sự kiện thật |
@@ -68,7 +68,7 @@ không cộng tiền chỉ theo URL quay về frontend.
 
 Mock được đặt trong test hoặc chế độ phát triển riêng, theo contract của module
 cung cấp. Frontend có thể dùng mock HTTP; backend dùng mock interface/facade khi
-unit/component test. Khi tích hợp phải nối implementation thật, migration thật
+unit/component test. Khi tích hợp phải nối implementation thật, database thật
 và quyền thật. Không tạo token giả, tự bỏ phân quyền trong luồng thật hoặc dùng
 mock làm fallback khi database/dịch vụ lỗi. Kết quả chạy với mock là tiến độ phần
 việc riêng, chưa phải nghiệm thu toàn bộ UC.
@@ -79,9 +79,9 @@ API và kiểm thử với mock facade. Khi cả hai sẵn sàng, thay phần te
 adapter thật trong cấu hình tích hợp và kiểm tra quyền/dữ liệu xuyên suốt.
 
 Mỗi người dùng database local/test riêng và seed dữ liệu phục vụ nhóm chức năng
-của mình. Các bảng dùng chung lấy từ migration đã thống nhất, không tự tạo bản
+của mình. Các bảng dùng chung lấy từ entity đã thống nhất, không tự tạo bản
 User/Role/Order khác. Chỉ sửa module được giao; thay đổi `common`, JWT, contract
-response hoặc migration có phụ thuộc cần review để cả nhóm cập nhật cùng nhau.
+response hoặc schema có phụ thuộc cần review để cả nhóm cập nhật cùng nhau.
 
 Sau đợt đầu: Lê Huy làm UC-11; Quốc An nối giá/danh mục thật và tiếp
 UC-14/54; Công Thuận làm UC-34/42 rồi UC-35; Phi Long tích hợp UC-16 rồi
@@ -108,7 +108,7 @@ API/DTO/schema mình sở hữu để người khác triển khai theo cùng quy
 - Tệp/sự kiện: file ID, quyền upload/đọc, giới hạn theo SPEC; tên sự kiện, payload,
   event ID, thời điểm và quy tắc retry/chống trùng.
 - Common: giữ một contract response/phân trang, Problem Details, correlation ID,
-  chiến lược ID và cách quản lý migration đã thống nhất trong repository.
+  chiến lược ID và [quy ước code first](DATABASE-SCHEMA.md) trong repository.
 
 Các module gọi facade/interface hoặc nhận sự kiện; không đọc/ghi repository nội bộ
 của module khác. Người phụ trách giao diện quản trị vẫn gọi nghiệp vụ của module
@@ -124,7 +124,7 @@ sở hữu dữ liệu, ví dụ khóa tài khoản qua Identity hoặc bồi th
 | Giải ngân/hoàn tiền | Trạng thái và điều kiện Order/Dispute; Ledger xử lý idempotent theo quy tắc, không chỉ dựa vào nút trên frontend |
 | Uy tín, dashboard, thu nhập/audit | Dữ liệu đã phát sinh từ Order/Payment/Tracking; truy vấn hoặc sự kiện do module sở hữu cung cấp |
 
-UC-02 tiếp theo của Hữu Luân là xác thực đăng ký. OTP giao hàng ở UC-28 do Tracking
+UC-02 của Hữu Luân là xác thực đăng ký, triển khai cùng nhánh UC-01. OTP giao hàng ở UC-28 do Tracking
 sở hữu: khác mục đích, quyền kiểm tra và luồng sử dụng, không dùng challenge đăng ký
 để xác nhận giao hàng. Email dùng lại service/template trong `common/mail`.
 
@@ -154,21 +154,22 @@ rút gọn kiểm tra để làm demo.
 
 ## Trách nhiệm Leader và cách bàn giao
 
-Leader tiếp tục UC-02, sau đó UC-03/04; công bố contract AUTH sớm để các nhóm
-tích hợp. Chốt giao tiếp giữa module, quản lý thứ tự migration, review các thay đổi
+Leader review/tích hợp luồng UC-01–03, sau đó UC-04; công bố contract AUTH sớm để các nhóm
+tích hợp. Chốt giao tiếp giữa module, review thay đổi entity/schema và các thay đổi
 về quyền/trạng thái/tiền và tổ chức kiểm tra luồng chung cuối mỗi sprint.
 Leader điều phối review; mỗi thành viên chịu trách nhiệm sửa, test và tài liệu của
 phần mình, tránh dồn toàn bộ kiểm thử/tích hợp cho Leader.
 
 Mỗi UC đi qua nhánh `feature/UC-xx-mo-ta`, PR vào `develop`; ví dụ
-`feature/UC-02-xac-thuc-otp`. Chia PR vừa đủ review, kèm migration nếu đổi schema,
-endpoint/màn hình, BR liên quan và bằng chứng kiểm thử. Không sửa migration đã
-chạy hoặc tự đổi các contract dùng chung trong một nhánh chức năng.
+`feature/UC-12-tao-don`. Luồng UC-01–03 đang dùng chung nhánh `feature/UC-01-dang-ky-tai-khoan`
+để hoàn thiện đăng ký/xác thực/đăng nhập. Chia PR vừa đủ review, kèm thay đổi entity/schema,
+endpoint/màn hình, BR liên quan và bằng chứng kiểm thử. Không tự đổi các contract
+dùng chung trong một nhánh chức năng.
 
 Hoàn thành một UC khi luồng chính và ngoại lệ liên quan chạy được FE–API–database,
 quyền/validation đúng, test thích hợp đạt, tài liệu/Swagger cập nhật và PR được review.
 Luồng tiền, cạnh tranh nhận đơn và trạng thái cần thêm kiểm thử chống trùng/cạnh tranh
 và kiểm tra database thật; SQL/Mongo/outbox không tự tạo một transaction phân tán.
 
-UC-01 hiện đã có code và kiểm thử trên nhánh làm việc; các thay đổi mới cần được
+UC-01–03 hiện đã có code và kiểm thử trên nhánh làm việc; các thay đổi mới cần được
 review/tích hợp vào `develop` trước khi dùng làm base chung cho nhóm.

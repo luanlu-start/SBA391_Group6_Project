@@ -10,14 +10,20 @@ import java.security.SecureRandom;
 import java.time.Clock;
 
 @Configuration
-@EnableConfigurationProperties(RegistrationProperties.class)
+@EnableConfigurationProperties({RegistrationProperties.class, AuthenticationProperties.class})
 public class IdentityConfig {
     @Bean
-    public PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(12); }
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder(12);
+    }
 
     @Bean
-    public Clock identityClock() { return Clock.systemUTC(); }
+    public Clock identityClock() {
+        return Clock.systemUTC();
+    }
 
     @Bean
-    public SecureRandom identityRandom() { return new SecureRandom(); }
+    public SecureRandom identityRandom() {
+        return new SecureRandom();
+    }
 }

@@ -29,4 +29,37 @@ export interface RegisterResponse {
   verificationChannel: 'EMAIL';
   maskedTarget: string;
   expiresAt: string;
+  resendAvailableAt: string;
+}
+
+export interface OtpChallenge {
+  challengeId: string;
+  verificationChannel: 'EMAIL';
+  maskedTarget: string;
+  expiresAt: string;
+  resendAvailableAt: string;
+}
+
+export interface OtpVerificationResponse {
+  userId: string;
+  status: 'ACTIVE';
+  verificationChannel: 'EMAIL';
+  verifiedAt: string;
+}
+
+export interface UserResponse {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  status: 'ACTIVE';
+  roles: string[];
+  emailVerifiedAt: string;
+}
+
+export interface AuthenticationResponse {
+  accessToken: string;
+  tokenType: 'Bearer';
+  expiresAt: string;
+  user: UserResponse;
 }

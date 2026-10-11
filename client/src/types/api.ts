@@ -1,3 +1,5 @@
+import type { OtpChallenge } from './identity';
+
 export interface ApiResponse<T> {
   success: boolean;
   status: number;
@@ -22,6 +24,7 @@ export interface ApiProblem {
   instance?: string;
   correlationId: string;
   errors?: FieldViolation[];
+  verification?: OtpChallenge;
 }
 
 export interface PageResponse<T> {

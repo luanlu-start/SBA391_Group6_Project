@@ -1,12 +1,13 @@
-package com.fptpost.modules.identity.service;
+package com.fptpost.modules.identity.util;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 
-public final class RegistrationContact {
-    private RegistrationContact() {}
+public final class ContactUtils {
+    private ContactUtils() {
+    }
 
     public static String normalizePhone(String phone) {
         return phone.startsWith("0") ? "+84" + phone.substring(1) : phone;

@@ -12,12 +12,12 @@ import java.io.InputStream;
 import java.util.List;
 
 @Service
-public class RegistrationPoliciesService {
+public class PolicyService {
     private final RegistrationProperties properties;
     private final PolicyResponse terms;
     private final PolicyResponse privacy;
 
-    public RegistrationPoliciesService(RegistrationProperties properties, ObjectMapper objectMapper) throws IOException {
+    public PolicyService(RegistrationProperties properties, ObjectMapper objectMapper) throws IOException {
         this.properties = properties;
         this.terms = readPolicy(objectMapper, "policies/terms.json");
         this.privacy = readPolicy(objectMapper, "policies/privacy.json");

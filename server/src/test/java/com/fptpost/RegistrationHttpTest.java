@@ -1,10 +1,13 @@
 package com.fptpost;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fptpost.modules.identity.config.IdentityDataInitializer;
 import com.fptpost.modules.identity.config.RegistrationProperties;
+import com.fptpost.modules.identity.enums.UserStatus;
 import com.fptpost.modules.identity.model.Role;
+import com.fptpost.modules.identity.model.User;
 import com.fptpost.modules.identity.repository.*;
-import com.fptpost.modules.identity.service.RegistrationContact;
+import com.fptpost.modules.identity.util.ContactUtils;
 import jakarta.mail.Multipart;
 import jakarta.mail.Part;
 import jakarta.mail.Session;
@@ -26,8 +29,10 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -36,7 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:registration;MODE=MSSQLServer;DB_CLOSE_DELAY=-1",
         "spring.datasource.driver-class-name=org.h2.Driver", "spring.datasource.username=sa",
-        "spring.datasource.password=", "spring.jpa.hibernate.ddl-auto=create-drop", "spring.flyway.enabled=false",
+        "spring.datasource.password=", "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.data.mongodb.auto-index-creation=false", "app.registration.requests-per-minute=1000",
         "management.health.mail.enabled=false"
 })
@@ -52,6 +57,7 @@ class RegistrationHttpTest {
     @Autowired BlacklistRepository blacklist;
     @Autowired PasswordEncoder encoder;
     @Autowired RegistrationProperties properties;
+    @Autowired IdentityDataInitializer initializer;
     @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
     @MockitoBean JavaMailSender mailSender;
 
@@ -65,9 +71,24 @@ class RegistrationHttpTest {
         consents.deleteAll();
         profiles.deleteAll();
         users.deleteAll();
-        if (roles.findByCode("SENDER").isEmpty()) {
-            Role role = new Role(); role.setCode("SENDER"); roles.save(role);
-        }
+        initializer.run();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"invalid-email", " "})
+    void rejectsInvalidEmailAtRequestAndEntityBoundaries(String email) throws Exception {
+        var payload = request();
+        payload.put("email", email);
+        register(payload, 400);
+        verifyNoInteractions(mailSender);
+
+        Instant now = Instant.now();
+        User user = User.builder().publicId(UUID.randomUUID()).email(email).phone("+84901234567")
+                .passwordHash("unused-for-validation-test").status(UserStatus.PENDING_VERIFICATION)
+                .createdAt(now).updatedAt(now).build();
+        assertThatThrownBy(() -> users.saveAndFlush(user))
+                .isInstanceOf(jakarta.validation.ConstraintViolationException.class);
+        assertThat(users.count()).isZero();
     }
 
     Map<String, Object> request() {
@@ -88,6 +109,19 @@ class RegistrationHttpTest {
         return mvc.perform(post("/api/v1/auth/register").contentType("application/json")
                         .content(json.writeValueAsString(request)))
                 .andExpect(status().is(status)).andReturn().getResponse().getContentAsString();
+    }
+
+    @Test
+    void initializesRequiredRolesWithoutDemoAndRestoresOnlyMissingRole() {
+        var existing = roles.findAll().stream().collect(java.util.stream.Collectors.toMap(Role::getCode, Role::getId));
+        assertThat(existing.keySet()).containsExactlyInAnyOrder("SENDER", "COURIER", "MODERATOR", "ADMIN");
+        initializer.run();
+        assertThat(roles.findAll()).allSatisfy(role -> assertThat(role.getId()).isEqualTo(existing.get(role.getCode())));
+        roles.deleteById(existing.get("COURIER"));
+        initializer.run();
+        assertThat(roles.count()).isEqualTo(4);
+        assertThat(roles.findByCode("COURIER")).isPresent();
+        assertThat(roles.findByCode("SENDER").orElseThrow().getId()).isEqualTo(existing.get("SENDER"));
     }
 
     @Test
@@ -141,10 +175,15 @@ class RegistrationHttpTest {
     @ParameterizedTest
     @ValueSource(strings = {"adultConfirmed", "termsAccepted", "privacyAccepted"})
     void rejectsMissingOrFalseConsent(String field) throws Exception {
+        String code = switch (field) {
+            case "adultConfirmed" -> "ADULT_CONFIRMATION_REQUIRED";
+            case "termsAccepted" -> "TERMS_NOT_ACCEPTED";
+            default -> "PRIVACY_NOT_ACCEPTED";
+        };
         var request = request(); request.put(field, false);
-        assertThat(register(request, 400)).contains(field);
+        assertThat(register(request, 400)).contains(field, code);
         request.remove(field);
-        assertThat(register(request, 400)).contains(field);
+        assertThat(register(request, 400)).contains(field, code);
         assertThat(users.count()).isZero(); verifyNoInteractions(mailSender);
     }
 
@@ -180,7 +219,7 @@ class RegistrationHttpTest {
     @Test
     void blocksBlacklistedPhoneBeforeCreatingAccount() throws Exception {
         var entry = new com.fptpost.modules.identity.model.BlacklistEntry();
-        entry.setKind("PHONE"); entry.setValueHash(RegistrationContact.phoneHash("+84901234567"));
+        entry.setKind("PHONE"); entry.setValueHash(ContactUtils.phoneHash("+84901234567"));
         entry.setReason("Test block"); entry.setCreatedAt(Instant.now()); blacklist.save(entry);
         assertThat(register(request(), 403)).contains("AUTH_REGISTRATION_BLOCKED");
         assertThat(users.count()).isZero(); verifyNoInteractions(mailSender);
@@ -253,7 +292,7 @@ class RegistrationHttpTest {
                 .andExpect(jsonPath("$.code").value("SYS_INVALID_REQUEST"))
                 .andExpect(jsonPath("$.type").value("https://fptpost.vn/errors/sys-invalid-request"))
                 .andExpect(jsonPath("$.title").value("Yêu cầu không hợp lệ"))
-                .andExpect(jsonPath("$.errors[?(@.field == 'email')].code").value(org.hamcrest.Matchers.hasItem("EMAIL")))
+                .andExpect(jsonPath("$.errors[?(@.field == 'email')].code").value(org.hamcrest.Matchers.hasItem("EMAIL_INVALID")))
                 .andExpect(jsonPath("$.success").doesNotExist())
                 .andExpect(jsonPath("$.message").doesNotExist())
                 .andReturn();
@@ -285,11 +324,11 @@ class RegistrationHttpTest {
                 .andExpect(status().isUnsupportedMediaType())
                 .andExpect(jsonPath("$.code").value("SYS_UNSUPPORTED_MEDIA_TYPE"));
         mvc.perform(get("/api/v1/missing-endpoint"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("SYS_RESOURCE_NOT_FOUND"));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("SYS_UNAUTHORIZED"));
         mvc.perform(get("/api/v1/products/not-a-uuid"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors[0].code").value("TYPE_MISMATCH"));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("SYS_UNAUTHORIZED"));
         verifyNoInteractions(mailSender);
     }
 

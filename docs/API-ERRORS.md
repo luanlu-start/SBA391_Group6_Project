@@ -14,7 +14,7 @@ và errors theo field. Áp dụng cho Identity, Product, Activity và các lỗi
   "detail": "Vui lòng kiểm tra dữ liệu và tham số gửi lên.",
   "correlationId": "7f3c9a52-1d4e-4b8a-9c21-0a6e5d3f7b10",
   "errors": [
-    { "field": "email", "code": "EMAIL", "message": "Email không hợp lệ." }
+    { "field": "email", "code": "EMAIL_INVALID", "message": "Email không hợp lệ hoặc vượt quá 254 ký tự." }
   ]
 }
 ```
@@ -51,8 +51,15 @@ Không bọc object lỗi trong `data`, không có `success`, `message`, `timest
 | AUTH_REGISTRATION_CONFLICT | 409 | Xung đột unique khi đăng ký đồng thời |
 | RATE_LIMITED | 429 | Quá nhiều request; giữ Retry-After |
 
-Mã field validation hiện dùng tên ràng buộc ổn định: NOT_BLANK, NOT_NULL, SIZE,
-EMAIL, PATTERN, MIN, MAX, DECIMAL_MIN, DIGITS, ASSERT_TRUE, TYPE_MISMATCH...
+Validation riêng dùng mã khai báo trong annotation và câu chữ trong resource bundle:
+`@Size(min = 8, message = "PASSWORD_INVALID")` → `validation.PASSWORD_INVALID`.
+Identity có EMAIL_INVALID, PHONE_INVALID, PASSWORD_REQUIRED, PASSWORD_INVALID,
+ADULT_CONFIRMATION_REQUIRED, TERMS_NOT_ACCEPTED, PRIVACY_NOT_ACCEPTED và các mã OTP.
+Mã nằm trong `errors[].code`; validation đầu vào vẫn trả HTTP 400 và code tổng SYS_INVALID_REQUEST.
+Đây là mã lỗi của field, không cần thêm HTTP status vào enum cho mỗi field.
+Nếu annotation không khai báo mã riêng, dùng mã ràng buộc ổn định như NOT_BLANK,
+NOT_NULL, SIZE, EMAIL, PATTERN, MIN, MAX, ASSERT_TRUE. Mã chưa đăng ký hoặc câu chữ
+trực tiếp cũng dùng mã ràng buộc dự phòng; lỗi chuyển kiểu dùng TYPE_MISMATCH.
 Một field có thể có nhiều lỗi; wire format giữ danh sách, form chọn câu chữ để hiển thị.
 Các mã Order/Payment chỉ thêm khi triển khai nghiệp vụ tương ứng.
 
@@ -65,6 +72,11 @@ Các mã Order/Payment chỉ thêm khi triển khai nghiệp vụ tương ứng.
 4. `GlobalExceptionHandler` dùng `ProblemResponseFactory` để tạo response.
    Handler riêng của module cũng gọi factory, không tự dựng JSON.
 5. Bổ sung test HTTP status, code, content type và dữ liệu nhạy cảm không xuất hiện.
+
+Với DTO validation, đặt `message = "FIELD_ERROR_CODE"` rồi thêm
+`validation.FIELD_ERROR_CODE` trong cùng resource. Không ghi câu tiếng Việt trực tiếp
+trong annotation và không đưa rejected value vào message. `@NotNull` cùng `@AssertTrue`
+cho các checkbox bắt buộc để từ chối cả thiếu giá trị và false.
 
 Nội dung public lấy từ resource bundle theo code; không dùng exception.getMessage()
 hoặc customMessage để dựng detail. Các exception nội bộ, SQL, tên lớp và stack trace

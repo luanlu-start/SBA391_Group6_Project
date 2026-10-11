@@ -23,7 +23,7 @@ resources/templates/mail/
 └── subject/verify-email.txt
 ```
 
-Hiện có template `VERIFY_EMAIL`, đang dùng cho UC-01.
+Hiện có template `VERIFY_EMAIL`, đang dùng cho đăng ký và gửi lại mã ở UC-01–02.
 HTML và bản text được gửi cùng một email multipart/alternative, encoding UTF-8.
 Người nhận có thể đọc bản text khi ứng dụng email không hiển thị HTML.
 
@@ -78,6 +78,9 @@ Cấu hình dùng chung ở `app.mail`:
 | MAIL_TEMPLATE_CACHE | false | Cache kết quả resolve/parse template, có thể bật khi phát hành |
 
 Docker Compose chuyển ba biến này từ `.env` vào backend.
+Compose cũng đọc SMTP_HOST/PORT/USERNAME/PASSWORD/AUTH/STARTTLS từ `.env`.
+Mặc định gửi qua Mailpit; SMTP thật dùng thông số provider và MAIL_FROM tương ứng.
+MAILPIT_SMTP_PORT (1025) là cổng Mailpit local, độc lập với SMTP_PORT của provider.
 Chạy `docker compose up --build -d`, đăng ký tại `/register`, xem email tại
 `http://localhost:8025` (Mailpit local). Kiểm tra cả HTML, text và tiêu đề.
 

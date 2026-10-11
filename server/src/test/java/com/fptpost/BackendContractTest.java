@@ -5,6 +5,7 @@ import com.fptpost.common.exception.GlobalExceptionHandler;
 import com.fptpost.common.exception.ProblemResponseFactory;
 import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.validation.FieldError;
 import com.fptpost.common.response.ApiResponse;
 import com.fptpost.modules.product.dto.ProductRequest;
 import com.fptpost.modules.product.exception.ProductErrorCode;
@@ -24,10 +25,41 @@ class BackendContractTest {
     private final MockHttpServletRequest request = new MockHttpServletRequest();
 
     private GlobalExceptionHandler handler() {
+        return new GlobalExceptionHandler(problems());
+    }
+
+    private ProblemResponseFactory problems() {
         ResourceBundleMessageSource messages = new ResourceBundleMessageSource();
         messages.setBasename("messages/errors");
         messages.setDefaultEncoding("UTF-8");
-        return new GlobalExceptionHandler(new ProblemResponseFactory(messages));
+        return new ProblemResponseFactory(messages);
+    }
+
+    @Test
+    void resolvesRegisteredValidationCodeWithoutExposingRejectedPassword() {
+        var error = new FieldError("request", "password", "private-password", false,
+                new String[]{"Size"}, null, "PASSWORD_INVALID");
+        var violation = problems().violation(error);
+        assertThat(violation.getCode()).isEqualTo("PASSWORD_INVALID");
+        assertThat(violation.getMessage()).contains("8", "72").doesNotContain("private-password");
+    }
+
+    @Test
+    void unregisteredOrLiteralMessagesFallBackToConstraintCode() {
+        for (String message : new String[]{"UNKNOWN_SECRET_CODE", "private database details"}) {
+            var error = new FieldError("request", "email", "private@example.com", false,
+                    new String[]{"Email"}, null, message);
+            var violation = problems().violation(error);
+            assertThat(violation.getCode()).isEqualTo("EMAIL");
+            assertThat(violation.getMessage()).isEqualTo("Email không hợp lệ.");
+        }
+    }
+
+    @Test
+    void bindingFailuresUseTypeMismatchEvenWhenMessageLooksLikeRegisteredCode() {
+        var error = new FieldError("request", "amount", "private-input", true,
+                new String[]{"typeMismatch"}, null, "PASSWORD_INVALID");
+        assertThat(problems().violation(error).getCode()).isEqualTo("TYPE_MISMATCH");
     }
 
     @Test

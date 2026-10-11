@@ -18,6 +18,12 @@ public class RegistrationProperties {
     @Max(30)
     private int otpTtlMinutes = 5;
     @Min(1)
+    @Max(10)
+    private int otpMaxAttempts = 5;
+    @Min(1)
+    @Max(3600)
+    private int otpResendCooldownSeconds = 60;
+    @Min(1)
     @Max(1000)
     private int requestsPerMinute = 10;
     @NotBlank

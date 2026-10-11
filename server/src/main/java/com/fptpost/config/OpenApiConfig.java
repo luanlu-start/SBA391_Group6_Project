@@ -4,6 +4,9 @@ import io.swagger.v3.oas.models.OpenAPI;
 import com.fptpost.common.response.ApiProblem;
 import io.swagger.v3.core.converter.ModelConverters;
 import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
+import java.util.Set;
 import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.Schema;
@@ -29,6 +32,21 @@ public class OpenApiConfig {
             api.getPaths().forEach((path, item) -> {
                 if (!path.startsWith("/api/v1/")) return;
                 item.readOperations().forEach(operation -> {
+                    boolean publicEndpoint = Set.of("/api/v1/health", "/api/v1/auth/csrf", "/api/v1/auth/registration-policies",
+                            "/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/otp/verify",
+                            "/api/v1/auth/otp/resend").contains(path);
+                    if (!publicEndpoint) {
+                        operation.addSecurityItem(new SecurityRequirement().addList("bearerAuth"));
+                        operation.getResponses().putIfAbsent("401", new ApiResponse().description("Cần đăng nhập"));
+                        operation.getResponses().putIfAbsent("403", new ApiResponse().description("Không có quyền truy cập"));
+                    }
+                    if (Set.of("/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout").contains(path)) {
+                        operation.addParametersItem(new Parameter().in("header").name("X-XSRF-TOKEN").required(true)
+                                .description("Token từ GET /api/v1/auth/csrf; gửi cùng cookie XSRF-TOKEN")
+                                .schema(new StringSchema()));
+                        for (String status : new String[]{"401", "403", "429"})
+                            operation.getResponses().putIfAbsent(status, new ApiResponse().description("Lỗi xác thực/phiên"));
+                    }
                     operation.addParametersItem(new Parameter().in("header").name("X-Correlation-Id")
                             .description("UUID để theo dõi request; backend sinh mới nếu thiếu hoặc không hợp lệ")
                             .schema(new StringSchema().format("uuid")));
@@ -56,6 +74,8 @@ public class OpenApiConfig {
     @Bean
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
+                .components(new Components().addSecuritySchemes("bearerAuth", new SecurityScheme()
+                        .type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT")))
                 .info(new Info()
                         .title("SBA391 Group 6 RESTful API")
                         .version("1.0.0")
