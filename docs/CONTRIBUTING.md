@@ -4,7 +4,7 @@ Tài liệu thống nhất cách viết backend, frontend và tích hợp chức
 Product là module mẫu SQL Server/JPA; Activity là module mẫu MongoDB.
 
 Khi triển khai FPTPost, đọc [thông tin dự án](PROJECT-INFO.md),
-[UC được phân công](USE-CASES.md) và [đối chiếu SPEC](SPEC-ALIGNMENT.md).
+[UC được phân công](USE-CASES.md) và [contract API](API.md).
 Phần API/phân trang bên dưới mô tả contract base đang chạy; chốt các khác biệt
 trước khi nhiều thành viên viết module nghiệp vụ.
 
@@ -79,7 +79,7 @@ cùng `@RequiredArgsConstructor`; tên dependency đầy đủ như `userReposit
 API AUTH nhóm trong `AuthenticationController`. Đăng ký gọi `UserService.createUser()`,
 service tài khoản gọi `OtpService` để sinh/lưu mã băm và `common.mail.service.EmailService`
 để gửi email theo template. Service gửi mail dùng chung không phụ thuộc vào Identity
-hoặc mã lỗi nghiệp vụ của module. Xem [hướng dẫn email](EMAIL.md).
+hoặc mã lỗi nghiệp vụ của module. Xem phần Email và template trong [README](../README.md).
 `AuthenticationService` phụ trách xác thực và phiên đăng nhập.
 Identity hiện có 5 service: UserService (tài khoản), AuthenticationService
 (login/refresh/logout/current user), OtpService (sinh/gửi/xác thực mã), JwtTokenService
@@ -154,7 +154,7 @@ Service gửi mã lỗi cho handler dùng chung; chi tiết xem [contract lỗi]
 Thêm mô tả API bằng OpenAPI theo controller mẫu.
 Spring Security/JWT và phiên đã có; endpoint mới mặc định cần xác thực.
 Kiểm tra role/ownership tại service, giao diện chỉ điều chỉnh menu theo quyền.
-Xem [đăng nhập và token](IDENTITY-LOGIN.md); không lưu access/refresh token trong localStorage.
+Xem [API xác thực và token](API.md); không lưu access/refresh token trong localStorage.
 
 ## 5. Repository, tìm kiếm và phân trang
 
@@ -229,7 +229,7 @@ SQL Server khi module tương ứng được tạo; chưa có các bảng ledger
 Seed demo tách khỏi việc tạo schema. Dữ liệu nền bắt buộc nằm trong initializer riêng;
 Identity khởi tạo role bằng `IdentityDataInitializer`, không phụ thuộc profile demo.
 Thay đổi tên cột/kiểu/nullability có dữ liệu cần kiểm tra theo
-[hướng dẫn code first](DATABASE-SCHEMA.md).
+[hướng dẫn code first](DATABASE.md).
 
 Mỗi module có seeder riêng nếu cần. Không gom mẫu của mọi module vào service hoặc một AppInit quá lớn.
 Seed dùng mã/ID ổn định để kiểm tra bản ghi tồn tại, chỉ thêm mẫu còn thiếu.

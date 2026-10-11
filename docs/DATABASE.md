@@ -124,7 +124,24 @@ theo SPEC: chưa có actor, kiểm soát truy cập và đồng bộ outbox đ�
 Hibernate `ddl-auto: update` tạo/cập nhật schema từ entity, cấu hình trong một
 `application.yml`. Identity initializer tạo role nền; seed demo riêng theo module/profile,
 chỉ thêm mẫu còn thiếu, không ghi đè dữ liệu đã sửa.
-Xem [schema code first](DATABASE-SCHEMA.md) khi thay đổi cột có dữ liệu cũ.
+Mỗi module có một owner cho entity/bảng; module khác dùng contract đã thống nhất,
+không tạo lại bảng dùng chung. Thay đổi entity và code sử dụng trường mới ở cùng PR;
+pull code mới rồi restart backend, Docker dùng `docker compose up --build -d`.
+Kiểm tra thay đổi schema trên SQL Server thật.
+
+`update` giữ dữ liệu hiện có, không nạp lại seed mỗi lần khởi động. Đổi tên/xóa cột,
+đổi kiểu hoặc thêm cột NOT NULL vào bảng có dữ liệu cần xử lý dữ liệu/schema riêng.
+`create`/`create-drop` có thể xóa dữ liệu; chỉ dùng với database test hoặc khi chủ động
+muốn làm lại database local.
+
+`IdentityDataInitializer` tạo role SENDER/COURIER/MODERATOR/ADMIN còn thiếu,
+không tạo tài khoản/mật khẩu mặc định. `ProductDemoSeeder` đọc `demo/products.json`,
+chỉ thêm UUID mẫu còn thiếu khi bật `demo` và không có `prod`.
+Module mới có initializer/seeder riêng, tách dữ liệu nền bắt buộc khỏi dữ liệu demo;
+không ghi đè dữ liệu người dùng hoặc gửi email khi seed.
+
+Repository hiện chọn Hibernate code first, không dùng Flyway; đây là lựa chọn khác
+ADR-10 trong SPEC v1.0. Các tài liệu nguồn được giữ nguyên.
 
 Việc tiếp theo: chốt chiến lược ID, vẽ ERD đầy đủ từ từ điển, xác định quan hệ/index và
-transaction từng UC trước khi tạo entity. Xem [SPEC-ALIGNMENT.md](SPEC-ALIGNMENT.md).
+transaction từng UC trước khi tạo entity.

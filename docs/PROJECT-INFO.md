@@ -83,4 +83,4 @@ validation, mã lỗi, paging/filter/sort, Swagger, seed demo và Docker.
 Các module FPTPost trong đặc tả chưa triển khai; không tính Product CRUD là UC tạo đơn.
 
 Tra cứu tiếp: [kiến trúc/module](LOGISTICS-BASE.md), [database](DATABASE.md),
-[API](API.md), [đối chiếu SPEC](SPEC-ALIGNMENT.md), [quy ước code](CONTRIBUTING.md).
+[API](API.md), [quy ước code](CONTRIBUTING.md).

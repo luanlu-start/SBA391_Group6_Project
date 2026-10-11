@@ -6,7 +6,7 @@ Repository hiện cung cấp base React/Spring Boot với Product CRUD mẫu, Ac
 và UC-01–03 đăng ký, xác thực email, đăng nhập Identity. Các UC còn lại được triển khai theo tài liệu của nhóm.
 
 Đọc [thông tin dự án](docs/PROJECT-INFO.md), [63 Use Case](docs/USE-CASES.md) và
-[đối chiếu SPEC với base](docs/SPEC-ALIGNMENT.md) trước khi bắt đầu chức năng.
+[quy ước code](docs/CONTRIBUTING.md) trước khi bắt đầu chức năng.
 
 ## Mục lục
 
@@ -167,17 +167,12 @@ SBA391_Group6_Project/
 │   └── pom.xml
 ├── docs/
 │   ├── CONTRIBUTING.md
-│   ├── IDENTITY-REGISTRATION.md
-│   ├── EMAIL.md
 │   ├── PROJECT-INFO.md
 │   ├── USE-CASES.md
-│   ├── TEAM-PLAN.md
 │   ├── LOGISTICS-BASE.md
 │   ├── DATABASE.md
-│   ├── DATABASE-SCHEMA.md
 │   ├── API.md
 │   ├── API-ERRORS.md
-│   ├── SPEC-ALIGNMENT.md
 │   ├── SBA301-CHECKLIST.md
 │   └── sources/                     # Bản gốc BR/UC và SPEC v1.0
 ├── .env.example
@@ -198,8 +193,8 @@ Mỗi DTO ở file cùng tên; `RegistrationPoliciesResponse` dùng `PolicyRespo
 `enums`; enum mã lỗi như `IdentityErrorCode` nằm ở `exception`.
 `EmailService` nằm trong `common/mail`, dùng chung cho các module;
 nội dung và giao diện email nằm trong template Thymeleaf.
-Hướng dẫn tùy chỉnh xem [email và template](docs/EMAIL.md).
-Chi tiết luồng và API xem [UC-01–02 đăng ký/xác thực](docs/IDENTITY-REGISTRATION.md).
+Hướng dẫn tùy chỉnh nằm trong phần Email và template bên dưới.
+Chi tiết đăng ký, OTP và đăng nhập xem [tài liệu API](docs/API.md).
 
 ## Khởi chạy
 
@@ -290,6 +285,9 @@ Compose tự đọc `.env` ở thư mục gốc; Spring Boot chạy ngoài Docke
 | `MAILPIT_PORT` | Compose | Cổng hộp thư Mailpit, mặc định 8025 |
 | `SMTP_PORT` | Compose/backend | Cổng SMTP; local mặc định 1025 |
 | `SMTP_HOST` | Backend | Local dùng localhost; container backend dùng mailpit |
+| `SMTP_USERNAME`, `SMTP_PASSWORD` | Compose/backend | Thông tin đăng nhập SMTP thật; giữ riêng trong `.env` |
+| `SMTP_AUTH`, `SMTP_STARTTLS` | Compose/backend | Bật xác thực và STARTTLS theo yêu cầu nhà cung cấp SMTP |
+| `MAILPIT_SMTP_PORT` | Compose | Cổng SMTP Mailpit local, mặc định 1025; độc lập với cổng SMTP thật |
 | `MAIL_FROM`, `MAIL_FROM_NAME` | Compose/backend | Địa chỉ và tên người gửi email |
 | `MAIL_TEMPLATE_CACHE` | Compose/backend | Cache template email, local mặc định false |
 | `TERMS_VERSION`, `PRIVACY_VERSION` | Backend | Phiên bản điều khoản/chính sách dùng khi đăng ký và lưu consent |
@@ -314,6 +312,24 @@ Khi chỉnh nội dung, đổi phiên bản tương ứng trong cấu hình tri�
 Câu chữ lỗi backend nằm trong [errors.properties](server/src/main/resources/messages/errors.properties);
 enum mã lỗi quản lý code/HTTP status, resource quản lý title/detail và thông báo validation.
 
+### Email và template
+
+Docker mặc định gửi email vào Mailpit, đọc tại `http://localhost:8025`; Mailpit không gửi
+đến hộp thư thật. Để gửi thật, đặt `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`,
+`SMTP_PASSWORD`, `SMTP_AUTH`, `SMTP_STARTTLS` và `MAIL_FROM` theo nhà cung cấp
+trong `.env`, rồi chạy lại `docker compose up -d`.
+
+Các module dùng chung `common/mail/service/EmailService`, truyền người nhận,
+`EmailTemplateType` và các biến qua `EmailRequest`. Service render template và gửi SMTP;
+module nghiệp vụ quản lý OTP và xử lý lỗi gửi.
+
+Template nằm trong `server/src/main/resources/templates/mail`: giao diện ở
+`html/verify-email.html`, header/footer ở `html/fragments.html`, bản text ở
+`text/verify-email.txt`, tiêu đề ở `subject/verify-email.txt`.
+Sửa template rồi build/restart backend. Thêm loại email bằng ba file HTML/text/subject
+cùng tên và khai báo trong `EmailTemplateType`; dùng `th:text` để escape dữ liệu người dùng.
+Không commit mật khẩu SMTP hoặc log OTP/nội dung email.
+
 ## Database và seed data
 
 | Dữ liệu | Database |
@@ -326,7 +342,7 @@ Hibernate dùng `ddl-auto: update`: tạo bảng/cột còn thiếu từ entity 
 Thành viên sửa entity trong module mình, pull code mới rồi chạy lại backend;
 không cần đăng ký số phiên bản V1/V2. Khóa ngoại, unique constraint, check và index
 được khai báo trong entity. `IdentityDataInitializer` thêm các role nền còn thiếu.
-Xem [quản lý schema code first](docs/DATABASE-SCHEMA.md) cho thay đổi dữ liệu cũ.
+Xem [quản lý schema code first](docs/DATABASE.md) cho thay đổi dữ liệu cũ.
 
 Dữ liệu mẫu nằm trong `server/src/main/resources/demo/products.json`.
 `ProductDemoSeeder` chỉ thêm các UUID mẫu còn thiếu, không ghi đè dữ liệu đã sửa.
@@ -350,7 +366,7 @@ nên có thể thiếu nhật ký nếu MongoDB lỗi. Chi tiết nằm trong [q
 Xem [tài liệu API](docs/API.md) để phân biệt 7 endpoint base, 9 endpoint Identity đã có
 và 167 mục API trong thiết kế FPTPost. Phần bên dưới mô tả **API đang chạy**;
 các khác biệt còn lại về response thành công/phân trang được ghi trong
-[đối chiếu SPEC](docs/SPEC-ALIGNMENT.md).
+[tài liệu API](docs/API.md).
 
 ### Endpoint
 
@@ -405,7 +421,7 @@ Lỗi dùng Problem Details, Content-Type `application/problem+json`: `type`, `t
 Ví dụ: `AUTH_EMAIL_ALREADY_EXISTS`, `PRODUCT_NOT_FOUND`, `SYS_INVALID_REQUEST`.
 Header `X-Correlation-Id` xuất hiện ở cả thành công/lỗi, có trong log để tra cứu.
 Backend nhận UUID hợp lệ hoặc sinh mới; frontend gửi UUID, ánh xạ mã lỗi và cho sao chép mã theo dõi.
-Chi tiết xem [contract lỗi](docs/API-ERRORS.md) và [JWT/phiên đăng nhập](docs/IDENTITY-LOGIN.md).
+Chi tiết xem [contract lỗi](docs/API-ERRORS.md) và [API xác thực, JWT/phiên đăng nhập](docs/API.md).
 Product/Activity yêu cầu đăng nhập; endpoint nội bộ mặc định cần Bearer.
 
 Product hỗ trợ `search`, `category`, `status`, `minPrice`, `maxPrice`,
@@ -498,18 +514,16 @@ Chỉ đưa phiên bản ổn định từ `develop` vào `main`.
 UC-01–02 có tại `/register` → `/verify`: đăng ký, nhập OTP, gửi lại mã và kích hoạt tài khoản.
 Docker mặc định chạy Mailpit, xem email tại `http://localhost:8025`; có thể cấu hình SMTP thật
 bằng biến môi trường. UC-03 có tại `/login` → `/account`, hỗ trợ email/SĐT, JWT và refresh cookie.
-Xem [Identity đăng nhập](docs/IDENTITY-LOGIN.md) và [Identity đăng ký](docs/IDENTITY-REGISTRATION.md) để tra contract,
-schema, cấu hình SMTP và các giới hạn hiện tại.
+Xem [tài liệu API](docs/API.md) để tra contract và giới hạn xác thực,
+[tài liệu database](docs/DATABASE.md) để tra schema; cấu hình SMTP nằm trong README này.
 
 - [Quy ước code backend/frontend và hướng dẫn đóng góp](docs/CONTRIBUTING.md)
 - [Thông tin dự án, phạm vi và tác nhân](docs/PROJECT-INFO.md)
 - [Danh mục UC, phân công và quy ước mã nhánh](docs/USE-CASES.md)
-- [Phân công 6 thành viên, việc bắt đầu và thứ tự tích hợp](docs/TEAM-PLAN.md)
 - [Kiến trúc và ranh giới module FPTPost](docs/LOGISTICS-BASE.md)
 - [Database và từ điển dữ liệu dự kiến](docs/DATABASE.md)
-- [Code first, schema và seed data](docs/DATABASE-SCHEMA.md)
 - [API hiện tại và danh mục thiết kế](docs/API.md)
-- [Lựa chọn đã chốt, khác biệt với SPEC và câu hỏi còn mở](docs/SPEC-ALIGNMENT.md)
+- [Contract lỗi và quy ước mã nghiệp vụ](docs/API-ERRORS.md)
 - [Tài liệu nguồn BR/UC và SPEC v1.0](docs/sources/README.md)
 - [Checklist tham chiếu đề SBA301](docs/SBA301-CHECKLIST.md)
 

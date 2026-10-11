@@ -27,10 +27,58 @@ và [SPEC](sources/fptpost-spec-v1.0.pdf), mục 6.
 | GET | /api/v1/me | Thông tin người dùng đang đăng nhập |
 
 Product CRUD là ví dụ kỹ thuật, không tương ứng UC-12 hay các API orders.
-UC-01–02 đã có luồng đăng ký và xác thực email; xem [contract và giới hạn Identity](IDENTITY-REGISTRATION.md).
-UC-03 có Spring Security/JWT và refresh rotation; xem [contract đăng nhập](IDENTITY-LOGIN.md).
+UC-01–03 đã có đăng ký, xác thực email, đăng nhập và refresh rotation.
 Product/Activity và các API nội bộ yêu cầu Bearer; health và các endpoint auth công khai
 được liệt kê trong SecurityConfig. Chưa có VNPay/WebSocket hoặc đầy đủ role/ownership cho các module chưa triển khai.
+
+## API xác thực UC-01–03
+
+Luồng giao diện: `/register` → `/verify` → `/login` → `/account`.
+Các endpoint xác thực nằm trong `AuthenticationController`.
+
+| API | Request / kết quả trong `data` |
+| --- | --- |
+| GET registration-policies | Trả `terms`, `privacy` (version/title/paragraphs) và `passwordMinLength` |
+| POST register | Nhận `fullName`, `email`, `phone`, `password`, `adultConfirmed`, `termsAccepted`, `privacyAccepted`, `termsVersion`, `privacyVersion`; trả `userId`, `status`, `challengeId`, `verificationChannel`, `maskedTarget`, `expiresAt`, `resendAvailableAt` |
+| POST otp/verify | Nhận `{challengeId, otp}`; OTP là chuỗi 6 số; trả `userId`, `status: ACTIVE`, `verificationChannel`, `verifiedAt` |
+| POST otp/resend | Nhận `{challengeId}`; trả challenge mới và metadata xác thực, frontend thay challenge đang lưu |
+| POST login | Nhận `{identifier, password}` với email hoặc SĐT; trả `accessToken`, `tokenType`, `expiresAt`, `user` và đặt refresh cookie |
+| POST refresh | Nhận refresh cookie; trả payload như login và thay refresh cookie |
+| POST logout | Bearer và CSRF; thu hồi phiên hiện tại, xóa refresh cookie |
+| GET me | Bearer; trả thông tin người dùng, không chứa mật khẩu hoặc token |
+
+Các đường dẫn trong bảng thuộc `/api/v1/auth`, riêng `me` là `/api/v1/me`.
+Nhập lại mật khẩu được kiểm tra trên frontend, không gửi lên API.
+Email được chuẩn hóa chữ thường, SĐT Việt Nam về `+84...`.
+Mật khẩu tối thiểu 8 ký tự, có chữ hoa/thường/số, tối đa 72 byte UTF-8; lưu BCrypt.
+
+Đăng ký tạo User `PENDING_VERIFICATION`, role `SENDER`, hồ sơ xác nhận tuổi và hai consent.
+OTP đăng ký (`OtpType.REGISTRATION`) được băm BCrypt, mặc định hết hạn sau 5 phút,
+tối đa 5 lần nhập sai; bộ đếm vẫn được lưu khi trả lỗi. Verify thành công chuyển User
+sang `ACTIVE`, chưa tạo phiên đăng nhập. Resend chờ ít nhất 60 giây và vô hiệu mã cũ.
+SMTP thất bại trả `AUTH_OTP_DELIVERY_FAILED`/503 và rollback transaction;
+gửi mail hiện đồng bộ, chưa có outbox/retry.
+
+Login đúng mật khẩu của tài khoản chờ xác thực trả HTTP 403 `AUTH_ACCOUNT_UNVERIFIED`
+kèm extension `verification` (challengeId, verificationChannel, maskedTarget, expiresAt,
+resendAvailableAt). Frontend lưu metadata mới và tự chuyển `/verify`;
+login không gửi email mới hoặc cấp JWT cho tài khoản này. Mã hết hạn có thể yêu cầu resend.
+Sai thông tin trả `AUTH_LOGIN_FAILED`/401; sai 5 lần liên tiếp khóa đăng nhập 15 phút.
+Lỗi giới hạn request/cooldown trả 429 và `Retry-After`.
+
+Trước login/refresh/logout, gọi `GET /api/v1/auth/csrf`, gửi token qua `headerName`
+được trả về cùng cookie (`withCredentials`). CORS chỉ cho phép origin cấu hình.
+Access JWT dùng HS256, mặc định 15 phút; backend kiểm tra chữ ký, issuer/audience,
+trạng thái tài khoản và phiên SQL. Frontend giữ access token trong bộ nhớ.
+Refresh token chỉ lưu hash SHA-256 trong `sessions`, gửi bằng cookie HttpOnly,
+SameSite=Strict, Path=/api/v1/auth, mặc định 7 ngày. Refresh xoay token/phiên;
+dùng lại token đã thay sẽ thu hồi mọi phiên của tài khoản. Giới hạn mặc định 5 phiên.
+Không lưu token, mật khẩu hoặc OTP vào localStorage/sessionStorage;
+trang OTP chỉ lưu metadata challenge trong sessionStorage để tiếp tục khi tải lại.
+
+Quên/đổi mật khẩu, Google login, quản lý từng thiết bị và KYC chưa triển khai.
+Cấu hình SMTP/template nằm trong [README](../README.md), schema trong [DATABASE](DATABASE.md),
+mã lỗi và field validation theo [contract lỗi](API-ERRORS.md).
 
 ## Contract đang chạy
 
@@ -70,7 +118,6 @@ Response thành công vẫn dùng envelope ApiResponse; phân trang giữ mặc 
 
 Idempotency-Key cho thao tác tiền, ETag/If-Match cho PUT đơn/chuyến và quyền nghiệp vụ theo
 role/ownership sẽ triển khai ở UC tương ứng. JWT/phiên đã có; hạn request áp dụng đăng ký, OTP, login và refresh.
-Xem [đối chiếu SPEC](SPEC-ALIGNMENT.md).
 Danh mục bên dưới mới có method/path/quyền/UC, chưa thay thế OpenAPI có DTO, response,
 status, security scheme và ví dụ cho từng endpoint.
 
