@@ -7,8 +7,8 @@ Hai bản gốc do nhóm cung cấp, phiên bản 1.0 ngày 08/10/2026, trạng 
 - [Thiết kế hệ thống SPEC](fptpost-spec-v1.0.pdf): 46 trang.
 
 Đối chiếu yêu cầu nghiệp vụ theo Excel, thiết kế kỹ thuật theo SPEC. Những lựa chọn
-đã chốt riêng cho repository và điểm chưa thống nhất được ghi trong
-[SPEC-ALIGNMENT.md](../SPEC-ALIGNMENT.md); không sửa bản gốc để che khác biệt.
+đã chốt riêng cho repository được ghi trong [README](../../README.md),
+[API](../API.md) và [DATABASE](../DATABASE.md); không sửa nội dung bản gốc.
 Các bảng Markdown là bản tra cứu của v1.0, không phải chứng nhận chức năng đã triển khai.
 
 ## Kiểm tra bản gốc

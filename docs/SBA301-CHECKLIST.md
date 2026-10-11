@@ -58,5 +58,5 @@ Theo [đặc tả nguồn](sources/README.md), FPTPost là nền tảng giao hà
 bưu cục/kho và COD nằm ngoài phạm vi. User–Role N–N, Order–Offer/Photo/StatusHistory
 1–N là các quan hệ theo thiết kế, chưa tạo trong schema hiện tại.
 Product/Activity là ví dụ kỹ thuật, chưa thay thế module order hoặc audit nghiệp vụ.
-Xem [UC](USE-CASES.md), [database](DATABASE.md), [kiến trúc](LOGISTICS-BASE.md) và
-[các điểm cần chốt](SPEC-ALIGNMENT.md). Hoàn thiện ERD và contract trước khi chia việc code.
+Xem [UC](USE-CASES.md), [database](DATABASE.md) và [kiến trúc](LOGISTICS-BASE.md).
+Hoàn thiện ERD và contract trước khi chia việc code.

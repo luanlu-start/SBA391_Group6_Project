@@ -59,7 +59,7 @@ Product hay tạo Branch/Parcel/COD theo ví dụ chuyển phát trước đây.
 Nhóm đã chọn namespace com.fptpost và giữ
 controller/service/repository/model/dto/mapper theo module. SPEC v1.0 đề xuất
 api/application/domain/infrastructure; lựa chọn mới được ghi tại
-[SPEC-ALIGNMENT.md](SPEC-ALIGNMENT.md). Chỉ tạo class/thư mục phục vụ chức năng thực tế.
+[quy ước code](CONTRIBUTING.md). Chỉ tạo class/thư mục phục vụ chức năng thực tế.
 
 ## Dùng module mẫu
 
