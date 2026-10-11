@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { CheckCircle2, Eye, EyeOff, Mail, UserPlus } from 'lucide-react';
 import { identityApi } from '../api/identityApi';
 import { getApiError } from '../api/ApiError';
+import ApiErrorNotice from '../components/ApiErrorNotice';
 import type { RegistrationPolicies, RegisterResponse } from '../types/identity';
 import '../styles/registration.css';
 
@@ -18,6 +19,8 @@ export default function RegisterPage() {
   const [retry, setRetry] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState('');
+  const [correlationId, setCorrelationId] = useState<string>();
+  const [policyCorrelationId, setPolicyCorrelationId] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [result, setResult] = useState<RegisterResponse | null>(null);
@@ -26,10 +29,14 @@ export default function RegisterPage() {
     let active = true;
     setLoadingPolicies(true);
     setPolicyError('');
+    setPolicyCorrelationId(undefined);
     identityApi.getRegistrationPolicies().then(response => {
       if (active) setPolicies(response.data);
-    }).catch(() => {
-      if (active) setPolicyError('Chưa tải được chính sách đăng ký. Vui lòng thử lại.');
+    }).catch(cause => {
+      if (active) {
+        setPolicyError('Chưa tải được chính sách đăng ký. Vui lòng thử lại.');
+        setPolicyCorrelationId(getApiError(cause).correlationId);
+      }
     }).finally(() => { if (active) setLoadingPolicies(false); });
     return () => { active = false; };
   }, [retry]);
@@ -74,11 +81,12 @@ export default function RegisterPage() {
     } catch (cause) {
       const apiError = getApiError(cause);
       setError(apiError.message);
-      if (apiError.errors) setErrors(apiError.errors);
-      if (apiError.code === 3001) setErrors({ email: apiError.message });
-      if (apiError.code === 3002) setErrors({ phone: apiError.message });
-      if (apiError.code === 3003) setErrors({ password: apiError.message });
-      if (apiError.code === 3004) {
+      setCorrelationId(apiError.correlationId);
+      setErrors(apiError.fieldErrors);
+      if (apiError.code === 'AUTH_EMAIL_ALREADY_EXISTS') setErrors({ email: apiError.message });
+      if (apiError.code === 'AUTH_PHONE_ALREADY_EXISTS') setErrors({ phone: apiError.message });
+      if (apiError.code === 'AUTH_PASSWORD_INVALID') setErrors({ password: apiError.message });
+      if (apiError.code === 'AUTH_POLICY_CHANGED') {
         setForm(previous => ({ ...previous, termsAccepted: false, privacyAccepted: false }));
         setPolicies(null);
         setRetry(previous => previous + 1);
@@ -113,8 +121,8 @@ export default function RegisterPage() {
       <form className="registration-card" onSubmit={submit} noValidate>
         <div className="registration-card-title"><UserPlus size={24} aria-hidden="true" /><h2>Thông tin đăng ký</h2></div>
         <p className="registration-hint">Điền thông tin của bạn. Chúng tôi sẽ gửi mã xác thực qua email.</p>
-        {error && <div className="registration-alert" role="alert">{error}</div>}
-        {policyError && <div className="registration-alert" role="alert">{policyError} <button type="button" onClick={() => setRetry(previous => previous + 1)}>Thử lại</button></div>}
+        {error && <ApiErrorNotice key={correlationId} message={error} correlationId={correlationId} />}
+        {policyError && <div><ApiErrorNotice key={policyCorrelationId} message={policyError} correlationId={policyCorrelationId} /><button type="button" onClick={() => setRetry(previous => previous + 1)}>Thử lại</button></div>}
         <fieldset disabled={submitting}>
           <div className="registration-fields">
             <div className="registration-field registration-wide">

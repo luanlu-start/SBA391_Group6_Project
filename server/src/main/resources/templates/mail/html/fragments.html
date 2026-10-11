@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+  <table role="presentation" th:fragment="header" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td style="padding:24px 32px;background:#ea580c;color:#ffffff;font:700 24px Arial,sans-serif;"
+          th:text="${appName}">FPTPost</td>
+    </tr>
+  </table>
+  <table role="presentation" th:fragment="footer" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td style="padding:20px 32px;background:#f8fafc;color:#64748b;font:13px/1.6 Arial,sans-serif;">
+        Email tự động từ <span th:text="${appName}">FPTPost</span>. Vui lòng không trả lời email này.
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

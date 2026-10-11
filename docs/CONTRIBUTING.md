@@ -37,7 +37,10 @@ com/fptpost/modules/<module>/
 ├── service/
 ├── repository/
 ├── model/
+├── enums/
 ├── dto/
+│   ├── request/
+│   └── response/
 ├── mapper/
 ├── exception/
 └── config/          # Khi module có seed hoặc cấu hình riêng
@@ -52,14 +55,27 @@ Chỉ tạo thư mục/lớp cần dùng. Event đặt trong `event` nếu modul
 | Service | Điều kiện nghiệp vụ, thao tác dữ liệu, transaction, phát sự kiện |
 | Repository | CRUD và truy vấn database |
 | Model | Entity JPA hoặc document MongoDB |
+| Enums | Trạng thái và kiểu nghiệp vụ của module, ví dụ `UserStatus` |
 | DTO | Request/response contract; validation đầu vào |
 | Mapper | Ánh xạ DTO/model bằng MapStruct |
 | Exception | Enum mã lỗi của module triển khai `ErrorCode` |
 | Seeder | Nạp mẫu cho module, tách khỏi service nghiệp vụ |
 
+Enum nghiệp vụ đặt ở `modules.<module>.enums`, tách khỏi entity trong `model`.
+Enum mã lỗi như `IdentityErrorCode` vẫn ở `exception` cùng cơ chế xử lý lỗi.
+
 Service dùng một class `@Service` khi chỉ có một implementation.
 Chỉ tách interface/implementation khi có nhu cầu thực tế.
 Dependency injection qua constructor, có thể dùng `@RequiredArgsConstructor` và field `final`.
+Identity dùng `@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)`
+cùng `@RequiredArgsConstructor`; tên dependency đầy đủ như `userRepository`, `otpService`.
+
+API AUTH nhóm trong `AuthenticationController`. Đăng ký gọi `UserService.createUser()`,
+service tài khoản gọi `OtpService` để sinh/lưu mã băm và `common.mail.service.EmailService`
+để gửi email theo template. Service gửi mail dùng chung không phụ thuộc vào Identity
+hoặc mã lỗi nghiệp vụ của module. Xem [hướng dẫn email](EMAIL.md).
+`AuthenticationService` phụ trách xác thực/phiên khi UC tương ứng được triển khai.
+Chỉ tạo method cho chức năng đã có, không tạo endpoint hoặc service rỗng.
 
 Module khác giao tiếp qua facade/interface hoặc sự kiện, không gọi repository nội bộ của nhau.
 Ranh giới theo [kiến trúc FPTPost](LOGISTICS-BASE.md). Nhóm chọn package com.fptpost
@@ -69,6 +85,14 @@ với các tầng controller/service/repository/model/dto/mapper, không thêm b
 
 Request và response tách khỏi entity/document. Dùng tên `ProductRequest`, `ProductResponse`,
 `ProductSearchRequest`; tách request tạo/sửa khi hai thao tác có dữ liệu hoặc validation khác nhau.
+Module nghiệp vụ chia DTO thành `dto.request` và `dto.response`, dùng class Lombok
+`@Data`, `@Builder`, `@NoArgsConstructor`, `@AllArgsConstructor`.
+Mỗi DTO đặt trong file cùng tên, dùng `@FieldDefaults(level = AccessLevel.PRIVATE)`.
+Kiểu dữ liệu con cũng tách thành DTO riêng, ví dụ `PolicyResponse` được dùng trong
+`RegistrationPoliciesResponse`, giúp dễ tìm và tái sử dụng.
+Identity tham khảo `UserCreationRequest`, `RegisterResponse` và `UserMapper`.
+Product/Activity demo giữ DTO hiện tại. Request chứa mật khẩu không được đưa mật khẩu
+vào `toString()` hoặc serialize trả về client.
 
 - Request khai báo `@NotBlank`, `@NotNull`, `@Size`, `@Min`, `@Digits`... theo dữ liệu.
 - Controller dùng `@Valid`; kiểm tra nghiệp vụ cần đọc database nằm trong service.
@@ -84,7 +108,7 @@ Product mẫu giữ ID/createdAt và giữ status khi không gửi; description 
 Endpoint theo `/api/v1/<resources>`; dùng GET/POST/PUT/DELETE phù hợp.
 ID của entity SQL dùng UUID khi phù hợp; dùng typed UUID trong controller để validate giá trị.
 
-API module trả `ResponseEntity<ApiResponse<T>>`.
+API module trả `ResponseEntity<ApiResponse<T>>` khi thành công; lỗi dùng `ApiProblem` kế thừa Spring `ProblemDetail`.
 Danh sách trả `ApiResponse<PageResponse<T>>`, không trả trực tiếp `Page` của Spring hoặc entity.
 HTTP status phải khớp trường `status` trong response; `code` thể hiện kết quả nghiệp vụ.
 
@@ -94,13 +118,20 @@ và không trả chi tiết exception nội bộ cho client.
 
 | Code hiện có | Ý nghĩa |
 | --- | --- |
-| 1000 | Thành công |
-| 1001–1005 | Xác thực, request, quyền truy cập, không tìm thấy, trùng tài nguyên |
-| 2001 | Product không tồn tại |
-| 9999 | Lỗi nội bộ |
+| 1000 | Chỉ response thành công |
+| SYS_INVALID_REQUEST, SYS_UNAUTHORIZED, SYS_FORBIDDEN | Request, xác thực, quyền truy cập |
+| SYS_RESOURCE_NOT_FOUND, SYS_RESOURCE_ALREADY_EXISTS | Không tìm thấy, trùng tài nguyên |
+| PRODUCT_NOT_FOUND | Product không tồn tại |
+| AUTH_* | Lỗi đăng ký Identity |
+| RATE_LIMITED | Quá nhiều request |
+| SYS_INTERNAL_ERROR, SYS_UPSTREAM_UNAVAILABLE | Lỗi hệ thống hoặc dịch vụ phụ thuộc |
 
 Module mới thống nhất mã với nhóm và cập nhật tài liệu, tránh trùng mã.
-Frontend đọc `code` và `errors`, không so sánh `message`.
+Frontend đọc `code` chữ và `errors` danh sách; `ApiError.fieldErrors` ánh xạ sang form.
+Không so sánh câu chữ để quyết định nghiệp vụ. Thêm `CODE.title`, `CODE.detail` trong
+`resources/messages/errors.properties` và câu chữ frontend trong `src/i18n/apiErrors.ts`.
+Không tự trả ApiResponse cho lỗi, không trả `exception.getMessage()` hoặc rejected value.
+Service gửi mã lỗi cho handler dùng chung; chi tiết xem [contract lỗi](API-ERRORS.md).
 Thêm mô tả API bằng OpenAPI theo controller mẫu.
 JWT/phân quyền chưa triển khai; khi bổ sung cần bảo vệ cả endpoint lẫn trang frontend.
 
@@ -137,6 +168,16 @@ SPEC FPTPost dùng BIGINT nội bộ + UUID public_id; chiến lược ID cần 
 tạo entity nghiệp vụ. Tiền VND trong thiết kế dùng Java `long` và SQL `BIGINT`,
 không tự suy diễn đơn vị giá của Product demo là tiền VND nghiệp vụ.
 Timestamps dùng `Instant` theo quy ước UTC của base.
+
+Entity JPA thống nhất dùng `@Getter`, `@Setter`, `@Builder`, `@NoArgsConstructor`
+và `@AllArgsConstructor`; giữ constructor rỗng cho JPA. Không dùng `@Data` trên entity
+để tránh tự sinh toString/equals/hashCode cho quan hệ và dữ liệu nhạy cảm.
+Thuộc tính có initializer dùng `@Builder.Default`, ví dụ `roles = new HashSet<>()`
+hoặc `status = "ACTIVE"`, để builder giữ giá trị mặc định.
+Tạo entity trong service bằng builder khi gán nhiều thuộc tính; ánh xạ DTO vẫn dùng
+MapStruct, giá trị do server quyết định như quyền, trạng thái và mật khẩu băm do service gán.
+Builder không thay thế validation hoặc ràng buộc database. Mongo document cũng có builder,
+nhưng dùng annotation mapping của Spring Data MongoDB.
 
 Khi thêm quan hệ JPA, tránh đưa quan hệ vào toString/equals/hashCode khiến đọc dữ liệu ngoài ý muốn.
 Thiết kế unique constraint, foreign key và index cùng với entity.
@@ -230,5 +271,5 @@ PR chức năng có mã UC trong tiêu đề, ví dụ `[UC-12] Create order`, v
 API/màn hình ảnh hưởng, cách kiểm tra và kết quả trong mô tả để đối chiếu với sheet.
 Không gộp sửa định dạng toàn dự án vào một thay đổi nghiệp vụ nhỏ.
 
-Base hiện cung cấp Product/Activity mẫu. Yêu cầu còn lại theo nghiệp vụ nhóm và hướng dẫn
+Base hiện cung cấp Product/Activity mẫu và UC-01 đăng ký Identity. Yêu cầu còn lại theo nghiệp vụ nhóm và hướng dẫn
 giảng viên được theo dõi trong [checklist](SBA301-CHECKLIST.md).

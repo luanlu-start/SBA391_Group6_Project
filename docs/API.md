@@ -25,38 +25,43 @@ Base chưa có xác thực OTP, JWT, quyền truy cập, VNPay hoặc WebSocket.
 
 ## Contract đang chạy
 
-Response dùng `ApiResponse<T>`: `success`, `status`, `code` số, `message`, `data`,
-`errors`, `timestamp`; trường null bị bỏ. HTTP status và status trong body phải khớp.
-Mã nghiệp vụ hiện có: 1000 thành công, 1002 request sai, 2001 Product không tồn tại,
-9999 lỗi nội bộ. Mã UC không phải mã lỗi nghiệp vụ.
+Response thành công dùng `ApiResponse<T>`: `success`, `status`, `code: 1000`,
+`message`, `data`, `timestamp`; trường null bị bỏ.
+Lỗi dùng `ApiProblem`/Problem Details, Content-Type `application/problem+json`.
+HTTP status phải khớp `status` trong body; mã nghiệp vụ dạng chữ, khác mã UC.
 
 Ví dụ Product không tồn tại (HTTP 404):
 
 ```json
 {
-  "success": false,
+  "type": "https://fptpost.vn/errors/product-not-found",
+  "title": "Không tìm thấy sản phẩm",
   "status": 404,
-  "code": 2001,
-  "message": "Product not found",
-  "timestamp": "2026-10-09T00:00:00Z"
+  "code": "PRODUCT_NOT_FOUND",
+  "detail": "Sản phẩm không tồn tại hoặc đã bị xóa.",
+  "correlationId": "7f3c9a52-1d4e-4b8a-9c21-0a6e5d3f7b10"
 }
 ```
 
-Lỗi validation trả `errors` map theo field. Danh sách ở `data.content`, có `page`,
-`size`, `totalElements`, `totalPages`, `first`, `last`. Page từ 0, size mặc định 12,
-tối đa 100; sort qua `sortBy` và `direction` có whitelist. Product filter gồm
-search/category/status/minPrice/maxPrice; Activity filter gồm entityId.
+Lỗi validation trả `errors` danh sách `{field, code, message}`; frontend chuyển thành
+`ApiError.fieldErrors` để hiển thị theo field. Header `X-Correlation-Id` có ở thành công/lỗi,
+body lỗi dùng cùng ID, log có ID và frontend cho sao chép khi có lỗi.
+Xem [contract lỗi và cách thêm mã](API-ERRORS.md).
 
-## Khác biệt với contract SPEC
+Danh sách ở `data.content`, có `page`, `size`, `totalElements`, `totalPages`, `first`, `last`.
+Page từ 0, size mặc định 12, tối đa 100; sort qua `sortBy` và `direction` có whitelist.
+Product filter gồm search/category/status/minPrice/maxPrice; Activity filter gồm entityId.
 
-SPEC yêu cầu lỗi Problem Details với code chuỗi và correlationId, errors dạng danh sách;
-phân trang mặc định 20, `sort=field,asc|desc`, chat/thông báo dùng cursor.
-Các yêu cầu khác: Idempotency-Key cho thao tác tiền, ETag/If-Match cho PUT đơn/chuyến,
-X-Correlation-Id, quyền theo role và ownership, rate limit.
+## Khác biệt còn lại với contract SPEC
 
-Các yêu cầu đó **chưa có trong base**. Cần chốt contract chung và cập nhật backend,
-frontend cùng OpenAPI trước khi các thành viên triển khai các UC; không trộn hai kiểu
-lỗi hoặc hai cách phân trang tùy từng người. Xem [đối chiếu SPEC](SPEC-ALIGNMENT.md).
+Đã chuyển contract lỗi sang Problem Details, code chữ, errors danh sách và correlationId.
+Response thành công vẫn dùng envelope ApiResponse; phân trang giữ mặc định 12,
+`sortBy`/`direction`. SPEC minh họa payload thành công trực tiếp, mặc định 20,
+`sort=field,asc|desc`, cursor cho chat/thông báo. Các phần này chưa chuyển.
+
+Idempotency-Key cho thao tác tiền, ETag/If-Match cho PUT đơn/chuyến, JWT và quyền theo
+role/ownership sẽ triển khai ở UC tương ứng. Hạn request hiện chỉ có ở API đăng ký.
+Xem [đối chiếu SPEC](SPEC-ALIGNMENT.md).
 Danh mục bên dưới mới có method/path/quyền/UC, chưa thay thế OpenAPI có DTO, response,
 status, security scheme và ví dụ cho từng endpoint.
 

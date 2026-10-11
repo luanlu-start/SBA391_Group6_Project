@@ -10,7 +10,8 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-@Configuration @RequiredArgsConstructor
+@Configuration
+@RequiredArgsConstructor
 public class RegistrationWebConfig implements WebMvcConfigurer {
     private final RegistrationRateLimiter limiter;
 

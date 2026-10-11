@@ -1,6 +1,8 @@
 package com.fptpost;
 
 import com.fptpost.common.exception.GlobalExceptionHandler;
+import com.fptpost.common.exception.ProblemResponseFactory;
+import org.springframework.context.support.ResourceBundleMessageSource;
 import com.fptpost.common.response.PageResponse;
 import com.fptpost.modules.product.controller.ProductController;
 import com.fptpost.modules.product.service.ProductService;
@@ -19,7 +21,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ProductSearchHttpTest {
     private final ProductService service = mock(ProductService.class);
     private final MockMvc mvc = MockMvcBuilders.standaloneSetup(new ProductController(service))
-            .setControllerAdvice(new GlobalExceptionHandler()).build();
+            .setControllerAdvice(handler()).build();
+
+    private static GlobalExceptionHandler handler() {
+        ResourceBundleMessageSource messages = new ResourceBundleMessageSource();
+        messages.setBasename("messages/errors");
+        messages.setDefaultEncoding("UTF-8");
+        return new GlobalExceptionHandler(new ProblemResponseFactory(messages));
+    }
 
     @Test
     void exposesStablePageResponse() throws Exception {
@@ -36,25 +45,25 @@ class ProductSearchHttpTest {
                 {"sortBy", "secretField"}, {"direction", "SIDEWAYS"}, {"status", "UNKNOWN"}, {"minPrice", "-1"}};
         for (String[] input : cases) {
             mvc.perform(get("/api/v1/products").param(input[0], input[1]))
-                    .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value(1002));
+                    .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("SYS_INVALID_REQUEST"));
         }
         mvc.perform(get("/api/v1/products").param("minPrice", "100").param("maxPrice", "10"))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value(1002));
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("SYS_INVALID_REQUEST"));
         verifyNoInteractions(service);
     }
 
     @Test
     void rejectsMalformedUuidAndPricePrecisionBeforeCallingService() throws Exception {
         mvc.perform(get("/api/v1/products/not-a-uuid"))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value(1002));
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("SYS_INVALID_REQUEST"));
         mvc.perform(post("/api/v1/products").contentType("application/json").content("""
                 {"name":"Product","category":"Other","price":0.001,"stock":1}
                 """))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.price").exists());
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors[?(@.field == 'price')]").isNotEmpty());
         mvc.perform(post("/api/v1/products").contentType("application/json").content("""
                 {"name":"Product","category":"Other","price":0.10,"stock":1,"status":"UNKNOWN"}
                 """))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.status").exists());
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors[?(@.field == 'status')]").isNotEmpty());
         verifyNoInteractions(service);
     }
 }

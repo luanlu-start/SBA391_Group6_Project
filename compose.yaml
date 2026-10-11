@@ -61,6 +61,9 @@ services:
       SPRING_FLYWAY_BASELINE_ON_MIGRATE: ${FLYWAY_BASELINE_ON_MIGRATE:-false}
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"
+      MAIL_FROM: ${MAIL_FROM:-no-reply@fptpost.local}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-FPTPost}
+      MAIL_TEMPLATE_CACHE: ${MAIL_TEMPLATE_CACHE:-false}
       ALLOWED_ORIGINS: http://localhost:${FRONTEND_PORT:-5173},http://127.0.0.1:${FRONTEND_PORT:-5173}
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8080}:8080"

@@ -5,6 +5,10 @@ import com.fptpost.modules.identity.config.RegistrationProperties;
 import com.fptpost.modules.identity.model.Role;
 import com.fptpost.modules.identity.repository.*;
 import com.fptpost.modules.identity.service.RegistrationContact;
+import jakarta.mail.Multipart;
+import jakarta.mail.Part;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -13,7 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mail.MailSendException;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -22,6 +25,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -54,6 +58,8 @@ class RegistrationHttpTest {
     @BeforeEach
     void clean() {
         reset(mailSender);
+        when(mailSender.createMimeMessage()).thenAnswer(
+                invocation -> new MimeMessage(Session.getInstance(new Properties())));
         blacklist.deleteAll();
         otps.deleteAll();
         consents.deleteAll();
@@ -108,9 +114,11 @@ class RegistrationHttpTest {
             assertThat(c.getAcceptedAt()).isAfterOrEqualTo(before);
             assertThat(c.getIp()).isEqualTo("127.0.0.1");
         });
-        var captor = org.mockito.ArgumentCaptor.forClass(SimpleMailMessage.class);
+        var captor = org.mockito.ArgumentCaptor.forClass(MimeMessage.class);
         verify(mailSender).send(captor.capture());
-        String mail = captor.getValue().getText();
+        captor.getValue().saveChanges();
+        String mail = plainText(captor.getValue());
+        assertThat(mail).contains("Nguyễn Văn An", "Mã có hiệu lực 5 phút");
         var matcher = java.util.regex.Pattern.compile("(?<!\\d)\\d{6}(?!\\d)").matcher(mail);
         assertThat(matcher.find()).isTrue();
         String code = matcher.group();
@@ -119,7 +127,14 @@ class RegistrationHttpTest {
         assertThat(java.time.Duration.between(otp.getCreatedAt(), otp.getExpiresAt()).getSeconds()).isEqualTo(300);
         assertThat(body).doesNotContain(code);
         var roleCount = mvc.perform(get("/api/v1/auth/registration-policies"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data.terms.version").value(properties.getTermsVersion()));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.terms.version").value(properties.getTermsVersion()))
+                .andExpect(jsonPath("$.data.privacy.version").value(properties.getPrivacyVersion()))
+                .andExpect(jsonPath("$.data.terms.title").value("Điều khoản sử dụng"))
+                .andExpect(jsonPath("$.data.privacy.title").value("Chính sách dữ liệu cá nhân"))
+                .andExpect(jsonPath("$.data.terms.paragraphs").isNotEmpty())
+                .andExpect(jsonPath("$.data.privacy.paragraphs").isNotEmpty())
+                .andExpect(jsonPath("$.data.passwordMinLength").value(properties.getPasswordMinLength()));
         assertThat(roleCount).isNotNull();
     }
 
@@ -144,7 +159,7 @@ class RegistrationHttpTest {
     @Test
     void rejectsStalePolicyVersionAndMalformedContact() throws Exception {
         var request = request(); request.put("termsVersion", "old");
-        assertThat(register(request, 409)).contains("3004");
+        assertThat(register(request, 409)).contains("AUTH_POLICY_CHANGED");
         request = request(); request.put("phone", "not-a-phone"); register(request, 400);
         request = request(); request.put("email", "not-email"); register(request, 400);
         assertThat(users.count()).isZero(); verifyNoInteractions(mailSender);
@@ -154,12 +169,12 @@ class RegistrationHttpTest {
     void treatsCaseAndVietnamesePhoneFormatsAsSameAccount() throws Exception {
         register(request(), 201);
         var duplicateEmail = request(); duplicateEmail.put("phone", "0901234568");
-        assertThat(register(duplicateEmail, 409)).contains("3001");
+        assertThat(register(duplicateEmail, 409)).contains("AUTH_EMAIL_ALREADY_EXISTS");
         var duplicatePhone = request(); duplicatePhone.put("email", "other@example.com");
         duplicatePhone.put("phone", "+84901234567");
-        assertThat(register(duplicatePhone, 409)).contains("3002");
+        assertThat(register(duplicatePhone, 409)).contains("AUTH_PHONE_ALREADY_EXISTS");
         assertThat(users.count()).isEqualTo(1);
-        verify(mailSender, times(1)).send(any(SimpleMailMessage.class));
+        verify(mailSender, times(1)).send(any(MimeMessage.class));
     }
 
     @Test
@@ -167,18 +182,20 @@ class RegistrationHttpTest {
         var entry = new com.fptpost.modules.identity.model.BlacklistEntry();
         entry.setKind("PHONE"); entry.setValueHash(RegistrationContact.phoneHash("+84901234567"));
         entry.setReason("Test block"); entry.setCreatedAt(Instant.now()); blacklist.save(entry);
-        assertThat(register(request(), 403)).contains("3005");
+        assertThat(register(request(), 403)).contains("AUTH_REGISTRATION_BLOCKED");
         assertThat(users.count()).isZero(); verifyNoInteractions(mailSender);
     }
 
     @Test
     void smtpFailureRollsBackAllRegistrationDataAndAllowsRetry() throws Exception {
-        doThrow(new MailSendException("secret recipient details")).when(mailSender).send(any(SimpleMailMessage.class));
+        doThrow(new MailSendException("secret recipient details")).when(mailSender).send(any(MimeMessage.class));
         String body = register(request(), 503);
-        assertThat(body).contains("3006").doesNotContain("secret recipient details");
+        assertThat(body).contains("AUTH_OTP_DELIVERY_FAILED").doesNotContain("secret recipient details");
         assertThat(users.count()).isZero(); assertThat(profiles.count()).isZero();
         assertThat(consents.count()).isZero(); assertThat(otps.count()).isZero();
         reset(mailSender);
+        when(mailSender.createMimeMessage()).thenAnswer(
+                invocation -> new MimeMessage(Session.getInstance(new Properties())));
         register(request(), 201);
         assertThat(users.count()).isEqualTo(1);
     }
@@ -186,7 +203,7 @@ class RegistrationHttpTest {
     @Test
     void malformedJsonDoesNotExposeInternalsOrCreateUser() throws Exception {
         mvc.perform(post("/api/v1/auth/register").contentType("application/json").content("{bad"))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value(1002));
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("SYS_INVALID_REQUEST"));
         assertThat(users.count()).isZero(); verifyNoInteractions(mailSender);
     }
 
@@ -202,8 +219,92 @@ class RegistrationHttpTest {
             mvc.perform(post("/api/v1/auth/register").contentType("application/json").content("{bad")
                             .header("X-Forwarded-For", "203.0.113.1")
                             .with(r -> { r.setRemoteAddr("198.51.100.5"); return r; }))
-                    .andExpect(status().isTooManyRequests()).andExpect(jsonPath("$.code").value(3008))
+                    .andExpect(status().isTooManyRequests()).andExpect(jsonPath("$.code").value("RATE_LIMITED"))
                     .andExpect(header().string("Retry-After", "60"));
         } finally { properties.setRequestsPerMinute(1000); }
+    }
+
+    private String plainText(Part part) throws Exception {
+        if (part.isMimeType("text/plain")) {
+            return (String) part.getContent();
+        }
+        if (part.getContent() instanceof Multipart multipart) {
+            for (int i = 0; i < multipart.getCount(); i++) {
+                String text = plainText(multipart.getBodyPart(i));
+                if (text != null) {
+                    return text;
+                }
+            }
+        }
+        return null;
+    }
+
+    @Test
+    void returnsProblemDetailsAndPreservesCorrelationWithoutLeakingRejectedValues() throws Exception {
+        String id = "7f3c9a52-1d4e-4b8a-9c21-0a6e5d3f7b10";
+        var payload = request();
+        payload.put("email", "private-not-an-email");
+        var result = mvc.perform(post("/api/v1/auth/register").header("X-Correlation-Id", id)
+                        .contentType("application/json").content(json.writeValueAsString(payload)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(header().string("X-Correlation-Id", id))
+                .andExpect(jsonPath("$.correlationId").value(id))
+                .andExpect(jsonPath("$.code").value("SYS_INVALID_REQUEST"))
+                .andExpect(jsonPath("$.type").value("https://fptpost.vn/errors/sys-invalid-request"))
+                .andExpect(jsonPath("$.title").value("Yêu cầu không hợp lệ"))
+                .andExpect(jsonPath("$.errors[?(@.field == 'email')].code").value(org.hamcrest.Matchers.hasItem("EMAIL")))
+                .andExpect(jsonPath("$.success").doesNotExist())
+                .andExpect(jsonPath("$.message").doesNotExist())
+                .andReturn();
+        assertThat(result.getResponse().getHeaders("X-Correlation-Id")).containsExactly(id);
+        assertThat(result.getResponse().getContentAsString()).doesNotContain("private-not-an-email", "Secret123!");
+        assertThat(org.slf4j.MDC.get("correlationId")).isNull();
+    }
+
+    @Test
+    void generatesNewCorrelationForMalformedHeaderAndIndependentRequests() throws Exception {
+        var first = mvc.perform(get("/api/v1/auth/registration-policies")
+                        .header("X-Correlation-Id", "unsafe private supplied value"))
+                .andExpect(status().isOk()).andReturn().getResponse();
+        String id = first.getHeader("X-Correlation-Id");
+        assertThat(java.util.UUID.fromString(id).toString()).isEqualTo(id);
+        var second = mvc.perform(get("/api/v1/auth/registration-policies")).andReturn().getResponse();
+        assertThat(second.getHeader("X-Correlation-Id")).isNotEqualTo(id);
+        assertThat(org.slf4j.MDC.get("correlationId")).isNull();
+    }
+
+    @Test
+    void mvcFailuresUseSameProblemContractAndPreserveProtocolHeaders() throws Exception {
+        mvc.perform(get("/api/v1/auth/register"))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(header().string("Allow", org.hamcrest.Matchers.containsString("POST")))
+                .andExpect(jsonPath("$.code").value("SYS_METHOD_NOT_ALLOWED"))
+                .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+        mvc.perform(post("/api/v1/auth/register").contentType("text/plain").content("private-value"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.code").value("SYS_UNSUPPORTED_MEDIA_TYPE"));
+        mvc.perform(get("/api/v1/missing-endpoint"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("SYS_RESOURCE_NOT_FOUND"));
+        mvc.perform(get("/api/v1/products/not-a-uuid"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("TYPE_MISMATCH"));
+        verifyNoInteractions(mailSender);
+    }
+
+    @Test
+    void correlationHeaderIsAllowedAndExposedAcrossCors() throws Exception {
+        mvc.perform(options("/api/v1/auth/register").header("Origin", "http://localhost:5173")
+                        .header("Access-Control-Request-Method", "POST")
+                        .header("Access-Control-Request-Headers", "content-type,x-correlation-id"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Headers", org.hamcrest.Matchers.containsString("x-correlation-id")))
+                .andExpect(header().string("Access-Control-Expose-Headers", org.hamcrest.Matchers.containsString("X-Correlation-Id")));
+        mvc.perform(options("/api/v1/auth/register").header("Origin", "https://untrusted.example")
+                        .header("Access-Control-Request-Method", "POST"))
+                .andExpect(status().isForbidden())
+                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(jsonPath("$.code").value("SYS_FORBIDDEN"));
     }
 }

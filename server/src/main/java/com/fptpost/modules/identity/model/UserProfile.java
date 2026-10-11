@@ -1,13 +1,19 @@
 package com.fptpost.modules.identity.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import java.time.Instant;
 
 @Entity @Table(name = "user_profiles")
-@Getter @Setter @NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class UserProfile {
     @Id @Column(name = "user_id")
     private Long userId;

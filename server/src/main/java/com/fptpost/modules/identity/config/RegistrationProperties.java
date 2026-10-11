@@ -11,16 +11,19 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties(prefix = "app.registration")
 public class RegistrationProperties {
-    @Min(8) @Max(72)
+    @Min(8)
+    @Max(72)
     private int passwordMinLength = 8;
-    @Min(1) @Max(30)
+    @Min(1)
+    @Max(30)
     private int otpTtlMinutes = 5;
-    @Min(1) @Max(1000)
+    @Min(1)
+    @Max(1000)
     private int requestsPerMinute = 10;
-    @NotBlank @Size(max = 50)
+    @NotBlank
+    @Size(max = 50)
     private String termsVersion = "draft-2026-10-09";
-    @NotBlank @Size(max = 50)
+    @NotBlank
+    @Size(max = 50)
     private String privacyVersion = "draft-2026-10-09";
-    @NotBlank @Email
-    private String mailFrom = "no-reply@fptpost.local";
 }

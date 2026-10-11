@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { FormEvent } from 'react';
 import type { Product, ProductSearchRequest, ProductStatus } from '../types/product';
 import { getApiError } from '../api/ApiError';
+import ApiErrorNotice from '../components/ApiErrorNotice';
 import { 
   Plus, 
   Search, 
@@ -49,6 +50,9 @@ export default function ProductsPage() {
   const latestRequest = useRef(0);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [error, setError] = useState<string | null>(null);
+  const [correlationId, setCorrelationId] = useState<string>();
+  const [formError, setFormError] = useState('');
+  const [formCorrelationId, setFormCorrelationId] = useState<string>();
   const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
 
   // Modal State
@@ -81,7 +85,9 @@ export default function ProductsPage() {
       }
     } catch (err) {
       if (requestId === latestRequest.current) {
-        setError(getApiError(err).message || 'Không thể tải danh sách sản phẩm');
+        const apiError = getApiError(err);
+        setError(apiError.message);
+        setCorrelationId(apiError.correlationId);
       }
     } finally {
       if (requestId === latestRequest.current) setLoading(false);
@@ -108,6 +114,8 @@ export default function ProductsPage() {
 
   // Open Modal for Create
   const handleOpenCreate = () => {
+    setFormError('');
+    setFormCorrelationId(undefined);
     setIsEditing(false);
     setCurrentId(null);
     setFormData(INITIAL_FORM);
@@ -117,6 +125,8 @@ export default function ProductsPage() {
 
   // Open Modal for Edit
   const handleOpenEdit = (prod: Product) => {
+    setFormError('');
+    setFormCorrelationId(undefined);
     setIsEditing(true);
     setCurrentId(prod.id);
     setFormData({
@@ -141,7 +151,9 @@ export default function ProductsPage() {
       showToast(`Đã xóa sản phẩm "${name}" thành công!`);
       loadProducts();
     } catch (err) {
-      alert(`Xóa thất bại: ${getApiError(err).message}`);
+      const apiError = getApiError(err);
+      setError(apiError.message);
+      setCorrelationId(apiError.correlationId);
     }
   };
 
@@ -150,6 +162,8 @@ export default function ProductsPage() {
     e.preventDefault();
     setSubmitting(true);
     setFormErrors({});
+
+    setFormError('');
 
     try {
       const payload = {
@@ -174,10 +188,10 @@ export default function ProductsPage() {
       loadProducts();
     } catch (err) {
       const apiError = getApiError(err);
-      if (apiError.errors) {
-        setFormErrors(apiError.errors);
-      } else {
-        alert(apiError.message || 'Thao tác không thành công');
+      setFormError(apiError.message);
+      setFormCorrelationId(apiError.correlationId);
+      if (Object.keys(apiError.fieldErrors).length) {
+        setFormErrors(apiError.fieldErrors);
       }
     } finally {
       setSubmitting(false);
@@ -256,7 +270,7 @@ export default function ProductsPage() {
         <div className="alert alert-danger mt-4">
           <AlertCircle size={20} />
           <div>
-            <strong>Lỗi tải dữ liệu:</strong> {error}
+            <ApiErrorNotice key={correlationId} message={error} correlationId={correlationId} />
             <button onClick={() => loadProducts()} className="btn btn-sm btn-outline mt-2">
               Thử lại
             </button>
@@ -338,6 +352,7 @@ export default function ProductsPage() {
         title={isEditing ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới'}
       >
         <form onSubmit={handleSubmit} className="product-form">
+          {formError && <ApiErrorNotice key={formCorrelationId} message={formError} correlationId={formCorrelationId} />}
           <div className="form-group">
             <label className="form-label">Tên sản phẩm *</label>
             <input

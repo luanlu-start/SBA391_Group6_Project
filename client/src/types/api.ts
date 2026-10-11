@@ -4,8 +4,24 @@ export interface ApiResponse<T> {
   code: number;
   message: string;
   data: T;
-  errors?: Record<string, string>;
   timestamp: string;
+}
+
+export interface FieldViolation {
+  field: string;
+  code: string;
+  message: string;
+}
+
+export interface ApiProblem {
+  type: string;
+  title: string;
+  status: number;
+  code: string;
+  detail: string;
+  instance?: string;
+  correlationId: string;
+  errors?: FieldViolation[];
 }
 
 export interface PageResponse<T> {

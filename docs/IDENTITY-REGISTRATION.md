@@ -25,28 +25,50 @@ SHA-256 trên số `+84...`; module quản trị blacklist phải dùng cùng no
 ## API
 
 Các API AUTH được nhóm trong `identity/controller/AuthenticationController`.
-Controller gọi RegistrationService cho UC-01; các method xác thực OTP/login/refresh/logout
-sẽ bổ sung khi triển khai UC tương ứng. Handler lỗi Identity nằm trong package exception.
+Controller gọi `UserService.createUser()` cho UC-01.
+`UserMapper` chuyển đổi request/entity/response; `OtpService.generateAndSendOtp()`
+sinh và lưu mã băm rồi gọi `common.mail.service.EmailService.sendEmail()` qua
+`EmailRequest` và `EmailTemplateType.VERIFY_EMAIL`. Nội dung HTML, text và tiêu đề
+nằm trong `resources/templates/mail`; xem [hướng dẫn template email](EMAIL.md).
+Các method xác thực OTP/login/refresh/logout
+và `AuthenticationService` sẽ bổ sung khi triển khai UC tương ứng.
+Handler lỗi Identity nằm trong package exception.
+
+DTO dùng class Lombok, chia thành `dto/request/UserCreationRequest` và
+`dto/response/RegisterResponse`, `RegistrationPoliciesResponse`, `PolicyResponse`.
+Mỗi DTO ở file riêng, dùng cùng bộ annotation Lombok. Request chuẩn hóa
+email/họ tên/phone qua setter trước validation, không đưa mật khẩu vào `toString()`
+hoặc JSON khi serialize. URL, tên field JSON và HTTP status giữ nguyên để frontend
+tiếp tục dùng cùng API. Entity thuộc `model`; enum trạng thái `UserStatus` thuộc
+`enums`, enum mã lỗi `IdentityErrorCode` thuộc `exception`.
 
 - `GET /api/v1/auth/registration-policies`: nội dung/phiên bản TERMS, PRIVACY và độ dài mật khẩu tối thiểu.
 - `POST /api/v1/auth/register`: `fullName`, `email`, `phone`, `password`,
   `adultConfirmed`, `termsAccepted`, `privacyAccepted`, `termsVersion`, `privacyVersion`.
 
-Response vẫn dùng ApiResponse của base. `data` gồm `userId` (UUID public),
+Nội dung chính sách nằm trong [terms.json](../server/src/main/resources/policies/terms.json)
+và [privacy.json](../server/src/main/resources/policies/privacy.json), gồm `title` và `paragraphs`.
+`RegistrationPoliciesService` đọc các resource một lần khi backend khởi động và trả dữ liệu
+để React hiển thị. Phiên bản vẫn lấy từ `app.registration.terms-version`/`privacy-version`
+(`TERMS_VERSION`, `PRIVACY_VERSION`); không khai báo version lần nữa trong JSON.
+Khi sửa nội dung, đổi version tương ứng trong cấu hình triển khai và build/restart backend.
+Luồng kiểm tra phiên bản khi đăng ký và lưu consent dùng cùng cấu hình này.
+
+Response thành công vẫn dùng ApiResponse của base; lỗi dùng [Problem Details](API-ERRORS.md). `data` gồm `userId` (UUID public),
 `status`, `challengeId` (UUID public), `verificationChannel: EMAIL`, `maskedTarget`, `expiresAt`.
 Không đưa BIGINT nội bộ hoặc dữ liệu nhạy cảm ra response.
 
 | Mã lỗi | HTTP | Ý nghĩa |
 | --- | --- | --- |
-| 1002 | 400 | DTO/JSON không hợp lệ, errors theo field |
-| 3001 | 409 | Email đã được sử dụng |
-| 3002 | 409 | SĐT đã được sử dụng |
-| 3003 | 400 | Mật khẩu không đạt quy tắc |
-| 3004 | 409 | Phiên bản chính sách thay đổi, phải đọc/đồng ý lại |
-| 3005 | 403 | Thông tin bị chặn đăng ký |
-| 3006 | 503 | SMTP thất bại; registration transaction rollback |
-| 3007 | 409 | Xung đột ràng buộc khi đăng ký đồng thời |
-| 3008 | 429 | Giới hạn request, Retry-After: 60 |
+| SYS_INVALID_REQUEST | 400 | DTO/JSON không hợp lệ; errors là danh sách field/code/message |
+| AUTH_EMAIL_ALREADY_EXISTS | 409 | Email đã được sử dụng |
+| AUTH_PHONE_ALREADY_EXISTS | 409 | SĐT đã được sử dụng |
+| AUTH_PASSWORD_INVALID | 400 | Mật khẩu không đạt quy tắc |
+| AUTH_POLICY_CHANGED | 409 | Phiên bản chính sách thay đổi, phải đọc/đồng ý lại |
+| AUTH_REGISTRATION_BLOCKED | 403 | Thông tin bị chặn đăng ký |
+| AUTH_OTP_DELIVERY_FAILED | 503 | SMTP thất bại; registration transaction rollback |
+| AUTH_REGISTRATION_CONFLICT | 409 | Xung đột ràng buộc khi đăng ký đồng thời |
+| RATE_LIMITED | 429 | Giới hạn request, Retry-After: 60 |
 
 ## Schema và ranh giới module
 
@@ -69,6 +91,8 @@ Mailpit dùng cho phát triển, không gửi mail đến hộp thư thật.
 Chạy backend ngoài Docker: `docker compose up -d sqlserver sqlserver-init mongodb mailpit`,
 đặt SMTP_HOST=localhost và SMTP_PORT bằng cổng đã cấu hình. Với SMTP thật,
 đặt host/port/username/password, SMTP_AUTH/SMTP_STARTTLS và MAIL_FROM theo provider.
+Địa chỉ/tên người gửi thuộc `app.mail`, dùng chung cho các module;
+`app.registration` chỉ cấu hình nghiệp vụ đăng ký.
 Không commit mật khẩu SMTP hoặc nội dung email OTP.
 
 ## Giới hạn và bước tiếp theo

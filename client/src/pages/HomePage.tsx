@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { HealthInfo } from '../types/api';
 import { getApiError } from '../api/ApiError';
+import ApiErrorNotice from '../components/ApiErrorNotice';
 import { Link } from 'react-router-dom';
 import { 
   Server, 
@@ -24,6 +25,7 @@ export default function HomePage() {
   const [healthData, setHealthData] = useState<HealthInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [correlationId, setCorrelationId] = useState<string>();
 
   const fetchHealth = async () => {
     setLoading(true);
@@ -36,7 +38,9 @@ export default function HomePage() {
         setError('Server responded with an unexpected status');
       }
     } catch (err) {
-      setError(getApiError(err).message || 'Cannot connect to backend service');
+      const apiError = getApiError(err);
+      setError(apiError.message);
+      setCorrelationId(apiError.correlationId);
     } finally {
       setLoading(false);
     }
@@ -153,7 +157,7 @@ export default function HomePage() {
             <div className="alert alert-warning mt-4">
               <AlertTriangle size={18} />
               <div>
-                <strong>Chưa kết nối được với Server:</strong> {error}
+                <ApiErrorNotice key={correlationId} message={error} correlationId={correlationId} />
                 <p className="alert-tip">
                   Hãy mở terminal và chạy <code>npm run dev:server</code> hoặc <code>npm run dev</code> ở thư mục gốc để khởi động Spring Boot.
                 </p>

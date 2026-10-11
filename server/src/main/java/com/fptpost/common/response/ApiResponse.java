@@ -1,8 +1,6 @@
 package com.fptpost.common.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fptpost.common.exception.ErrorCode;
-import com.fptpost.common.exception.GlobalErrorCode;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,13 +21,11 @@ public class ApiResponse<T> {
     private int status;
 
     @Builder.Default
-    private int code = GlobalErrorCode.SUCCESS.getCode();
+    private int code = 1000;
 
     private String message;
 
     private T data;
-
-    private Object errors;
 
     @Builder.Default
     private Instant timestamp = Instant.now();
@@ -64,17 +60,4 @@ public class ApiResponse<T> {
                 .build();
     }
 
-    public static <T> ApiResponse<T> error(ErrorCode errorCode) {
-        return error(errorCode, errorCode.getMessage(), null);
-    }
-
-    public static <T> ApiResponse<T> error(ErrorCode errorCode, String message, Object errors) {
-        return ApiResponse.<T>builder()
-                .success(false)
-                .status(errorCode.getHttpStatus().value())
-                .code(errorCode.getCode())
-                .message(message)
-                .errors(errors)
-                .build();
-    }
 }

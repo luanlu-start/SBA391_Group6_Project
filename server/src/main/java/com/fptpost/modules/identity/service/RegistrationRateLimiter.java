@@ -10,7 +10,8 @@ import java.time.Clock;
 import java.util.HashMap;
 import java.util.Map;
 
-@Component @RequiredArgsConstructor
+@Component
+@RequiredArgsConstructor
 public class RegistrationRateLimiter {
     private final RegistrationProperties properties;
     private final Clock clock;

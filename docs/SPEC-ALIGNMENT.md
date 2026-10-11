@@ -28,7 +28,7 @@ Tên thư viện trong SPEC không có nghĩa đã cài hoặc cấu hình trong
 
 | Mã | Nội dung | Hiện tại | SPEC v1.0 | Việc cần chốt |
 | --- | --- | --- | --- | --- |
-| ALIGN-01 | API lỗi/thành công | ApiResponse, code số, errors map | Problem Details, code chữ, errors array; ví dụ thành công payload trực tiếp | Một contract BE/FE/OpenAPI; chưa đổi code |
+| ALIGN-01 | API lỗi/thành công | Lỗi đã dùng Problem Details, code chữ, errors array, correlationId; thành công giữ ApiResponse | Problem Details; ví dụ thành công payload trực tiếp | BE/FE/OpenAPI đã chuyển lỗi đồng bộ; payload thành công còn khác |
 | ALIGN-02 | Phân trang | data.content, mặc định 12, sortBy/direction | content, mặc định 20, sort=field,asc; cursor chat/thông báo | Chốt cùng contract API; giữ content |
 | ALIGN-03 | Khóa dữ liệu | Product UUID làm khóa chính; Identity mới dùng BIGINT nội bộ/public UUID | BIGINT nội bộ + UUID public_id | Identity theo SPEC; giữ ID demo, module mới áp dụng cùng chiến lược |
 | ALIGN-04 | Tiền | Product demo BigDecimal/DECIMAL | Số nguyên VND, long/BIGINT | Giữ demo như đã chọn; module tiền VND mới theo thiết kế SPEC |
@@ -53,7 +53,7 @@ OpenAPI và test trong cùng thay đổi.
 | QR/OTP/vị trí/chat/WebSocket | Chưa có | Token có mục đích/hạn/sử dụng một lần, quyền tham gia, index/TTL |
 | OpenAPI | Runtime Swagger cho base | Chưa có contract đầy đủ cho danh mục FPTPost |
 | Kiểm thử | Test base, JPA dùng H2 | SQL Server/Mongo thật; cạnh tranh, idempotency, invariant, E2E |
-| CI/quan sát/hạ tầng phụ trợ | Chưa có pipeline theo SPEC | CI/scan/coverage gate, correlationId, MinIO/Mailpit khi triển khai |
+| CI/quan sát/hạ tầng phụ trợ | Có correlationId header/body/log và Mailpit local; chưa có pipeline | CI/scan/coverage gate, structured JSON log, MinIO khi triển khai |
 
 Ready/Done trong SPEC mục 11.5 là mục tiêu làm việc. Migration phải cập nhật cùng entity;
 CI và review cần được hiện thực theo hạ tầng thực tế. Không đánh dấu đạt khi chưa có

@@ -1,13 +1,19 @@
+import type { FieldViolation } from '../types/api';
+
 export class ApiError extends Error {
+  public readonly fieldErrors: Record<string, string>;
+
   constructor(
     message: string,
     public readonly status?: number,
-    public readonly code?: number,
-    public readonly errors?: Record<string, string>,
+    public readonly code?: string,
+    public readonly errors: FieldViolation[] = [],
+    public readonly correlationId?: string,
     cause?: unknown,
   ) {
     super(message, { cause });
     this.name = 'ApiError';
+    this.fieldErrors = Object.fromEntries(errors.map(error => [error.field, error.message]));
   }
 }
 
