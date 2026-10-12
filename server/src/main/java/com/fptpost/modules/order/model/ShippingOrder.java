@@ -1,4 +1,4 @@
-package com.group6.project.modules.order.model;
+package com.fptpost.modules.order.model;
 
 import jakarta.persistence.*;
 import lombok.*;

@@ -1,4 +1,4 @@
-package com.group6.project.modules.order.model;
+package com.fptpost.modules.order.model;
 
 /**
  * Các trạng thái trong vòng đời đơn hàng chuyển phát của FPTPost.
