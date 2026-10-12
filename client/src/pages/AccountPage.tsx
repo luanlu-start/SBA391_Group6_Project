@@ -4,6 +4,10 @@ import { useAuthentication } from '../auth/useAuthentication';
 import { authService } from '../services/authService';
 import { getApiError } from '../api/ApiError';
 import ApiErrorNotice from '../components/ApiErrorNotice';
+import Button from '../components/ui/Button';
+import PageHeader from '../components/ui/PageHeader';
+import SectionCard from '../components/ui/SectionCard';
+import Badge from '../components/ui/Badge';
 import '../styles/registration.css';
 
 export default function AccountPage() {
@@ -20,14 +24,18 @@ export default function AccountPage() {
   }
   if (initializing) return <section className="registration-page" role="status">Đang kiểm tra phiên đăng nhập…</section>;
   if (!user) return <Navigate to="/login" replace />;
-  return <section className="registration-page"><div className="registration-card registration-verify">
-    <h1>Xin chào, {user.fullName}</h1>
-    <p>Tài khoản đã xác thực và đang đăng nhập.</p>
+  return <div className="ui-stack">
+    <PageHeader title={`Xin chào, ${user.fullName}`} description="Thông tin tài khoản và phiên đăng nhập hiện tại." />
     {error && <ApiErrorNotice message={error} correlationId={correlationId} />}
+    <SectionCard title="Thông tin tài khoản" actions={<Badge tone="success" dot>Đã xác thực</Badge>}>
+    <div className="ui-stack">
     <dl className="account-details"><dt>Email</dt><dd>{user.email}</dd><dt>Số điện thoại</dt><dd>{user.phone}</dd>
       <dt>Vai trò</dt><dd>{user.roles.map(role => ({ SENDER: 'Người gửi', COURIER: 'Người giao',
         ADMIN: 'Quản trị viên', MODERATOR: 'Kiểm duyệt viên' }[role] || role)).join(', ')}</dd></dl>
-    <Link className="registration-primary" to="/">Về trang chủ</Link>
-    <button className="registration-secondary" onClick={logout} disabled={busy}>{busy ? 'Đang đăng xuất…' : 'Đăng xuất'}</button>
-  </div></section>;
+    <div className="ui-form-actions">
+      <Link className="ui-button ui-button-secondary" to="/">Về trang chủ</Link>
+      <Button variant="danger" onClick={logout} loading={busy} loadingText="Đang đăng xuất…">Đăng xuất</Button>
+    </div>
+    </div></SectionCard>
+  </div>;
 }

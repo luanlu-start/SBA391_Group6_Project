@@ -12,11 +12,16 @@ không phải phân công hiện tại của team.
 
 ## Quy ước nhánh và PR
 
-Giữ mã `UC-xx` đúng sheet và ví dụ SPEC; mô tả không dấu, dùng gạch nối:
+Giữ mã `UC-xx` đúng sheet; nhóm bổ sung mã thành viên cố định sau mã UC.
+Ví dụ Lư Hữu Luân dùng `LuanLH`. Phần mô tả không dấu, dùng gạch nối:
 
-- UC-03 Đăng nhập: `feature/UC-03-dang-nhap`, PR `[UC-03] Đăng nhập`.
-- UC-12 Tạo đơn giao hàng: `feature/UC-12-tao-don`, PR `[UC-12] Tạo đơn`.
-- Công việc chung không thuộc UC: `docs/<mo-ta>` hoặc `chore/<mo-ta>`.
+- UC-03 Đăng nhập: `feature/UC-03-LuanLH-dang-nhap`, PR `[UC-03] [LuanLH] Đăng nhập`.
+- Chức năng khác: `feature/<ma-uc>-<ma-tv>-<mo-ta>`, thay bằng UC và mã thành viên được phân công.
+- Sửa lỗi có UC: `fix/<ma-uc>-<ma-tv>-<mo-ta>`.
+- Công việc chung không thuộc UC: `docs/<ma-tv>-<mo-ta>` hoặc `chore/<ma-tv>-<mo-ta>`.
+
+Commit ví dụ: `feat(identity): [UC-03] [LuanLH] add login form`.
+Chi tiết trong [quy ước đóng góp](CONTRIBUTING.md#9-kiểm-thử-cấu-hình-và-đóng-góp).
 
 Nhánh bắt đầu từ `develop`, PR vào `develop`. Mã UC là mã yêu cầu;
 `API-xxx`, `DB-xxx`, `SCR-xx`, `PRM-xxx` là mã tra cứu thiết kế, không phải mã lỗi API.
