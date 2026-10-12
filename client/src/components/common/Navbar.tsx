@@ -1,102 +1,35 @@
-import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Layers, Activity, Package, FileCode, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
-import { healthApi } from '../../api/healthApi';
+import { Link, NavLink } from 'react-router-dom';
+import { useState } from 'react';
+import { Menu, Package, PanelsTopLeft, UserRound, X } from 'lucide-react';
 import { useAuthentication } from '../../auth/useAuthentication';
+import Button from '../ui/Button';
+import copy from '../../i18n/home.vi.json';
 
 export default function Navbar() {
-  const location = useLocation();
   const { user } = useAuthentication();
-  const [serverHealth, setServerHealth] = useState({ status: 'CHECKING' });
-  const [isChecking, setIsChecking] = useState(false);
-
-  const checkStatus = async () => {
-    setIsChecking(true);
-    try {
-      const res = await healthApi.getHealth();
-      if (res && res.success) {
-        setServerHealth({ status: 'ONLINE' });
-      } else {
-        setServerHealth({ status: 'OFFLINE' });
-      }
-    } catch {
-      setServerHealth({ status: 'OFFLINE' });
-    } finally {
-      setIsChecking(false);
-    }
-  };
-
-  useEffect(() => {
-    checkStatus();
-    const interval = setInterval(checkStatus, 15000);
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <header className="navbar-container">
-      <div className="navbar-content">
-        <Link to="/" className="navbar-brand">
-          <div className="brand-logo">
-            <Layers className="brand-icon" size={24} />
-          </div>
-          <div className="brand-text">
-            <span className="brand-title">SBA391 <span className="brand-accent">Enterprise</span></span>
-            <span className="brand-badge">Group 6</span>
-          </div>
-        </Link>
-
-        <nav className="navbar-links">
-          {user ? <Link to="/account" className="nav-link">Tài khoản</Link> : <>
-          <Link to="/login" className={`nav-link ${location.pathname === '/login' ? 'active' : ''}`}>Đăng nhập</Link>
-          <Link to="/register" className={`nav-link ${location.pathname === '/register' ? 'active' : ''}`}>
-            <span>Đăng ký</span>
-          </Link>
-          </>}
-          <Link
-            to="/"
-            className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}
-          >
-            <Activity size={18} />
-            <span>Architecture & Health</span>
-          </Link>
-          <Link
-            to="/products"
-            className={`nav-link ${location.pathname === '/products' ? 'active' : ''}`}
-          >
-            <Package size={18} />
-            <span>Products CRUD Demo</span>
-          </Link>
-          <a
-            href="http://localhost:8080/swagger-ui/index.html"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="nav-link external-link"
-            title="Open Spring Boot OpenAPI / Swagger UI"
-          >
-            <FileCode size={18} />
-            <span>Swagger API Docs</span>
-          </a>
-        </nav>
-
-        <div className="navbar-actions">
-          <div
-            className={`health-pill ${serverHealth.status === 'ONLINE' ? 'online' : serverHealth.status === 'OFFLINE' ? 'offline' : 'checking'}`}
-            onClick={checkStatus}
-            title="Click to re-ping backend server"
-          >
-            {serverHealth.status === 'ONLINE' ? (
-              <CheckCircle2 size={16} className="pill-icon text-success" />
-            ) : serverHealth.status === 'OFFLINE' ? (
-              <AlertCircle size={16} className="pill-icon text-danger" />
-            ) : (
-              <RefreshCw size={16} className={`pill-icon ${isChecking ? 'spin' : ''}`} />
-            )}
-            <span className="pill-text">
-              Backend: {serverHealth.status}
-            </span>
-          </div>
-        </div>
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = () => setMenuOpen(false);
+  return <header className="navbar-container">
+    <div className="navbar-content">
+      <Link to="/" className="navbar-brand" aria-label={`FPost — ${copy.navigation.home}`} onClick={closeMenu}>
+        <span className="brand-logo"><Package size={21} aria-hidden="true" /></span>
+        <span className="brand-title">F<span className="brand-accent">Post</span></span>
+      </Link>
+      <nav id="main-navigation" className={`navbar-links${menuOpen ? ' is-open' : ''}`} aria-label="Điều hướng chính">
+        <NavLink to="/" end className="nav-link" onClick={closeMenu}>{copy.navigation.home}</NavLink>
+        <Link to="/#how-it-works" className="nav-link" onClick={closeMenu}>{copy.navigation.how}</Link>
+        <Link to="/#shipping-prices" className="nav-link" onClick={closeMenu}>{copy.navigation.pricing}</Link>
+        <Link to="/#become-courier" className="nav-link" onClick={closeMenu}>{copy.navigation.courier}</Link>
+      </nav>
+      <div className="navbar-actions ui-row">
+        {import.meta.env.DEV && <Link to="/ui-kit" className="nav-link navbar-dev-link" onClick={closeMenu}><PanelsTopLeft size={15} aria-hidden="true" />{copy.navigation.uiKit}</Link>}
+        {user ? <NavLink to="/account" className="nav-link" onClick={closeMenu}><UserRound size={17} aria-hidden="true" />{copy.navigation.account}</NavLink>
+          : <><Link to="/login" className="ui-button ui-button-secondary ui-button-sm" onClick={closeMenu}>{copy.navigation.login}</Link>
+            <Link to="/register" className="ui-button ui-button-primary ui-button-sm" onClick={closeMenu}>{copy.navigation.register}</Link></>}
+        <Button className="navbar-toggle" variant="ghost" size="sm" aria-expanded={menuOpen} aria-controls="main-navigation"
+          aria-label={menuOpen ? copy.navigation.closeMenu : copy.navigation.menu} onClick={() => setMenuOpen(!menuOpen)}
+          icon={menuOpen ? <X size={20} /> : <Menu size={20} />} />
       </div>
-    </header>
-  );
+    </div>
+  </header>;
 }

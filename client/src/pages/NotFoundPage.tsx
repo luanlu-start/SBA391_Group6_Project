@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { AlertCircle, Home, ArrowLeft } from 'lucide-react';
+import Button from '../components/ui/Button';
 
 export default function NotFoundPage() {
   return (
@@ -12,14 +13,14 @@ export default function NotFoundPage() {
           Đường dẫn bạn yêu cầu không tìm thấy trên hệ thống hoặc đã được di chuyển.
         </p>
         <div className="not-found-actions">
-          <Link to="/" className="btn btn-primary">
+          <Link to="/" className="ui-button ui-button-primary">
             <Home size={18} />
             <span>Về trang chủ</span>
           </Link>
-          <button onClick={() => window.history.back()} className="btn btn-outline">
+          <Button onClick={() => window.history.back()} variant="secondary">
             <ArrowLeft size={18} />
             <span>Quay lại</span>
-          </button>
+          </Button>
         </div>
       </div>
     </div>

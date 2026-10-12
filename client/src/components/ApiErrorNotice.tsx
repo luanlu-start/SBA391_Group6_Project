@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import Alert from './ui/Alert';
+import Button from './ui/Button';
 import '../styles/api-error.css';
 
 interface Props {
@@ -20,13 +22,13 @@ export default function ApiErrorNotice({ message, correlationId }: Props) {
   }
 
   return (
-    <div className="api-error-notice" role="alert">
+    <Alert tone="danger">
       <p>{message}</p>
       {correlationId && <div className="api-error-reference">
         <span>Mã theo dõi: <code>{correlationId}</code></span>
-        <button type="button" onClick={copyId}>Sao chép mã theo dõi</button>
+        <Button variant="ghost" size="sm" onClick={copyId}>Sao chép mã theo dõi</Button>
         {copyStatus && <span role="status">{copyStatus}</span>}
       </div>}
-    </div>
+    </Alert>
   );
 }

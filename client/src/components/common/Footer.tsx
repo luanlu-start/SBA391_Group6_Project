@@ -1,50 +1,44 @@
-import { Database, ShieldCheck, Terminal, Cpu } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Mail, MapPin, Package, Phone } from 'lucide-react';
+import copy from '../../i18n/home.vi.json';
+import '../../styles/footer.css';
 
 export default function Footer() {
-  return (
-    <footer className="footer-container">
-      <div className="footer-content">
-        <div className="footer-top">
-          <div className="footer-col">
-            <h4 className="footer-heading">SBA391 Monolithic Architecture</h4>
-            <p className="footer-desc">
-              Group 6 full-stack development base with React, Spring Boot, SQL Server and MongoDB.
-            </p>
-          </div>
-
-          <div className="footer-col">
-            <h4 className="footer-heading">Stack Components</h4>
-            <ul className="footer-list">
-              <li><Cpu size={14} /> Frontend: React 18.3 + TypeScript + Vite 5 + Axios + React Router 6</li>
-              <li><Terminal size={14} /> Backend: Spring Boot 3.5.16 (Java 21)</li>
-              <li><Database size={14} /> Persistence: SQL Server & MongoDB</li>
-              <li><ShieldCheck size={14} /> Documentation: OpenAPI 3 / Swagger UI</li>
-            </ul>
-          </div>
-
-          <div className="footer-col">
-            <h4 className="footer-heading">Quick Ports</h4>
-            <div className="footer-ports">
-              <div className="port-item">
-                <span className="port-label">Client (Vite):</span>
-                <code className="port-code">http://localhost:5173</code>
-              </div>
-              <div className="port-item">
-                <span className="port-label">API Server:</span>
-                <code className="port-code">http://localhost:8080/api/v1</code>
-              </div>
-              <div className="port-item">
-                <span className="port-label">Swagger UI:</span>
-                <code className="port-code">http://localhost:8080/swagger-ui/index.html</code>
-              </div>
-            </div>
-          </div>
+  return <footer className="site-footer">
+    <div className="site-footer-inner">
+      <div className="site-footer-grid">
+        <div className="site-footer-intro">
+          <Link to="/" className="site-footer-brand" aria-label={`FPost — ${copy.navigation.home}`}>
+            <Package size={31} strokeWidth={1.6} aria-hidden="true" /><span>F<span>Post</span></span>
+          </Link>
+          <p>{copy.footer.description}</p>
         </div>
-
-        <div className="footer-bottom">
-          <p>© {new Date().getFullYear()} SBA391 - Group 6 Project. Designed for enterprise production standards.</p>
-        </div>
+        <nav className="site-footer-column" aria-labelledby="footer-quick-links">
+          <h2 id="footer-quick-links">{copy.footer.quickLinks}</h2>
+          <ul>
+            <li><Link to="/">{copy.navigation.home}</Link></li>
+            <li><Link to="/#how-it-works">{copy.navigation.how}</Link></li>
+            <li><Link to="/#shipping-prices">{copy.navigation.pricing}</Link></li>
+            <li><Link to="/#become-courier">{copy.navigation.courier}</Link></li>
+          </ul>
+        </nav>
+        <nav className="site-footer-column" aria-labelledby="footer-policies">
+          <h2 id="footer-policies">{copy.footer.policies}</h2>
+          <ul>
+            <li><Link to="/legal#terms">{copy.footer.terms}</Link></li>
+            <li><Link to="/legal#privacy">{copy.footer.privacy}</Link></li>
+          </ul>
+        </nav>
+        <section className="site-footer-column site-footer-contact" aria-labelledby="footer-contact">
+          <h2 id="footer-contact">{copy.footer.contactTitle}</h2>
+          <address>
+            <a href={copy.footer.contact.mapUrl} target="_blank" rel="noopener noreferrer"><MapPin size={18} aria-hidden="true" /><span>{copy.footer.contact.address}</span></a>
+            <a href={`tel:${copy.footer.contact.phone}`}><Phone size={18} aria-hidden="true" /><span>{copy.footer.contact.phoneDisplay}</span></a>
+            <a href={`mailto:${copy.footer.contact.email}`}><Mail size={18} aria-hidden="true" /><span>{copy.footer.contact.email}</span></a>
+          </address>
+        </section>
       </div>
-    </footer>
-  );
+      <div className="site-footer-bottom"><p>© {new Date().getFullYear()} FPost. {copy.footer.rights}</p><p>{copy.footer.tagline}</p></div>
+    </div>
+  </footer>;
 }

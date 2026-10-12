@@ -5,7 +5,7 @@ import '../styles/auth.css';
 
 export default function AuthLayout({ children, variant = 'login' }: { children: ReactNode; variant?: 'login' | 'register' }) {
   return (
-    <main className={`auth-layout${variant === 'register' ? ' auth-layout-register' : ''}`}>
+    <main id="main-content" className={`auth-layout${variant === 'register' ? ' auth-layout-register' : ''}`}>
       <aside className="auth-visual" aria-label="FPost — Kết nối những hành trình">
         <Link className="auth-brand" to="/" aria-label="FPost — Trang chủ"><Package size={27} aria-hidden="true" />F<span>Post</span></Link>
         <div className="auth-illustration" aria-hidden="true">

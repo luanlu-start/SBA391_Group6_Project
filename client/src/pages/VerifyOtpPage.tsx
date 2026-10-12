@@ -5,6 +5,8 @@ import { CheckCircle2, Mail, ShieldCheck } from 'lucide-react';
 import { authService } from '../services/authService';
 import { getApiError } from '../api/ApiError';
 import ApiErrorNotice from '../components/ApiErrorNotice';
+import Input from '../components/ui/Input';
+import Button from '../components/ui/Button';
 import { clearRegistrationChallenge, loadRegistrationChallenge, parseRegistrationChallenge,
   saveRegistrationChallenge } from '../utils/registrationChallenge';
 import '../styles/registration.css';
@@ -106,7 +108,7 @@ export default function VerifyOtpPage() {
         <CheckCircle2 size={44} aria-hidden="true" />
         <h1>Xác thực thành công</h1>
         <p>Email đã được xác thực. Tài khoản của bạn đã được kích hoạt.</p>
-        <Link className="registration-primary" to="/login">Đăng nhập</Link>
+        <Link className="ui-button ui-button-primary ui-button-full" to="/login">Đăng nhập</Link>
       </div>
     </section>
   );
@@ -116,7 +118,7 @@ export default function VerifyOtpPage() {
       <div className="registration-card registration-success">
         <h1>Chưa có yêu cầu xác thực</h1>
         <p>Vui lòng đăng ký tài khoản để nhận mã xác thực email.</p>
-        <Link className="registration-primary" to="/register">Đăng ký tài khoản</Link>
+        <Link className="ui-button ui-button-primary ui-button-full" to="/register">Đăng ký tài khoản</Link>
       </div>
     </section>
   );
@@ -131,26 +133,22 @@ export default function VerifyOtpPage() {
         {error && <ApiErrorNotice message={error} correlationId={correlationId} />}
         {notice && <p className="registration-otp-notice" role="status">{notice}</p>}
         <form onSubmit={verify} noValidate>
-          <div className="registration-field">
-            <label htmlFor="otp">Mã xác thực gồm 6 chữ số</label>
-            <input ref={input} id="otp" className="registration-otp-input" type="text" inputMode="numeric"
+            <Input ref={input} id="otp" label="Mã xác thực gồm 6 chữ số" className="registration-otp-input" type="text" inputMode="numeric"
               autoComplete="one-time-code" maxLength={6} value={otp}
               onChange={event => setOtp(event.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
-              disabled={!!busy || unavailable || mustResend || expiresIn === 0} aria-describedby="otp-expiration"
-              aria-invalid={!!error} />
-            <p id="otp-expiration" className="registration-hint">{expiresIn > 0
+              disabled={!!busy || unavailable || mustResend || expiresIn === 0} aria-invalid={!!error}
+              hint={expiresIn > 0
               ? `Mã còn hiệu lực ${Math.floor(expiresIn / 60)}:${String(expiresIn % 60).padStart(2, '0')}.`
-              : 'Mã đã hết hạn. Vui lòng yêu cầu gửi mã mới.'}</p>
-          </div>
-          <button className="registration-primary" type="submit"
+              : 'Mã đã hết hạn. Vui lòng yêu cầu gửi mã mới.'} />
+          <Button fullWidth type="submit" loading={busy === 'verify'} loadingText="Đang xác thực…"
             disabled={!!busy || unavailable || mustResend || expiresIn === 0 || retryAt > now || otp.length !== 6}>
             {busy === 'verify' ? 'Đang xác thực…' : 'Xác thực email'}
-          </button>
+          </Button>
         </form>
-        <button className="registration-secondary" type="button" onClick={resend}
+        <Button variant="secondary" fullWidth onClick={resend} loading={busy === 'resend'} loadingText="Đang gửi mã…"
           disabled={!!busy || unavailable || resendIn > 0}>
           {busy === 'resend' ? 'Đang gửi mã…' : resendIn > 0 ? `Gửi lại mã sau ${resendIn}s` : 'Gửi lại mã'}
-        </button>
+        </Button>
         <Link className="registration-back" to="/">Về trang chủ</Link>
       </div>
     </section>
