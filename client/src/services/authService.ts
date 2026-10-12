@@ -1,7 +1,7 @@
 import axiosClient from '../api/axiosClient';
 import type { ApiResponse } from '../types/api';
 import type { AuthenticationResponse, UserResponse, RegistrationPolicies, RegisterRequest,
-  RegisterResponse, OtpChallenge, OtpVerificationResponse } from '../types/identity';
+  RegisterResponse, OtpChallenge, OtpVerificationResponse, SessionResponse, SessionRevocationResponse } from '../types/identity';
 import { clearAuthentication, setAuthentication } from '../auth/authSession';
 
 let refreshPromise: Promise<AuthenticationResponse> | null = null;
@@ -35,6 +35,13 @@ export const authService = {
   async logout() {
     await axiosClient.post('/auth/logout', {}, { headers: await csrfHeaders() });
     clearAuthentication();
+  },
+  getSessions: () => axiosClient.get<unknown, ApiResponse<SessionResponse[]>>('/auth/sessions'),
+  async revokeSession(id: string) {
+    const { data } = await axiosClient.delete<unknown, ApiResponse<SessionRevocationResponse>>(
+      `/auth/sessions/${encodeURIComponent(id)}`);
+    if (data.currentSessionRevoked) clearAuthentication();
+    return data;
   },
   me: () => axiosClient.get<unknown, ApiResponse<UserResponse>>('/me'),
 };

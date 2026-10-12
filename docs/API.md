@@ -24,14 +24,16 @@ và [SPEC](sources/fptpost-spec-v1.0.pdf), mục 6.
 | POST | /api/v1/auth/login | UC-03 đăng nhập email/SĐT, JWT và refresh cookie |
 | POST | /api/v1/auth/refresh | UC-03 xoay vòng refresh cookie và cấp JWT mới |
 | POST | /api/v1/auth/logout | Đăng xuất phiên hiện tại |
+| GET | /api/v1/auth/sessions | UC-04 danh sách phiên đang hoạt động của tài khoản hiện tại |
+| DELETE | /api/v1/auth/sessions/{id} | UC-04 thu hồi một phiên của tài khoản hiện tại |
 | GET | /api/v1/me | Thông tin người dùng đang đăng nhập |
 
 Product CRUD là ví dụ kỹ thuật, không tương ứng UC-12 hay các API orders.
-UC-01–03 đã có đăng ký, xác thực email, đăng nhập và refresh rotation.
+UC-01–04 đã có đăng ký, xác thực email, đăng nhập, refresh rotation và quản lý phiên.
 Product/Activity và các API nội bộ yêu cầu Bearer; health và các endpoint auth công khai
 được liệt kê trong SecurityConfig. Chưa có VNPay/WebSocket hoặc đầy đủ role/ownership cho các module chưa triển khai.
 
-## API xác thực UC-01–03
+## API xác thực UC-01–04
 
 Luồng giao diện: `/register` → `/verify` → `/login` → `/account`.
 Các endpoint xác thực nằm trong `AuthenticationController`.
@@ -44,7 +46,9 @@ Các endpoint xác thực nằm trong `AuthenticationController`.
 | POST otp/resend | Nhận `{challengeId}`; trả challenge mới và metadata xác thực, frontend thay challenge đang lưu |
 | POST login | Nhận `{identifier, password}` với email hoặc SĐT; trả `accessToken`, `tokenType`, `expiresAt`, `user` và đặt refresh cookie |
 | POST refresh | Nhận refresh cookie; trả payload như login và thay refresh cookie |
-| POST logout | Bearer và CSRF; thu hồi phiên hiện tại, xóa refresh cookie |
+| POST logout | Bearer; thu hồi phiên hiện tại, xóa refresh cookie |
+| GET sessions | Bearer; trả danh sách `{id, deviceInfo, ip, createdAt, expiresAt, current}`; chỉ gồm các phiên đang hoạt động của tài khoản hiện tại |
+| DELETE sessions/{id} | Bearer; `id` là UUID công khai của phiên; trả `{currentSessionRevoked}`; nếu là phiên hiện tại thì xóa refresh cookie |
 | GET me | Bearer; trả thông tin người dùng, không chứa mật khẩu hoặc token |
 
 Các đường dẫn trong bảng thuộc `/api/v1/auth`, riêng `me` là `/api/v1/me`.
@@ -66,7 +70,7 @@ login không gửi email mới hoặc cấp JWT cho tài khoản này. Mã hết
 Sai thông tin trả `AUTH_LOGIN_FAILED`/401; sai 5 lần liên tiếp khóa đăng nhập 15 phút.
 Lỗi giới hạn request/cooldown trả 429 và `Retry-After`.
 
-Trước login/refresh/logout, gọi `GET /api/v1/auth/csrf`, gửi token qua `headerName`
+Trước login/refresh, gọi `GET /api/v1/auth/csrf`, gửi token qua `headerName`
 được trả về cùng cookie (`withCredentials`). CORS chỉ cho phép origin cấu hình.
 Access JWT dùng HS256, mặc định 15 phút; backend kiểm tra chữ ký, issuer/audience,
 trạng thái tài khoản và phiên SQL. Frontend giữ access token trong bộ nhớ.
@@ -76,7 +80,17 @@ dùng lại token đã thay sẽ thu hồi mọi phiên của tài khoản. Gi�
 Không lưu token, mật khẩu hoặc OTP vào localStorage/sessionStorage;
 trang OTP chỉ lưu metadata challenge trong sessionStorage để tiếp tục khi tải lại.
 
-Quên/đổi mật khẩu, Google login, quản lý từng thiết bị và KYC chưa triển khai.
+Màn hình SCR-12 tại `/me/security`, có liên kết từ `/account`: xem IP, thiết bị,
+thời điểm đăng nhập/hết hạn, nhận biết phiên hiện tại và xác nhận đăng xuất từng phiên.
+Thu hồi phiên có hiệu lực ngay với cả JWT và refresh token; các phiên khác tiếp tục hoạt động.
+Thu hồi phiên hiện tại chuyển về `/login`. API không trả hash/token hoặc phiên của tài khoản khác.
+API quản lý phiên yêu cầu Bearer JWT, không dùng refresh cookie để xác thực nên không cần CSRF token.
+Phiên đã hết hạn/thu hồi, ID không tồn tại hoặc thuộc tài khoản khác trả
+`AUTH_SESSION_NOT_FOUND`/404. Khi ID trong danh sách đã được thay do refresh, backend
+thu hồi phiên tiếp nối của cùng tài khoản; refresh và thu hồi cùng dùng khóa theo User.
+Refresh giữ nguyên `createdAt` của lần đăng nhập để danh sách và thứ tự giới hạn thiết bị ổn định.
+
+Quên/đổi mật khẩu, Google login và KYC chưa triển khai.
 Cấu hình SMTP/template nằm trong [README](../README.md), schema trong [DATABASE](DATABASE.md),
 mã lỗi và field validation theo [contract lỗi](API-ERRORS.md).
 

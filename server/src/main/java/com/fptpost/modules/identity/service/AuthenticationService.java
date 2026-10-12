@@ -8,6 +8,7 @@ import com.fptpost.modules.identity.dto.internal.AuthenticationResult;
 import com.fptpost.modules.identity.enums.UserStatus;
 import com.fptpost.modules.identity.exception.*;
 import com.fptpost.modules.identity.mapper.UserMapper;
+import com.fptpost.modules.identity.mapper.SessionMapper;
 import com.fptpost.modules.identity.model.*;
 import com.fptpost.modules.identity.repository.*;
 import com.fptpost.modules.identity.security.LoginAttemptLimiter;
@@ -30,6 +31,7 @@ public class AuthenticationService {
     private final UserProfileRepository profileRepository;
     private final AuthSessionRepository sessionRepository;
     private final UserMapper userMapper;
+    private final SessionMapper sessionMapper;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationProperties properties;
     private final JwtTokenService jwtTokenService;
@@ -106,19 +108,50 @@ public class AuthenticationService {
         old.setRevokedAt(now);
         AuthenticationResult result = createSession(user, ip, userAgent);
         String nextHash = hash(result.getRefreshToken());
-        old.setReplacedBy(sessionRepository.findByTokenHash(nextHash).orElseThrow().getPublicId());
+        AuthSession next = sessionRepository.findByTokenHash(nextHash).orElseThrow();
+        next.setCreatedAt(old.getCreatedAt());
+        sessionRepository.save(next);
+        old.setReplacedBy(next.getPublicId());
         sessionRepository.saveAndFlush(old);
         return result;
     }
 
+    @Transactional(readOnly = true)
+    public List<SessionResponse> sessions(UUID userPublicId, UUID currentSessionId) {
+        User user = userRepository.findByPublicId(userPublicId)
+                .orElseThrow(() -> new AppException(GlobalErrorCode.UNAUTHORIZED));
+        requireActive(user);
+        UUID currentId = latestSession(user.getId(), currentSessionId).getPublicId();
+        return sessionRepository.findByUserIdAndRevokedAtIsNullAndReplacedByIsNullAndExpiresAtAfterOrderByCreatedAtAscIdAsc(
+                        user.getId(), identityClock.instant()).stream()
+                .map(session -> sessionMapper.toResponse(session, session.getPublicId().equals(currentId)))
+                .sorted(Comparator.comparing(SessionResponse::isCurrent).reversed()
+                        .thenComparing(SessionResponse::getCreatedAt, Comparator.reverseOrder())
+                        .thenComparing(SessionResponse::getId))
+                .toList();
+    }
+
+    @Transactional
+    public boolean revokeSession(UUID userPublicId, UUID sessionId, UUID currentSessionId) {
+        User user = userRepository.findByPublicId(userPublicId)
+                .orElseThrow(() -> new AppException(GlobalErrorCode.UNAUTHORIZED));
+        user = userRepository.findByIdForUpdate(user.getId()).orElseThrow(this::invalidRefresh);
+        requireActive(user);
+        Instant now = identityClock.instant();
+        AuthSession current = latestSession(user.getId(), currentSessionId);
+        if (current.getRevokedAt() != null || !now.isBefore(current.getExpiresAt()))
+            throw new AppException(GlobalErrorCode.UNAUTHORIZED);
+        AuthSession target = latestSession(user.getId(), sessionId);
+        if (target.getRevokedAt() != null || !now.isBefore(target.getExpiresAt()))
+            throw new AppException(IdentityErrorCode.SESSION_NOT_FOUND);
+        target.setRevokedAt(now);
+        sessionRepository.saveAndFlush(target);
+        return target.getPublicId().equals(current.getPublicId());
+    }
+
     @Transactional
     public void logout(UUID userPublicId, UUID sessionId) {
-        User user = userRepository.findByPublicId(userPublicId).orElseThrow(this::invalidRefresh);
-        userRepository.findByIdForUpdate(user.getId()).orElseThrow(this::invalidRefresh);
-        AuthSession session = sessionRepository.findByPublicId(sessionId).orElseThrow(this::invalidRefresh);
-        if (!session.getUser().getId().equals(user.getId())) throw new AppException(GlobalErrorCode.FORBIDDEN);
-        session.setRevokedAt(identityClock.instant());
-        sessionRepository.saveAndFlush(session);
+        revokeSession(userPublicId, sessionId, sessionId);
     }
 
     @Transactional(readOnly = true)
@@ -152,6 +185,18 @@ public class AuthenticationService {
     private UserResponse response(User user) {
         var profile = profileRepository.findById(user.getId()).orElseThrow(() -> new IllegalStateException("Missing user profile"));
         return userMapper.toUserResponse(user, profile);
+    }
+
+    private AuthSession latestSession(Long userId, UUID sessionId) {
+        Set<UUID> visited = new HashSet<>();
+        while (visited.add(sessionId)) {
+            AuthSession session = sessionRepository.findByPublicIdAndUserId(sessionId, userId)
+                    .orElseThrow(() -> new AppException(IdentityErrorCode.SESSION_NOT_FOUND));
+            if (session.getReplacedBy() == null) return session;
+            // Resolve rotation under the user lock when revoking a device from an older list.
+            sessionId = session.getReplacedBy();
+        }
+        throw new IllegalStateException("Cyclic authentication session rotation");
     }
 
     private void requireActive(User user) {

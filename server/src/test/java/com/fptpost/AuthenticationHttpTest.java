@@ -94,6 +94,137 @@ class AuthenticationHttpTest {
     MvcResult me(String access, int status) throws Exception {
         return send(get("/api/v1/me").header("Authorization", "Bearer " + access), status);
     }
+    UUID sessionId(MvcResult result) throws Exception {
+        return UUID.fromString(decoder.decode(access(result)).getClaimAsString("sid"));
+    }
+    MvcResult listSessions(MvcResult login) throws Exception {
+        return send(get("/api/v1/auth/sessions").header("Authorization", "Bearer " + access(login)), 200);
+    }
+    MvcResult revoke(MvcResult login, UUID target, int status) throws Exception {
+        Csrf csrf = csrf();
+        return send(delete("/api/v1/auth/sessions/" + target).header("Authorization", "Bearer " + access(login))
+                .cookie(csrf.cookie()).header(csrf.header(), csrf.token()), status);
+    }
+    User anotherUser() {
+        return new TransactionTemplate(transactions).execute(transaction -> {
+            User other = users.saveAndFlush(User.builder().publicId(UUID.randomUUID()).email("another@example.com")
+                    .phone("+84912345678").passwordHash(encoder.encode("Secret123!"))
+                    .status(UserStatus.ACTIVE).emailVerifiedAt(now.get()).createdAt(now.get()).updatedAt(now.get())
+                    .roles(new HashSet<>(Set.of(roles.findByCode("SENDER").orElseThrow()))).build());
+            profiles.saveAndFlush(UserProfile.builder().user(other).fullName("Người dùng khác").adultConfirmedAt(now.get()).build());
+            return other;
+        });
+    }
+
+    @Test void sessionListContainsOnlyOwnActiveSessionsAndMarksCurrentWithoutLeakingTokens() throws Exception {
+        var first = login(user.getEmail(), "Secret123!", 200);
+        var rotated = refresh(cookie(first, "fptpost_refresh"), 200);
+        var expired = login(user.getEmail(), "Secret123!", 200);
+        var expiredSession = sessions.findByPublicId(sessionId(expired)).orElseThrow();
+        expiredSession.setExpiresAt(now.get().minusSeconds(1)); sessions.saveAndFlush(expiredSession);
+        var revoked = login(user.getEmail(), "Secret123!", 200);
+        var revokedSession = sessions.findByPublicId(sessionId(revoked)).orElseThrow();
+        revokedSession.setRevokedAt(now.get()); sessions.saveAndFlush(revokedSession);
+        var current = login(user.getEmail(), "Secret123!", 200);
+        var foreign = login(anotherUser().getEmail(), "Secret123!", 200);
+        var response = listSessions(current);
+        var data = body(response).path("data");
+        assertThat(data.size()).isEqualTo(2);
+        assertThat(data.get(0).path("id").asText()).isEqualTo(sessionId(current).toString());
+        assertThat(data.get(0).path("current").asBoolean()).isTrue();
+        assertThat(data.get(1).path("id").asText()).isEqualTo(sessionId(rotated).toString());
+        assertThat(data.get(1).path("current").asBoolean()).isFalse();
+        assertThat(data.get(0).path("ip").asText()).isEqualTo(ip);
+        assertThat(data.get(0).has("createdAt")).isTrue();
+        assertThat(data.get(0).has("expiresAt")).isTrue();
+        assertThat(response.getResponse().getHeader("Cache-Control")).contains("no-store");
+        assertThat(data.toString()).doesNotContain("tokenHash", "refreshToken", "passwordHash", "userId",
+                cookie(current, "fptpost_refresh").getValue(), sessionId(foreign).toString());
+    }
+    @Test void remoteRevocationInvalidatesOnlySelectedSessionImmediately() throws Exception {
+        var current = login(user.getEmail(), "Secret123!", 200);
+        var target = login(user.getEmail(), "Secret123!", 200);
+        var response = revoke(current, sessionId(target), 200);
+        assertThat(body(response).path("data").path("currentSessionRevoked").asBoolean()).isFalse();
+        assertThat(response.getResponse().getHeaders("Set-Cookie").toString()).doesNotContain("fptpost_refresh");
+        me(access(target), 401);
+        assertThat(body(refresh(cookie(target, "fptpost_refresh"), 401)).path("code").asText()).isEqualTo("AUTH_REFRESH_INVALID");
+        me(access(current), 200);
+        assertThat(body(listSessions(current)).path("data").size()).isEqualTo(1);
+    }
+    @Test void revokingCurrentSessionClearsRefreshCookieAndInvalidatesItsJwt() throws Exception {
+        var current = login(user.getEmail(), "Secret123!", 200);
+        var response = revoke(current, sessionId(current), 200);
+        assertThat(body(response).path("data").path("currentSessionRevoked").asBoolean()).isTrue();
+        assertThat(response.getResponse().getHeaders("Set-Cookie").toString()).contains("fptpost_refresh=", "Max-Age=0");
+        me(access(current), 401);
+        refresh(cookie(current, "fptpost_refresh"), 401);
+    }
+    @Test void revocationRejectsForeignMissingExpiredAndAlreadyRevokedSessions() throws Exception {
+        var current = login(user.getEmail(), "Secret123!", 200);
+        var foreign = login(anotherUser().getEmail(), "Secret123!", 200);
+        var expired = login(user.getEmail(), "Secret123!", 200);
+        UUID expiredId = sessionId(expired);
+        var expiredSession = sessions.findByPublicId(expiredId).orElseThrow();
+        expiredSession.setExpiresAt(now.get()); sessions.saveAndFlush(expiredSession);
+        for (UUID id : List.of(sessionId(foreign), UUID.randomUUID(), expiredId)) {
+            assertThat(body(revoke(current, id, 404)).path("code").asText()).isEqualTo("AUTH_SESSION_NOT_FOUND");
+        }
+        var target = login(user.getEmail(), "Secret123!", 200);
+        UUID targetId = sessionId(target);
+        revoke(current, targetId, 200);
+        assertThat(body(revoke(current, targetId, 404)).path("code").asText()).isEqualTo("AUTH_SESSION_NOT_FOUND");
+        me(access(current), 200); me(access(foreign), 200);
+    }
+    @Test void sessionEndpointsRequireBearerAuthenticationAndRejectMalformedIds() throws Exception {
+        send(get("/api/v1/auth/sessions"), 401);
+        Csrf csrf = csrf();
+        send(delete("/api/v1/auth/sessions/" + UUID.randomUUID()).cookie(csrf.cookie()).header(csrf.header(), csrf.token()), 401);
+        var current = login(user.getEmail(), "Secret123!", 200);
+        var target = login(user.getEmail(), "Secret123!", 200);
+        send(delete("/api/v1/auth/sessions/" + sessionId(target)).cookie(cookie(current, "fptpost_refresh")), 401);
+        me(access(target), 200);
+        send(delete("/api/v1/auth/sessions/" + sessionId(target)).header("Authorization", "Bearer " + access(current)), 200);
+        send(delete("/api/v1/auth/sessions/not-a-uuid").header("Authorization", "Bearer " + access(current))
+                .cookie(csrf.cookie()).header(csrf.header(), csrf.token()), 400);
+    }
+    @Test void revocationFollowsRotationAndRefreshPreservesLoginTime() throws Exception {
+        var current = login(user.getEmail(), "Secret123!", 200);
+        UUID originalId = sessionId(current);
+        Instant loggedInAt = now.get();
+        now.set(now.get().plusSeconds(60));
+        var refreshed = refresh(cookie(current, "fptpost_refresh"), 200);
+        assertThat(sessions.findByPublicId(sessionId(refreshed)).orElseThrow().getCreatedAt()).isEqualTo(loggedInAt);
+        var response = revoke(refreshed, originalId, 200);
+        assertThat(body(response).path("data").path("currentSessionRevoked").asBoolean()).isTrue();
+        me(access(refreshed), 401);
+        refresh(cookie(refreshed, "fptpost_refresh"), 401);
+    }
+    @Test void concurrentRefreshAndRevocationCannotLeaveSelectedDeviceActive() throws Exception {
+        var current = login(user.getEmail(), "Secret123!", 200);
+        var target = login(user.getEmail(), "Secret123!", 200);
+        UUID targetId = sessionId(target);
+        Csrf csrf = csrf();
+        CountDownLatch start = new CountDownLatch(1);
+        try (var pool = Executors.newFixedThreadPool(2)) {
+            var refreshResult = pool.submit(() -> {
+                start.await();
+                return mvc.perform(post("/api/v1/auth/refresh").cookie(csrf.cookie(), cookie(target, "fptpost_refresh"))
+                        .header(csrf.header(), csrf.token())).andReturn().getResponse().getStatus();
+            });
+            var revokeResult = pool.submit(() -> {
+                start.await();
+                return mvc.perform(delete("/api/v1/auth/sessions/" + targetId).header("Authorization", "Bearer " + access(current))
+                        .cookie(csrf.cookie()).header(csrf.header(), csrf.token())).andReturn().getResponse().getStatus();
+            });
+            start.countDown();
+            assertThat(refreshResult.get(20, TimeUnit.SECONDS)).isIn(200, 401);
+            assertThat(revokeResult.get(20, TimeUnit.SECONDS)).isEqualTo(200);
+        }
+        var active = sessions.findByUserIdAndRevokedAtIsNullAndReplacedByIsNullAndExpiresAtAfterOrderByCreatedAtAscIdAsc(user.getId(), now.get());
+        assertThat(active).extracting(AuthSession::getPublicId).containsExactly(sessionId(current));
+        me(access(current), 200);
+    }
 
     @Test void loginByEmailOrPhoneIssuesJwtAndHashedHttpOnlyRefreshCookie() throws Exception {
         for (String identifier : List.of(" LOGIN@EXAMPLE.COM ", "0901234567", "+84901234567")) {
