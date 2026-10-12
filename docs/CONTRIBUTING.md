@@ -21,7 +21,7 @@ trước khi nhiều thành viên viết module nghiệp vụ.
 | File API frontend | camelCase, hậu tố Api | `productApi.ts`, `orderApi.ts` |
 | SQL table/column | snake_case | `products`, `created_at` |
 | Endpoint | Danh từ số nhiều, kebab-case | `/products`, `/activity-logs` |
-| Nhánh chức năng | feature/mã-UC-mô-tả-kebab-case | `feature/UC-12-tao-don` |
+| Nhánh chức năng | feature/mã-UC-mã-thành-viên-mô-tả | `feature/UC-03-LuanLH-dang-nhap` |
 
 Dùng tiếng Anh cho tên code. Java thụt 4 spaces; TypeScript/TSX thụt 2 spaces.
 Giữ style của file đang sửa, chạy formatter IDE và ESLint, xóa import/biến không dùng.
@@ -238,6 +238,44 @@ Seeder Product đọc `demo/products.json`, không tạo ActivityLog và không 
 
 ## 8. Frontend
 
+### Component và bố cục dùng chung
+
+Xem `/ui-kit`, `/ui-kit/list`, `/ui-kit/components` khi chạy `npm run dev:client`.
+Đây là mẫu phát triển, không gọi API đơn hàng và không có trong bản production.
+
+- Màu, font, spacing, border/radius lấy từ `src/styles/tokens.css`; không tạo theme
+  hoặc bộ input/button riêng trong từng module. CSS component chung ở `styles/ui.css`.
+- `MainLayout` dùng cho trang có navbar, `AuthLayout` cho đăng nhập/đăng ký,
+  `WorkspaceLayout` cho màn hình làm việc có sidebar. Điều hướng chính được quản lý
+  tại layout/navbar và router chung, bổ sung menu khi chức năng đã có.
+- Trang có `PageHeader`; nội dung chia `SectionCard`. Form chia `FormSection`
+  hoặc `ui-form-grid`: hai cột desktop, một cột mobile, `ui-span-full` cho trường dài.
+- Dùng `Input`, `Select`, `Textarea`, `Checkbox` với label và error; các component
+  hỗ trợ ref của React Hook Form, tự sinh ID và liên kết thông báo cho screen reader.
+  Quy tắc dữ liệu nằm trong schema Zod; lỗi API chuyển qua `setError` hoặc `ApiErrorNotice`.
+- Nút chính dùng `Button`, mặc định `type="button"`; nút gửi form phải có `type="submit"`.
+  Nút hủy dùng `secondary`, xóa dùng `danger`; dùng `loading` để chặn gửi lặp khi lưu.
+- Bảng dùng `DataTable<T>` và `Pagination`. Page API từ 0, giao diện hiển thị từ 1.
+  Bộ lọc thay đổi thì về trang 0; bảng cuộn ngang trong khung trên mobile.
+- Tách tải/lỗi/rỗng/thành công; không hiển thị dữ liệu cũ hoặc trạng thái rỗng khi API lỗi.
+  Dùng `Alert`, `EmptyState`, `LoadingSpinner`; `Badge` nhận nhãn và tone theo nghiệp vụ.
+- Dùng `Modal` cho hộp thoại để giữ focus, hỗ trợ Esc và trả focus về nút mở.
+  Khi đang lưu, đặt `closeDisabled` và vô hiệu nút hủy để không đóng giữa request.
+
+Ví dụ trường dùng chung với React Hook Form:
+
+```tsx
+<Input label="Họ và tên" required
+  {...register('fullName')} error={errors.fullName?.message} />
+<Button type="submit" loading={isSubmitting} loadingText="Đang lưu…">Lưu</Button>
+```
+
+Tham khảo `features/product` cho CRUD gọi API thật; `features/ui-kit` chỉ chứa ví dụ
+giao diện. `styles/legacy.css` giữ CSS của trang giới thiệu/demo cũ; module mới dùng
+component chung và token, CSS riêng chỉ xử lý bố cục đặc thù.
+
+### Tổ chức chức năng và API
+
 - Page và layout dùng function component/hooks; component dùng lại đặt trong `components`.
 - API theo module đặt trong `src/api` và gọi qua `axiosClient`.
 - Chức năng có nhiều logic form tách trong `features/<feature>/components`, `hooks`,
@@ -287,16 +325,55 @@ Biến môi trường tham khảo `.env.example`; không commit mật khẩu, fi
 node_modules, dist hoặc target. Trong container dùng sqlserver:1433/mongodb:27017;
 chạy trên máy dùng localhost với cổng đã cấu hình.
 
-Nhánh chức năng theo `feature/<ma-uc>-<ten-chuc-nang>`, bắt đầu từ develop.
-Mã UC lấy từ sheet `04_UC`, giữ chữ hoa `UC`, dấu gạch nối và hai chữ số `UC-xx`.
-Phần mô tả không dấu, kebab-case. Theo SPEC: `feature/UC-03-dang-nhap`,
-`feature/UC-12-tao-don`; chọn mã từ [danh mục UC](USE-CASES.md), không tự đặt mã.
-Việc tài liệu hoặc hạ tầng không thuộc UC dùng `docs/<mo-ta>` hoặc `chore/<mo-ta>`.
-Commit mô tả thay đổi; có thể dùng `feat(order): UC-12 create order`,
-`fix(product): validate price range`, `docs: update setup instructions`.
-Pull Request vào develop ghi rõ thay đổi và cách kiểm tra.
-PR chức năng có mã UC trong tiêu đề, ví dụ `[UC-12] Create order`, và tham chiếu UC/BR,
-API/màn hình ảnh hưởng, cách kiểm tra và kết quả trong mô tả để đối chiếu với sheet.
+Nhánh bắt đầu từ `develop`, PR vào `develop`. Nhóm bổ sung mã thành viên vào mẫu
+nhánh trong SPEC; mã UC lấy từ sheet `04_UC`, giữ đúng `UC-xx`.
+Chọn mã từ [danh mục UC](USE-CASES.md), không tự đặt mã.
+
+Mỗi thành viên dùng một tên viết tắt cố định, không dấu, không khoảng trắng và không trùng
+thành viên khác. Lư Hữu Luân dùng `LuanLH`; giữ đúng chữ hoa/thường của mã này.
+Phần mô tả dùng chữ thường không dấu, kebab-case.
+
+| Công việc | Mẫu nhánh | Ví dụ |
+| --- | --- | --- |
+| Chức năng có UC | `feature/<ma-uc>-<ma-tv>-<mo-ta>` | `feature/UC-03-LuanLH-dang-nhap` |
+| Sửa lỗi có UC | `fix/<ma-uc>-<ma-tv>-<mo-ta>` | `fix/UC-02-LuanLH-otp-het-han` |
+| Tài liệu chung | `docs/<ma-tv>-<mo-ta>` | `docs/LuanLH-quy-uoc-git` |
+| Base, cấu hình, bảo trì chung | `chore/<ma-tv>-<mo-ta>` | `chore/LuanLH-frontend-ui-base` |
+
+Sửa lỗi dùng chung không thuộc UC có thể dùng `fix/<ma-tv>-<mo-ta>`.
+Không gán UC cho công việc chung chỉ để đặt tên nhánh.
+
+Commit theo [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
+Scope là module hoặc phần code thay đổi, ví dụ `identity`, `order`, `payment`, `ui`, `git`.
+Nhóm thêm UC và mã thành viên vào phần mô tả để nhận biết công việc và người thực hiện:
+
+```text
+<type>(<scope>): [UC-xx] [<ma-tv>] <mo-ta-thay-doi>
+```
+
+Commit không thuộc UC bỏ `[UC-xx]`. Mô tả ngắn bằng tiếng Anh, nói rõ thay đổi.
+
+| Type | Khi dùng | Ví dụ |
+| --- | --- | --- |
+| `feat` | Thêm chức năng hoặc hành vi mới | `feat(identity): [UC-03] [LuanLH] add login form` |
+| `fix` | Sửa lỗi | `fix(identity): [UC-02] [LuanLH] reject expired OTP` |
+| `refactor` | Đổi cấu trúc code, giữ hành vi | `refactor(ui): [LuanLH] extract shared form fields` |
+| `docs` | Sửa tài liệu | `docs(git): [LuanLH] define branch conventions` |
+| `test` | Thêm/sửa test | `test(identity): [UC-02] [LuanLH] cover OTP retry limit` |
+| `chore` | Bảo trì, cấu hình công cụ | `chore(dev): [LuanLH] update local environment examples` |
+| `ci` | Sửa workflow CI | `ci(frontend): [LuanLH] run lint before build` |
+| `style` | Định dạng code, không đổi hành vi | `style(identity): [LuanLH] format imports` |
+
+Thay đổi giao diện có hành vi hoặc bố cục mới dùng `feat`/`fix` theo mục đích;
+`style` không dùng để chỉ mọi thay đổi CSS. Type commit phản ánh thay đổi trong commit,
+không bắt buộc trùng prefix nhánh. Có thay đổi phá vỡ contract thì thêm `!` và giải thích
+`BREAKING CHANGE` trong commit body/footer.
+Mã thành viên trong tên nhánh/commit bổ sung khả năng nhận diện;
+tác giả thực tế vẫn được Git lưu trong author name/email.
+
+PR chức năng dùng `[UC-03] [LuanLH] Đăng nhập`; PR công việc chung dùng
+`[LuanLH] Giao diện dùng chung`. Mô tả PR tham chiếu UC/BR, API/màn hình ảnh hưởng,
+cách kiểm tra và kết quả để đối chiếu với sheet.
 Không gộp sửa định dạng toàn dự án vào một thay đổi nghiệp vụ nhỏ.
 
 Base hiện cung cấp Product/Activity mẫu và UC-01 đăng ký Identity. Yêu cầu còn lại theo nghiệp vụ nhóm và hướng dẫn

@@ -13,6 +13,7 @@ và UC-01–03 đăng ký, xác thực email, đăng nhập Identity. Các UC c�
 - [Công nghệ](#công-nghệ)
 - [Cấu trúc dự án](#cấu-trúc-dự-án)
 - [Khởi chạy](#khởi-chạy)
+- [Giao diện dùng chung](#giao-diện-dùng-chung)
 - [Cấu hình](#cấu-hình)
 - [Database và seed data](#database-và-seed-data)
 - [API](#api)
@@ -73,7 +74,10 @@ SBA391_Group6_Project/
 │   │   ├── components/
 │   │   │   ├── common/
 │   │   │   └── ui/
-│   │   ├── features/auth/             # Form, hook, schema đăng ký/đăng nhập; hộp thoại chính sách
+│   │   ├── features/
+│   │   │   ├── auth/                 # Form, hook, schema đăng ký/đăng nhập
+│   │   │   ├── product/              # CRUD mẫu dùng component chung
+│   │   │   └── ui-kit/               # Mẫu form, danh sách và component cho phát triển
 │   │   ├── i18n/                      # Câu chữ lỗi theo mã nghiệp vụ
 │   │   ├── layouts/
 │   │   ├── pages/
@@ -270,6 +274,29 @@ npm run dev
 Nếu đổi cổng database trong `.env`, sửa URL trên theo cổng đó.
 `npm run dev` chạy đồng thời frontend và backend; có thể chạy riêng bằng
 `npm run dev:client` và `npm run dev:server`.
+
+## Giao diện dùng chung
+
+Chạy `npm run dev:client` rồi mở `/ui-kit` trên frontend để xem mẫu tương tác:
+form hai cột, danh sách/bộ lọc/phân trang và các component với tông cam dùng chung.
+Trang mẫu chỉ có khi chạy
+Vite development; bản build production và Docker/Nginx không chứa route này.
+Form giao hàng và đơn hàng tại đây là dữ liệu minh họa, không tạo đơn hoặc gọi API nghiệp vụ.
+
+| Thành phần | Nơi dùng |
+| --- | --- |
+| `styles/tokens.css` | Màu, font, khoảng cách, chiều cao input và bo góc dùng chung |
+| `components/ui` | Button, Input, Select, Textarea, Checkbox, FormSection, Modal, Badge, Alert, DataTable, Pagination |
+| `PageHeader`, `SectionCard`, `EmptyState` | Tiêu đề trang, nhóm nội dung và trạng thái rỗng |
+| `MainLayout` | Trang dùng thanh điều hướng phía trên |
+| `AuthLayout` | Đăng nhập/đăng ký |
+| `WorkspaceLayout` | Màn hình làm việc có sidebar; nhận danh sách menu và nội dung qua props |
+
+Form đăng ký/đăng nhập/OTP và Product CRUD đã dùng bộ component này. Tham khảo
+`features/product/components/ProductForm.tsx`, `features/product/hooks/useProducts.ts`
+và `features/product/schemas/productSchema.ts` khi tạo module mới. Các component input
+nhận `ref` từ React Hook Form, tự nối label/hint/error và focus trường lỗi.
+Quy ước chi tiết cùng ví dụ nằm trong [hướng dẫn frontend](docs/CONTRIBUTING.md#8-frontend).
 
 ## Cấu hình
 
@@ -485,28 +512,43 @@ Dockerfile backend chạy test khi đóng gói; Dockerfile frontend chạy lint 
 | --- | --- |
 | `main` | Phiên bản ổn định |
 | `develop` | Tích hợp các chức năng của nhóm |
-| `feature/<ma-uc>-<ten-chuc-nang>` | Phát triển chức năng gắn với mã Use Case |
-| `docs/<mo-ta>` | Cập nhật tài liệu không thuộc UC |
-| `chore/<mo-ta>` | Cấu hình, hạ tầng hoặc bảo trì không thuộc UC |
+| `feature/<ma-uc>-<ma-tv>-<mo-ta>` | Phát triển chức năng gắn với mã Use Case |
+| `fix/<ma-uc>-<ma-tv>-<mo-ta>` | Sửa lỗi của chức năng có UC |
+| `docs/<ma-tv>-<mo-ta>` | Cập nhật tài liệu không thuộc UC |
+| `chore/<ma-tv>-<mo-ta>` | Base dùng chung, cấu hình, hạ tầng hoặc bảo trì không thuộc UC |
 
-Nhánh chức năng giữ nguyên mã `UC-xx` từ sheet; mô tả không dấu, ngăn cách bằng gạch nối.
-Theo ví dụ SPEC: UC-03 đăng nhập dùng `feature/UC-03-dang-nhap`, UC-12 tạo đơn giao hàng
-dùng `feature/UC-12-tao-don`. Xem mã, phân công và sprint trong
-[danh mục UC](docs/USE-CASES.md). Giữ dấu gạch nối và hai chữ số của mã `UC-xx`;
-không tự đổi số thứ tự hoặc đặt mã mới.
-Tài liệu hoặc hạ tầng không thuộc UC dùng nhánh `docs/` hoặc `chore/`, không gán mã UC giả.
+Nhóm bổ sung mã thành viên vào cách đặt nhánh trong SPEC để nhận biết người phụ trách.
+Mã thành viên dùng tên viết tắt cố định, không trùng nhau; ví dụ Lư Hữu Luân dùng `LuanLH`.
+Giữ chữ hoa/thường của mã thành viên. Mã UC giữ đúng `UC-xx` từ sheet;
+phần mô tả dùng chữ thường, không dấu, ngăn cách bằng gạch nối.
+Ví dụ: `feature/UC-03-LuanLH-dang-nhap`, `fix/UC-02-LuanLH-otp-het-han`.
+Xem mã UC trong [danh mục UC](docs/USE-CASES.md), không tự đặt mã mới.
+Công việc chung không thuộc UC bỏ phần mã UC: `chore/LuanLH-frontend-ui-base`,
+`docs/LuanLH-quy-uoc-git`.
 
 Bắt đầu chức năng từ nhánh `develop`:
 
 ```powershell
 git switch develop
 git pull --ff-only origin develop
-git switch -c feature/UC-12-tao-don
+git switch -c feature/UC-03-LuanLH-dang-nhap
 ```
 
-Thay mã UC và tên chức năng trong ví dụ bằng UC được phân công.
+Thay mã UC, mã thành viên và mô tả trong ví dụ theo công việc được phân công.
 Sau khi commit và push nhánh feature, mở Pull Request vào `develop` để review và tích hợp.
-Tiêu đề PR chức năng ghi mã UC, ví dụ `[UC-12] Tạo đơn`, để đối chiếu với sheet.
+Tiêu đề PR chức năng ghi UC và mã thành viên: `[UC-03] [LuanLH] Đăng nhập`.
+PR công việc chung dùng `[LuanLH] Giao diện dùng chung`.
+Commit theo [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/),
+nhóm thêm UC và mã thành viên vào mô tả:
+
+```text
+feat(identity): [UC-03] [LuanLH] add login form
+fix(identity): [UC-02] [LuanLH] reject expired OTP
+feat(ui): [LuanLH] add UI kit, homepage and footer
+docs(git): [LuanLH] define branch and commit conventions
+```
+
+Chi tiết loại commit và scope trong [quy ước đóng góp](docs/CONTRIBUTING.md#9-kiểm-thử-cấu-hình-và-đóng-góp).
 Chỉ đưa phiên bản ổn định từ `develop` vào `main`.
 
 ## Tài liệu
@@ -535,7 +577,10 @@ Base có Product CRUD, paging/filter/sort, MapStruct, validation, mã lỗi,
 Swagger, seed demo, nhật ký MongoDB và Docker Compose.
 Identity có UC-01–03: đăng ký, chính sách/consent, OTP email, đăng nhập JWT/refresh rotation và đăng xuất phiên hiện tại;
 service gửi mail/template dùng chung. Lỗi API dùng Problem Details và correlation ID.
-Frontend có trang chủ, Product, đăng ký, xác thực OTP, đăng nhập, tài khoản và trang 404.
+Frontend có trang chủ, Product, đăng ký, xác thực OTP, đăng nhập, tài khoản, điều khoản/chính sách và trang 404.
+Trang chủ `/` theo SCR-01: giới thiệu FPost, cách hoạt động, ví dụ phí giao và đăng ký.
+Phí trên trang chủ là các tình huống tham khảo từ biểu phí dự thảo, chưa gọi API ước tính giá.
+Footer dùng chung có liên kết nhanh, chính sách và thông tin liên hệ. Trang `/legal` tải cùng nội dung chính sách với luồng đăng ký.
 
 Các phần Identity còn lại (quản lý từng thiết bị, quên/đổi mật khẩu, hồ sơ/KYC) và các module
 order, market, pricing, ledger/payment, tracking, reputation,
