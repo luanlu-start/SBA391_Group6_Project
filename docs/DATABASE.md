@@ -118,6 +118,8 @@ Giữ nguyên mã phân hệ và cách viết phạm vi UC trong nguồn.
 SQL có `products` phục vụ ví dụ và các bảng Identity cho UC-01–03:
 `users`, `roles`, `user_roles`, `user_profiles`, `consents`, `otp_codes`, `blacklist`.
 UC-03 thêm `sessions` lưu hash refresh token/phiên và bộ đếm khóa đăng nhập trong User.
+Trường `sessions.remember_me` lưu lựa chọn ghi nhớ đăng nhập để refresh giữ đúng loại cookie;
+DDL `update` thêm cột `bit NOT NULL DEFAULT 0`, các phiên cũ mặc định không ghi nhớ.
 Mongo có `activity_logs` phục vụ ví dụ kỹ thuật. ActivityLog mẫu chưa phải audit_logs
 theo SPEC: chưa có actor, kiểm soát truy cập và đồng bộ outbox đảm bảo.
 

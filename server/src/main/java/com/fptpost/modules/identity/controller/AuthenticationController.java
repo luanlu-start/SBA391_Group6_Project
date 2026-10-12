@@ -56,7 +56,7 @@ public class AuthenticationController {
     public ResponseEntity<ApiResponse<AuthenticationResponse>> login(@Valid @RequestBody AuthenticationRequest request,
             HttpServletRequest httpRequest) {
         var result = authenticationService.authenticate(request, httpRequest.getRemoteAddr(), httpRequest.getHeader("User-Agent"));
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).header("Set-Cookie", cookies.issue(result.getRefreshToken()))
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).header("Set-Cookie", cookies.issue(result.getRefreshToken(), result.isRememberMe()))
                 .body(ApiResponse.success("Đăng nhập thành công.", result.getResponse()));
     }
 
@@ -65,7 +65,7 @@ public class AuthenticationController {
     public ResponseEntity<ApiResponse<AuthenticationResponse>> refresh(
             @CookieValue(name = AuthenticationCookies.REFRESH_COOKIE, required = false) String token, HttpServletRequest request) {
         var result = authenticationService.refresh(token, request.getRemoteAddr(), request.getHeader("User-Agent"));
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).header("Set-Cookie", cookies.issue(result.getRefreshToken()))
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).header("Set-Cookie", cookies.issue(result.getRefreshToken(), result.isRememberMe()))
                 .body(ApiResponse.success(result.getResponse()));
     }
 

@@ -19,6 +19,9 @@ public class AuthenticationRequest {
     @Size(max = 72, message = "PASSWORD_INVALID")
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     String password;
+
+    boolean rememberMe;
+
     public void setIdentifier(String identifier) { this.identifier = identifier == null ? null : identifier.trim(); }
     @Override public String toString() { return "AuthenticationRequest[redacted]"; }
 }

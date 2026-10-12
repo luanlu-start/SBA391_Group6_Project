@@ -6,6 +6,7 @@ import { ArrowRight, Eye, EyeOff, LockKeyhole, UserRound } from 'lucide-react';
 import ApiErrorNotice from '../../../components/ApiErrorNotice';
 import Input from '../../../components/ui/Input';
 import Button from '../../../components/ui/Button';
+import Checkbox from '../../../components/ui/Checkbox';
 import { useLogin } from '../hooks/useLogin';
 import { loginSchema } from '../schemas/loginSchema';
 import type { LoginFormValues } from '../schemas/loginSchema';
@@ -14,7 +15,7 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const { login, isPending, initializing, error, retryAfterSeconds } = useLogin();
   const { register, handleSubmit, setError, resetField, formState: { errors } } = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema), defaultValues: { identifier: '', password: '' },
+    resolver: zodResolver(loginSchema), defaultValues: { identifier: '', password: '', rememberMe: false },
   });
   const disabled = isPending || initializing || retryAfterSeconds > 0;
 
@@ -40,6 +41,7 @@ export default function LoginForm() {
       endAdornment={<Button variant="ghost" size="sm" disabled={isPending}
         aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} aria-pressed={showPassword}
         onClick={() => setShowPassword(value => !value)} icon={showPassword ? <EyeOff size={18} /> : <Eye size={18} />} />} />
+    <Checkbox id="remember-me" label="Ghi nhớ đăng nhập" {...register('rememberMe')} disabled={isPending} />
     {retryAfterSeconds > 0 && <p className="login-cooldown" role="status">
       Có thể thử lại sau {Math.floor(retryAfterSeconds / 60)}:{String(retryAfterSeconds % 60).padStart(2, '0')}.
     </p>}
