@@ -36,9 +36,12 @@ class PaymentControllerTest {
     @Mock
     private VNPayService vnPayService;
 
+    @Mock
+    private com.fptpost.modules.payment.config.PaymentDemoSeeder paymentDemoSeeder;
+
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new PaymentController(vnPayService)).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(new PaymentController(vnPayService, java.util.Optional.of(paymentDemoSeeder))).build();
     }
 
     @Test
@@ -114,5 +117,15 @@ class PaymentControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.RspCode").value("00"))
                 .andExpect(jsonPath("$.Message").value("Confirm Success"));
+    }
+
+    @Test
+    @DisplayName("POST /api/payment/test-data/seed should seed demo test orders and return 200")
+    void testSeedData() throws Exception {
+        mockMvc.perform(post("/api/payment/test-data/seed"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data['ORD-TEST-001']").exists())
+                .andExpect(jsonPath("$.data['ORD-TEST-002']").exists());
     }
 }

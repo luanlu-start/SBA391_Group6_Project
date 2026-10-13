@@ -1,6 +1,7 @@
 package com.fptpost.modules.payment.controller;
 
 import com.fptpost.common.response.ApiResponse;
+import com.fptpost.modules.payment.config.PaymentDemoSeeder;
 import com.fptpost.modules.payment.dto.PaymentCreationRequest;
 import com.fptpost.modules.payment.dto.PaymentCreationResponse;
 import com.fptpost.modules.payment.dto.VNPayIpnResponse;
@@ -17,12 +18,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * REST Controller exposing VNPay payment gateway endpoints:
  * - URL creation
  * - Synchronous browser return callback
  * - Asynchronous server-to-server IPN webhook
+ * - Seed testing data endpoint
  */
 @Slf4j
 @RestController
@@ -32,6 +35,7 @@ import java.util.Map;
 public class PaymentController {
 
     private final VNPayService vnPayService;
+    private final Optional<PaymentDemoSeeder> paymentDemoSeeder;
 
     @Operation(summary = "Create VNPay Payment URL", description = "Generates a signed redirect URL to VNPay payment portal.")
     @PostMapping("/create-vnpay-url")
@@ -59,5 +63,21 @@ public class PaymentController {
         log.info("Received VNPay IPN notification with {} parameters", queryParams.size());
         VNPayIpnResponse response = vnPayService.processIpn(queryParams);
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Khởi tạo data mẫu test VNPay", description = "Tạo các đơn hàng mẫu (ORD-TEST-001, 002, 003, 004) phục vụ kiểm thử thủ công và tự động.")
+    @PostMapping("/test-data/seed")
+    public ResponseEntity<ApiResponse<Map<String, String>>> seedTestData() {
+        if (paymentDemoSeeder.isPresent()) {
+            paymentDemoSeeder.get().seedDemoData();
+            return ResponseEntity.ok(ApiResponse.success("Khởi tạo dữ liệu mẫu kiểm thử VNPay thành công",
+                    Map.of(
+                            "ORD-TEST-001", "150,000 VND (PENDING - Sẵn sàng test duyệt IPN/Return)",
+                            "ORD-TEST-002", "250,000 VND (PENDING - Sẵn sàng test tạo URL thanh toán mới)",
+                            "ORD-TEST-003", "500,000 VND (SUCCESS - Dùng để test chống trùng lặp IPN mã 02)",
+                            "ORD-TEST-004", "1,000,000 VND (CANCELLED - Đơn đã hủy thanh toán mã 24)"
+                    )));
+        }
+        return ResponseEntity.ok(ApiResponse.success("PaymentDemoSeeder không khả dụng trong profile hiện tại", Map.of()));
     }
 }
