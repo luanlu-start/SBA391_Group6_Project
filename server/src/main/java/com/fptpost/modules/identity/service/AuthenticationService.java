@@ -84,7 +84,7 @@ public class AuthenticationService {
         user.setFailedLoginCount(0);
         user.setLoginLockedUntil(null);
         userRepository.saveAndFlush(user);
-        AuthenticationResult result = createSession(user, ip, userAgent);
+        AuthenticationResult result = createSession(user, ip, userAgent, request.isRememberMe());
         loginLimiter.success(ip);
         return result;
     }
@@ -104,7 +104,7 @@ public class AuthenticationService {
         if (old.getRevokedAt() != null || !now.isBefore(old.getExpiresAt())) throw invalidRefresh();
         requireActive(user);
         old.setRevokedAt(now);
-        AuthenticationResult result = createSession(user, ip, userAgent);
+        AuthenticationResult result = createSession(user, ip, userAgent, old.isRememberMe());
         String nextHash = hash(result.getRefreshToken());
         old.setReplacedBy(sessionRepository.findByTokenHash(nextHash).orElseThrow().getPublicId());
         sessionRepository.saveAndFlush(old);
@@ -128,7 +128,7 @@ public class AuthenticationService {
         return response(user);
     }
 
-    private AuthenticationResult createSession(User user, String ip, String userAgent) {
+    private AuthenticationResult createSession(User user, String ip, String userAgent, boolean rememberMe) {
         Instant now = identityClock.instant();
         var active = sessionRepository.findByUserIdAndRevokedAtIsNullAndReplacedByIsNullAndExpiresAtAfterOrderByCreatedAtAscIdAsc(user.getId(), now);
         while (active.size() >= properties.getMaxDevices()) {
@@ -142,11 +142,11 @@ public class AuthenticationService {
         String device = userAgent == null ? "Unknown device" : userAgent.replaceAll("\\p{Cntrl}", "");
         AuthSession session = AuthSession.builder().publicId(UUID.randomUUID()).user(user).tokenHash(hash(token))
                 .ip(ip.length() > 45 ? "unknown" : ip).deviceInfo(device.substring(0, Math.min(255, device.length())))
-                .createdAt(now).expiresAt(now.plusSeconds(properties.getRefreshTtlDays() * 86400L)).build();
+                .createdAt(now).expiresAt(now.plusSeconds(properties.getRefreshTtlDays() * 86400L)).rememberMe(rememberMe).build();
         sessionRepository.saveAndFlush(session);
         var jwt = jwtTokenService.issue(user, session);
         return new AuthenticationResult(AuthenticationResponse.builder().accessToken(jwt.getTokenValue()).tokenType("Bearer")
-                .expiresAt(jwt.getExpiresAt()).user(response(user)).build(), token);
+                .expiresAt(jwt.getExpiresAt()).user(response(user)).build(), token, rememberMe);
     }
 
     private UserResponse response(User user) {

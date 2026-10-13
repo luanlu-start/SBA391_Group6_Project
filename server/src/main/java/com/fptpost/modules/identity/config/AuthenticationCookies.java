@@ -12,8 +12,8 @@ public class AuthenticationCookies {
     public static final String REFRESH_COOKIE = "fptpost_refresh";
     private final AuthenticationProperties properties;
 
-    public String issue(String token) {
-        return cookie(token, Duration.ofDays(properties.getRefreshTtlDays()));
+    public String issue(String token, boolean rememberMe) {
+        return cookie(token, rememberMe ? Duration.ofDays(properties.getRefreshTtlDays()) : Duration.ofSeconds(-1));
     }
 
     public String clear() {
