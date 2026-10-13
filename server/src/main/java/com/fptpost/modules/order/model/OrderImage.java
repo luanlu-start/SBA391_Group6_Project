@@ -19,7 +19,7 @@ import java.time.Instant;
 @Table(name = "shipping_order_images", indexes = {
     @Index(name = "idx_shipping_order_images_order_id", columnList = "order_id")
 })
-public class ShippingOrderImage {
+public class OrderImage {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,7 +33,7 @@ public class ShippingOrderImage {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
-    private ShippingOrder order;
+    private Order order;
 
     @PrePersist
     protected void onCreate() {

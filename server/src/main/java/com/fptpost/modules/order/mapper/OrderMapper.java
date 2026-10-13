@@ -1,9 +1,9 @@
 package com.fptpost.modules.order.mapper;
 
-import com.fptpost.modules.order.dto.ShippingOrderRequest;
-import com.fptpost.modules.order.dto.ShippingOrderResponse;
-import com.fptpost.modules.order.model.ShippingOrder;
-import com.fptpost.modules.order.model.ShippingOrderImage;
+import com.fptpost.modules.order.dto.OrderRequest;
+import com.fptpost.modules.order.dto.OrderResponse;
+import com.fptpost.modules.order.model.Order;
+import com.fptpost.modules.order.model.OrderImage;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
@@ -15,9 +15,9 @@ import java.util.List;
 public interface OrderMapper {
 
     @Mapping(target = "imageUrls", source = "images", qualifiedByName = "mapImagesToUrls")
-    ShippingOrderResponse toResponse(ShippingOrder order);
+    OrderResponse toResponse(Order order);
 
-    List<ShippingOrderResponse> toResponses(List<ShippingOrder> orders);
+    List<OrderResponse> toResponses(List<Order> orders);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "orderCode", ignore = true)
@@ -25,15 +25,15 @@ public interface OrderMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "images", ignore = true)
-    ShippingOrder toEntity(ShippingOrderRequest request);
+    Order toEntity(OrderRequest request);
 
     @Named("mapImagesToUrls")
-    default List<String> mapImagesToUrls(List<ShippingOrderImage> images) {
+    default List<String> mapImagesToUrls(List<OrderImage> images) {
         if (images == null) {
             return List.of();
         }
         return images.stream()
-                .map(ShippingOrderImage::getImageUrl)
+                .map(OrderImage::getImageUrl)
                 .toList();
     }
 }

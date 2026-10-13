@@ -8,7 +8,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-
 @Getter
 @Setter
 @NoArgsConstructor
@@ -23,7 +22,7 @@ import java.util.List;
     @Index(name = "idx_shipping_orders_status", columnList = "status"),
     @Index(name = "idx_shipping_orders_created_at", columnList = "created_at")
 })
-public class ShippingOrder {
+public class Order {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -77,14 +76,14 @@ public class ShippingOrder {
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
-    private List<ShippingOrderImage> images = new ArrayList<>();
+    private List<OrderImage> images = new ArrayList<>();
 
-    public void addImage(ShippingOrderImage image) {
+    public void addImage(OrderImage image) {
         images.add(image);
         image.setOrder(this);
     }
 
-    public void removeImage(ShippingOrderImage image) {
+    public void removeImage(OrderImage image) {
         images.remove(image);
         image.setOrder(null);
     }

@@ -14,7 +14,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ShippingOrderResponse {
+public class OrderResponse {
 
     private Long id;
     private String orderCode;

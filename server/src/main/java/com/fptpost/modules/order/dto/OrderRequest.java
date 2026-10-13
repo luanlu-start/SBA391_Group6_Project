@@ -17,7 +17,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ShippingOrderRequest {
+public class OrderRequest {
 
     @NotNull(message = "Sender ID is required")
     private Long senderId;
