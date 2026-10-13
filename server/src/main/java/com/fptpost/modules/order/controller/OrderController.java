@@ -1,6 +1,7 @@
 package com.fptpost.modules.order.controller;
 
 import com.fptpost.common.response.ApiResponse;
+import com.fptpost.modules.order.dto.MarketplaceOrderResponse;
 import com.fptpost.modules.order.dto.OrderRequest;
 import com.fptpost.modules.order.dto.OrderResponse;
 import com.fptpost.modules.order.service.OrderService;
@@ -8,6 +9,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -43,5 +47,15 @@ public class OrderController {
     public ResponseEntity<ApiResponse<List<OrderResponse>>> getAllOrders() {
         List<OrderResponse> orders = orderService.getAllOrders();
         return ResponseEntity.ok(ApiResponse.success("Orders retrieved successfully", orders));
+    }
+
+    @GetMapping("/marketplace-order")
+    @Operation(summary = "Xem tất cả đơn hàng có thể giao", description = "Lấy danh sách tất cả các đơn hàng có thể giao")
+    public ResponseEntity<ApiResponse<Page<MarketplaceOrderResponse>>> viewMarketplaceOrders(
+            @RequestParam(required = false) String keyword,
+            @PageableDefault(size = 10) Pageable pageable
+            ) {
+        Page<MarketplaceOrderResponse> marketplaceOrderResponses = orderService.viewAvailableOrder(pageable, keyword);
+        return ResponseEntity.ok(ApiResponse.success("Orders retrieved successfully", marketplaceOrderResponses));
     }
 }

@@ -1,6 +1,7 @@
 package com.fptpost.modules.order.service;
 
 import com.fptpost.common.exception.AppException;
+import com.fptpost.modules.order.dto.MarketplaceOrderResponse;
 import com.fptpost.modules.order.dto.OrderRequest;
 import com.fptpost.modules.order.dto.OrderResponse;
 import com.fptpost.modules.order.exception.OrderErrorCode;
@@ -10,6 +11,8 @@ import com.fptpost.modules.order.model.Order;
 import com.fptpost.modules.order.model.OrderImage;
 import com.fptpost.modules.order.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,5 +67,14 @@ public class OrderService {
             code = "FP" + System.currentTimeMillis() + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
         } while (orderRepository.existsByOrderCode(code));
         return code;
+    }
+
+    //Order Marketplace - Quốc An
+    public Page<MarketplaceOrderResponse> viewAvailableOrder(Pageable pageable, String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return orderMapper.toMarketplaceOrderResponses(orderRepository.findAvailableShippingOrder(pageable));
+        } else {
+            return orderMapper.toMarketplaceOrderResponses(orderRepository.findAvailableShippingOrderByKeyword(pageable, keyword));
+        }
     }
 }

@@ -1,13 +1,16 @@
 package com.fptpost.modules.order.mapper;
 
+import com.fptpost.modules.order.dto.MarketplaceOrderResponse;
 import com.fptpost.modules.order.dto.OrderRequest;
 import com.fptpost.modules.order.dto.OrderResponse;
 import com.fptpost.modules.order.model.Order;
 import com.fptpost.modules.order.model.OrderImage;
+import org.aspectj.weaver.ast.Or;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 import org.mapstruct.ReportingPolicy;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -27,6 +30,15 @@ public interface OrderMapper {
     @Mapping(target = "images", ignore = true)
     Order toEntity(OrderRequest request);
 
+    MarketplaceOrderResponse toMarketplaceOrderResponse(Order order);
+
+    default Page<MarketplaceOrderResponse> toMarketplaceOrderResponses(Page<Order> orders) {
+        if (orders.isEmpty()) {
+            return Page.empty();
+        }
+        return orders.map(this::toMarketplaceOrderResponse);
+    }
+
     @Named("mapImagesToUrls")
     default List<String> mapImagesToUrls(List<OrderImage> images) {
         if (images == null) {
@@ -36,4 +48,6 @@ public interface OrderMapper {
                 .map(OrderImage::getImageUrl)
                 .toList();
     }
+
+
 }
