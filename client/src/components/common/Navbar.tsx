@@ -24,8 +24,7 @@ export default function Navbar() {
       <div className="navbar-actions ui-row">
         {import.meta.env.DEV && <Link to="/ui-kit" className="nav-link navbar-dev-link" onClick={closeMenu}><PanelsTopLeft size={15} aria-hidden="true" />{copy.navigation.uiKit}</Link>}
         {user ? <NavLink to="/account" className="nav-link" onClick={closeMenu}><UserRound size={17} aria-hidden="true" />{copy.navigation.account}</NavLink>
-          : <><Link to="/login" className="ui-button ui-button-secondary ui-button-sm" onClick={closeMenu}>{copy.navigation.login}</Link>
-            <Link to="/register" className="ui-button ui-button-primary ui-button-sm" onClick={closeMenu}>{copy.navigation.register}</Link></>}
+          : <Link to="/login" className="ui-button ui-button-primary ui-button-sm" onClick={closeMenu}>{copy.navigation.login}</Link>}
         <Button className="navbar-toggle" variant="ghost" size="sm" aria-expanded={menuOpen} aria-controls="main-navigation"
           aria-label={menuOpen ? copy.navigation.closeMenu : copy.navigation.menu} onClick={() => setMenuOpen(!menuOpen)}
           icon={menuOpen ? <X size={20} /> : <Menu size={20} />} />

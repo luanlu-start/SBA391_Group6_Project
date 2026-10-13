@@ -9,4 +9,5 @@ import lombok.*;
 public class AuthenticationResult {
     private final AuthenticationResponse response;
     private final String refreshToken;
+    private final boolean rememberMe;
 }
