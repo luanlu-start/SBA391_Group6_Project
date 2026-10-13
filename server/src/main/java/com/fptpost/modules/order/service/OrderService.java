@@ -27,15 +27,7 @@ public class OrderService {
 
     @Transactional
     public ShippingOrderResponse createOrder(ShippingOrderRequest request) {
-        String orderCode = request.getOrderCode();
-        if (orderCode != null && !orderCode.isBlank()) {
-            orderCode = orderCode.trim();
-            if (shippingOrderRepository.existsByOrderCode(orderCode)) {
-                throw new AppException(OrderErrorCode.ORDER_CODE_ALREADY_EXISTS);
-            }
-        } else {
-            orderCode = generateOrderCode();
-        }
+        String orderCode = generateUniqueOrderCode();
 
         ShippingOrder order = orderMapper.toEntity(request);
         order.setOrderCode(orderCode);
@@ -66,7 +58,11 @@ public class OrderService {
         return orderMapper.toResponses(orders);
     }
 
-    private String generateOrderCode() {
-        return "FP" + System.currentTimeMillis() + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+    private String generateUniqueOrderCode() {
+        String code;
+        do {
+            code = "FP" + System.currentTimeMillis() + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+        } while (shippingOrderRepository.existsByOrderCode(code));
+        return code;
     }
 }

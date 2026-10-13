@@ -19,9 +19,6 @@ import java.util.List;
 @AllArgsConstructor
 public class ShippingOrderRequest {
 
-    @Size(max = 50, message = "Order code must not exceed 50 characters")
-    private String orderCode;
-
     @NotNull(message = "Sender ID is required")
     private Long senderId;
 

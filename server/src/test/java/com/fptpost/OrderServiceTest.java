@@ -59,20 +59,26 @@ class OrderServiceTest {
     }
 
     @Test
-    void createOrder_withExistingOrderCode_shouldThrowException() {
+    void createOrder_whenGeneratedCodeCollides_shouldRegenerateUniqueCode() {
         var request = ShippingOrderRequest.builder()
-                .orderCode("ORDER123")
                 .senderId(1L)
+                .pickupAddress("123 Le Loi")
+                .deliveryAddress("456 Nguyen Hue")
+                .receiverName("Nguyen Van A")
+                .receiverPhone("0901234567")
+                .productName("Sach")
+                .quantity(1)
+                .weightKg(new BigDecimal("0.300"))
                 .build();
 
-        when(repository.existsByOrderCode("ORDER123")).thenReturn(true);
+        when(repository.existsByOrderCode(anyString())).thenReturn(true, false);
+        when(repository.save(any(ShippingOrder.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        assertThatThrownBy(() -> service.createOrder(request))
-                .isInstanceOf(AppException.class)
-                .satisfies(ex -> assertThat(((AppException) ex).getErrorCode())
-                        .isEqualTo(OrderErrorCode.ORDER_CODE_ALREADY_EXISTS));
+        ShippingOrderResponse response = service.createOrder(request);
 
-        verify(repository, never()).save(any());
+        assertThat(response.getOrderCode()).isNotBlank().startsWith("FP");
+        verify(repository, times(2)).existsByOrderCode(anyString());
+        verify(repository).save(any(ShippingOrder.class));
     }
 
     @Test
