@@ -42,7 +42,7 @@ Các endpoint xác thực nằm trong `AuthenticationController`.
 | POST register | Nhận `fullName`, `email`, `phone`, `password`, `adultConfirmed`, `termsAccepted`, `privacyAccepted`, `termsVersion`, `privacyVersion`; trả `userId`, `status`, `challengeId`, `verificationChannel`, `maskedTarget`, `expiresAt`, `resendAvailableAt` |
 | POST otp/verify | Nhận `{challengeId, otp}`; OTP là chuỗi 6 số; trả `userId`, `status: ACTIVE`, `verificationChannel`, `verifiedAt` |
 | POST otp/resend | Nhận `{challengeId}`; trả challenge mới và metadata xác thực, frontend thay challenge đang lưu |
-| POST login | Nhận `{identifier, password}` với email hoặc SĐT; trả `accessToken`, `tokenType`, `expiresAt`, `user` và đặt refresh cookie |
+| POST login | Nhận `{identifier, password, rememberMe}` với email hoặc SĐT; `rememberMe` mặc định `false`; trả `accessToken`, `tokenType`, `expiresAt`, `user` và đặt refresh cookie |
 | POST refresh | Nhận refresh cookie; trả payload như login và thay refresh cookie |
 | POST logout | Bearer và CSRF; thu hồi phiên hiện tại, xóa refresh cookie |
 | GET me | Bearer; trả thông tin người dùng, không chứa mật khẩu hoặc token |
@@ -71,7 +71,12 @@ Trước login/refresh/logout, gọi `GET /api/v1/auth/csrf`, gửi token qua `h
 Access JWT dùng HS256, mặc định 15 phút; backend kiểm tra chữ ký, issuer/audience,
 trạng thái tài khoản và phiên SQL. Frontend giữ access token trong bộ nhớ.
 Refresh token chỉ lưu hash SHA-256 trong `sessions`, gửi bằng cookie HttpOnly,
-SameSite=Strict, Path=/api/v1/auth, mặc định 7 ngày. Refresh xoay token/phiên;
+SameSite=Strict, Path=/api/v1/auth, hạn xác thực mặc định 7 ngày. Khi `rememberMe=true`,
+cookie có Max-Age 7 ngày theo `app.authentication.refresh-ttl-days`; khi `false` hoặc
+không gửi trường này, cookie chỉ tồn tại trong phiên trình duyệt (không có Max-Age/Expires).
+Refresh giữ nguyên lựa chọn này. Trình duyệt có tính năng khôi phục phiên có thể khôi phục
+cả cookie phiên; thao tác đăng xuất vẫn thu hồi phiên ở backend và xóa cookie.
+Refresh xoay token/phiên;
 dùng lại token đã thay sẽ thu hồi mọi phiên của tài khoản. Giới hạn mặc định 5 phiên.
 Không lưu token, mật khẩu hoặc OTP vào localStorage/sessionStorage;
 trang OTP chỉ lưu metadata challenge trong sessionStorage để tiếp tục khi tải lại.

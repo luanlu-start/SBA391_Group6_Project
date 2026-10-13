@@ -32,7 +32,7 @@ export function useLogin() {
     setIsPending(true);
     setError(undefined);
     try {
-      await authService.login(values.identifier, values.password);
+      await authService.login(values.identifier, values.password, values.rememberMe);
       navigate('/account', { replace: true });
       return true;
     } catch (cause) {

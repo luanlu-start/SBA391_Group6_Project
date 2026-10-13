@@ -22,8 +22,8 @@ export const authService = {
     axiosClient.post<unknown, ApiResponse<OtpVerificationResponse>>('/auth/otp/verify', { challengeId, otp }),
   resendOtp: (challengeId: string) =>
     axiosClient.post<unknown, ApiResponse<OtpChallenge>>('/auth/otp/resend', { challengeId }),
-  async login(identifier: string, password: string) {
-    const { data } = await axiosClient.post<unknown, ApiResponse<AuthenticationResponse>>('/auth/login', { identifier, password },
+  async login(identifier: string, password: string, rememberMe = false) {
+    const { data } = await axiosClient.post<unknown, ApiResponse<AuthenticationResponse>>('/auth/login', { identifier, password, rememberMe },
       { headers: await csrfHeaders() });
     setAuthentication(data);
     return data;

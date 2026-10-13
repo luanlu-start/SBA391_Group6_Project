@@ -77,9 +77,12 @@ class AuthenticationHttpTest {
                 .andExpect(status().is(status)).andReturn();
     }
     MvcResult login(String identifier, String password, int status) throws Exception {
+        return login(Map.of("identifier", identifier, "password", password), status);
+    }
+    MvcResult login(Map<String, ?> payload, int status) throws Exception {
         Csrf csrf = csrf();
         return send(post("/api/v1/auth/login").cookie(csrf.cookie()).header(csrf.header(), csrf.token())
-                .contentType("application/json").content(json.writeValueAsBytes(Map.of("identifier", identifier, "password", password))), status);
+                .contentType("application/json").content(json.writeValueAsBytes(payload)), status);
     }
     MvcResult refresh(Cookie token, int status) throws Exception {
         Csrf csrf = csrf();
@@ -109,8 +112,30 @@ class AuthenticationHttpTest {
             var raw = cookie(result, "fptpost_refresh").getValue();
             assertThat(result.getResponse().getContentAsString()).doesNotContain(raw, "Secret123!", "passwordHash", "tokenHash", "refreshToken");
             assertThat(result.getResponse().getHeaders("Set-Cookie").toString()).contains("HttpOnly", "SameSite=Strict", "Path=/api/v1/auth");
+            assertThat(result.getResponse().getHeaders("Set-Cookie").toString()).doesNotContain("Max-Age", "Expires");
             assertThat(sessions.findAll()).allSatisfy(session -> assertThat(session.getTokenHash()).hasSize(64).isNotEqualTo(raw));
+            assertThat(sessions.findAll()).allSatisfy(session -> assertThat(session.isRememberMe()).isFalse());
             me(access(result), 200);
+        }
+    }
+    @Test void rememberMePreferenceControlsCookieLifetimeAcrossRefreshRotation() throws Exception {
+        for (boolean rememberMe : List.of(false, true)) {
+            var result = login(Map.of("identifier", user.getEmail(), "password", "Secret123!", "rememberMe", rememberMe), 200);
+            UUID initialId = UUID.fromString(decoder.decode(access(result)).getClaimAsString("sid"));
+            now.set(now.get().plusSeconds(60));
+            var refreshed = refresh(cookie(result, "fptpost_refresh"), 200);
+            for (var response : List.of(result, refreshed)) {
+                String header = response.getResponse().getHeaders("Set-Cookie").stream()
+                        .filter(value -> value.startsWith("fptpost_refresh=")).findFirst().orElseThrow();
+                assertThat(header).contains("HttpOnly", "SameSite=Strict", "Path=/api/v1/auth");
+                if (rememberMe) assertThat(header).contains("Max-Age=604800", "Expires=");
+                else assertThat(header).doesNotContain("Max-Age", "Expires");
+                UUID sessionId = response == result ? initialId : UUID.fromString(decoder.decode(access(response)).getClaimAsString("sid"));
+                var session = sessions.findByPublicId(sessionId).orElseThrow();
+                assertThat(session.isRememberMe()).isEqualTo(rememberMe);
+            }
+            me(access(result), 401);
+            me(access(refreshed), 200);
         }
     }
     @Test void invalidCredentialsHaveSameMessageAndNeverCreateSessions() throws Exception {
