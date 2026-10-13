@@ -1,14 +1,14 @@
 package com.fptpost.modules.order.service;
 
 import com.fptpost.common.exception.AppException;
-import com.fptpost.modules.order.dto.ShippingOrderRequest;
-import com.fptpost.modules.order.dto.ShippingOrderResponse;
+import com.fptpost.modules.order.dto.OrderRequest;
+import com.fptpost.modules.order.dto.OrderResponse;
 import com.fptpost.modules.order.exception.OrderErrorCode;
 import com.fptpost.modules.order.mapper.OrderMapper;
 import com.fptpost.modules.order.model.OrderStatus;
-import com.fptpost.modules.order.model.ShippingOrder;
-import com.fptpost.modules.order.model.ShippingOrderImage;
-import com.fptpost.modules.order.repository.ShippingOrderRepository;
+import com.fptpost.modules.order.model.Order;
+import com.fptpost.modules.order.model.OrderImage;
+import com.fptpost.modules.order.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,39 +22,39 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class OrderService {
 
-    private final ShippingOrderRepository shippingOrderRepository;
+    private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
 
     @Transactional
-    public ShippingOrderResponse createOrder(ShippingOrderRequest request) {
+    public OrderResponse createOrder(OrderRequest request) {
         String orderCode = generateUniqueOrderCode();
 
-        ShippingOrder order = orderMapper.toEntity(request);
+        Order order = orderMapper.toEntity(request);
         order.setOrderCode(orderCode);
         order.setStatus(OrderStatus.PENDING);
 
         if (request.getImageUrls() != null) {
             for (String imageUrl : request.getImageUrls()) {
                 if (imageUrl != null && !imageUrl.isBlank()) {
-                    order.addImage(ShippingOrderImage.builder()
+                    order.addImage(OrderImage.builder()
                             .imageUrl(imageUrl.trim())
                             .build());
                 }
             }
         }
 
-        ShippingOrder saved = shippingOrderRepository.save(order);
+        Order saved = orderRepository.save(order);
         return orderMapper.toResponse(saved);
     }
 
-    public ShippingOrderResponse getOrderById(Long id) {
-        ShippingOrder order = shippingOrderRepository.findById(id)
+    public OrderResponse getOrderById(Long id) {
+        Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new AppException(OrderErrorCode.ORDER_NOT_FOUND));
         return orderMapper.toResponse(order);
     }
 
-    public List<ShippingOrderResponse> getAllOrders() {
-        List<ShippingOrder> orders = shippingOrderRepository.findAll();
+    public List<OrderResponse> getAllOrders() {
+        List<Order> orders = orderRepository.findAll();
         return orderMapper.toResponses(orders);
     }
 
@@ -62,7 +62,7 @@ public class OrderService {
         String code;
         do {
             code = "FP" + System.currentTimeMillis() + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
-        } while (shippingOrderRepository.existsByOrderCode(code));
+        } while (orderRepository.existsByOrderCode(code));
         return code;
     }
 }

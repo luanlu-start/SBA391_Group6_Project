@@ -63,3 +63,16 @@ export interface AuthenticationResponse {
   expiresAt: string;
   user: UserResponse;
 }
+
+export interface SessionResponse {
+  id: string;
+  deviceInfo: string;
+  ip: string;
+  createdAt: string;
+  expiresAt: string;
+  current: boolean;
+}
+
+export interface SessionRevocationResponse {
+  currentSessionRevoked: boolean;
+}

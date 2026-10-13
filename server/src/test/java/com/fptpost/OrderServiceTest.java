@@ -1,13 +1,13 @@
 package com.fptpost;
 
 import com.fptpost.common.exception.AppException;
-import com.fptpost.modules.order.dto.ShippingOrderRequest;
-import com.fptpost.modules.order.dto.ShippingOrderResponse;
+import com.fptpost.modules.order.dto.OrderRequest;
+import com.fptpost.modules.order.dto.OrderResponse;
 import com.fptpost.modules.order.exception.OrderErrorCode;
 import com.fptpost.modules.order.mapper.OrderMapper;
 import com.fptpost.modules.order.model.OrderStatus;
-import com.fptpost.modules.order.model.ShippingOrder;
-import com.fptpost.modules.order.repository.ShippingOrderRepository;
+import com.fptpost.modules.order.model.Order;
+import com.fptpost.modules.order.repository.OrderRepository;
 import com.fptpost.modules.order.service.OrderService;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
@@ -23,13 +23,13 @@ import static org.mockito.Mockito.*;
 
 class OrderServiceTest {
 
-    private final ShippingOrderRepository repository = mock(ShippingOrderRepository.class);
+    private final OrderRepository repository = mock(OrderRepository.class);
     private final OrderMapper mapper = Mappers.getMapper(OrderMapper.class);
     private final OrderService service = new OrderService(repository, mapper);
 
     @Test
     void createOrder_shouldGenerateOrderCodeAndSaveSuccessfully() {
-        var request = ShippingOrderRequest.builder()
+        var request = OrderRequest.builder()
                 .senderId(1L)
                 .pickupAddress("123 Le Loi, Da Nang")
                 .deliveryAddress("456 Nguyen Hue, Da Nang")
@@ -42,25 +42,25 @@ class OrderServiceTest {
                 .imageUrls(List.of("https://example.com/img1.jpg"))
                 .build();
 
-        when(repository.save(any(ShippingOrder.class))).thenAnswer(invocation -> {
-            ShippingOrder saved = invocation.getArgument(0);
+        when(repository.save(any(Order.class))).thenAnswer(invocation -> {
+            Order saved = invocation.getArgument(0);
             saved.setId(10L);
             return saved;
         });
 
-        ShippingOrderResponse response = service.createOrder(request);
+        OrderResponse response = service.createOrder(request);
 
         assertThat(response).isNotNull();
         assertThat(response.getId()).isEqualTo(10L);
         assertThat(response.getOrderCode()).isNotBlank().startsWith("FP");
         assertThat(response.getStatus()).isEqualTo(OrderStatus.PENDING);
         assertThat(response.getImageUrls()).containsExactly("https://example.com/img1.jpg");
-        verify(repository).save(any(ShippingOrder.class));
+        verify(repository).save(any(Order.class));
     }
 
     @Test
     void createOrder_whenGeneratedCodeCollides_shouldRegenerateUniqueCode() {
-        var request = ShippingOrderRequest.builder()
+        var request = OrderRequest.builder()
                 .senderId(1L)
                 .pickupAddress("123 Le Loi")
                 .deliveryAddress("456 Nguyen Hue")
@@ -72,18 +72,18 @@ class OrderServiceTest {
                 .build();
 
         when(repository.existsByOrderCode(anyString())).thenReturn(true, false);
-        when(repository.save(any(ShippingOrder.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(repository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ShippingOrderResponse response = service.createOrder(request);
+        OrderResponse response = service.createOrder(request);
 
         assertThat(response.getOrderCode()).isNotBlank().startsWith("FP");
         verify(repository, times(2)).existsByOrderCode(anyString());
-        verify(repository).save(any(ShippingOrder.class));
+        verify(repository).save(any(Order.class));
     }
 
     @Test
     void getOrderById_shouldReturnOrder_whenFound() {
-        ShippingOrder order = ShippingOrder.builder()
+        Order order = Order.builder()
                 .id(1L)
                 .orderCode("ORD001")
                 .senderId(10L)
@@ -93,7 +93,7 @@ class OrderServiceTest {
 
         when(repository.findById(1L)).thenReturn(Optional.of(order));
 
-        ShippingOrderResponse response = service.getOrderById(1L);
+        OrderResponse response = service.getOrderById(1L);
 
         assertThat(response).isNotNull();
         assertThat(response.getId()).isEqualTo(1L);
@@ -112,12 +112,12 @@ class OrderServiceTest {
 
     @Test
     void getAllOrders_shouldReturnList() {
-        ShippingOrder order1 = ShippingOrder.builder().id(1L).orderCode("ORD001").status(OrderStatus.PENDING).build();
-        ShippingOrder order2 = ShippingOrder.builder().id(2L).orderCode("ORD002").status(OrderStatus.COMPLETED).build();
+        Order order1 = Order.builder().id(1L).orderCode("ORD001").status(OrderStatus.PENDING).build();
+        Order order2 = Order.builder().id(2L).orderCode("ORD002").status(OrderStatus.COMPLETED).build();
 
         when(repository.findAll()).thenReturn(List.of(order1, order2));
 
-        List<ShippingOrderResponse> results = service.getAllOrders();
+        List<OrderResponse> results = service.getAllOrders();
 
         assertThat(results).hasSize(2);
         assertThat(results.get(0).getOrderCode()).isEqualTo("ORD001");

@@ -16,10 +16,13 @@ import com.fptpost.modules.identity.config.AuthenticationCookies;
 import com.fptpost.modules.identity.dto.request.AuthenticationRequest;
 import com.fptpost.modules.identity.dto.response.AuthenticationResponse;
 import com.fptpost.modules.identity.dto.response.CsrfTokenResponse;
+import com.fptpost.modules.identity.dto.response.SessionResponse;
+import com.fptpost.modules.identity.dto.response.SessionRevocationResponse;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.web.csrf.CsrfToken;
 import java.util.UUID;
+import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -82,6 +85,24 @@ public class AuthenticationController {
     public ResponseEntity<ApiResponse<RegistrationPoliciesResponse>> getRegistrationPolicies() {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .body(ApiResponse.success(policyService.getPolicies()));
+    }
+
+    @GetMapping("/sessions")
+    @Operation(summary = "UC-04: Xem các phiên đang hoạt động của tài khoản hiện tại")
+    public ResponseEntity<ApiResponse<List<SessionResponse>>> sessions(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(ApiResponse.success(
+                authenticationService.sessions(UUID.fromString(jwt.getSubject()), UUID.fromString(jwt.getClaimAsString("sid")))));
+    }
+
+    @DeleteMapping("/sessions/{id}")
+    @Operation(summary = "UC-04: Đăng xuất một phiên của tài khoản hiện tại")
+    public ResponseEntity<ApiResponse<SessionRevocationResponse>> revokeSession(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+        boolean current = authenticationService.revokeSession(UUID.fromString(jwt.getSubject()), id,
+                UUID.fromString(jwt.getClaimAsString("sid")));
+        var response = ResponseEntity.ok().cacheControl(CacheControl.noStore());
+        if (current) response.header("Set-Cookie", cookies.clear());
+        return response.body(ApiResponse.success("Đã đăng xuất thiết bị.",
+                SessionRevocationResponse.builder().currentSessionRevoked(current).build()));
     }
 
     @PostMapping("/register")
