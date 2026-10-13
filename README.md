@@ -414,6 +414,8 @@ các khác biệt còn lại về response thành công/phân trang được ghi
 | POST | `/api/v1/auth/login` | Đăng nhập bằng email hoặc SĐT |
 | POST | `/api/v1/auth/refresh` | Làm mới JWT và xoay vòng refresh cookie |
 | POST | `/api/v1/auth/logout` | Đăng xuất phiên hiện tại |
+| GET | `/api/v1/auth/sessions` | Xem các phiên đang hoạt động của tài khoản |
+| DELETE | `/api/v1/auth/sessions/{id}` | Đăng xuất một phiên/thiết bị của tài khoản |
 | GET | `/api/v1/me` | Thông tin người dùng đang đăng nhập |
 
 Product ID và `entityId` của nhật ký dùng UUID.

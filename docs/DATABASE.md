@@ -123,6 +123,10 @@ DDL `update` thêm cột `bit NOT NULL DEFAULT 0`, các phiên cũ mặc định
 Mongo có `activity_logs` phục vụ ví dụ kỹ thuật. ActivityLog mẫu chưa phải audit_logs
 theo SPEC: chưa có actor, kiểm soát truy cập và đồng bộ outbox đảm bảo.
 
+UC-04 dùng `sessions` để liệt kê các phiên đang hoạt động và thu hồi theo tài khoản sở hữu.
+Khi refresh, phiên mới giữ thời điểm đăng nhập `created_at`; phiên cũ lưu `replaced_by`
+để thao tác đăng xuất trên danh sách cũ vẫn thu hồi đúng phiên tiếp nối.
+
 Hibernate `ddl-auto: update` tạo/cập nhật schema từ entity, cấu hình trong một
 `application.yml`. Identity initializer tạo role nền; seed demo riêng theo module/profile,
 chỉ thêm mẫu còn thiếu, không ghi đè dữ liệu đã sửa.

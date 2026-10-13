@@ -49,6 +49,7 @@ Không bọc object lỗi trong `data`, không có `success`, `message`, `timest
 | AUTH_REGISTRATION_BLOCKED | 403 | Thông tin bị blacklist |
 | AUTH_OTP_DELIVERY_FAILED | 503 | Không gửi được OTP; rollback đăng ký |
 | AUTH_REGISTRATION_CONFLICT | 409 | Xung đột unique khi đăng ký đồng thời |
+| AUTH_SESSION_NOT_FOUND | 404 | Phiên hết hạn/thu hồi, không tồn tại hoặc không thuộc tài khoản hiện tại |
 | RATE_LIMITED | 429 | Quá nhiều request; giữ Retry-After |
 
 Validation riêng dùng mã khai báo trong annotation và câu chữ trong resource bundle:
