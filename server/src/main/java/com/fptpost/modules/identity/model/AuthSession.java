@@ -41,6 +41,9 @@ public class AuthSession {
     @Column(name = "expires_at", nullable = false, columnDefinition = "datetime2(6)")
     private Instant expiresAt;
 
+    @Column(name = "remember_me", nullable = false, columnDefinition = "bit default 0")
+    private boolean rememberMe;
+
     @Column(name = "revoked_at", columnDefinition = "datetime2(6)")
     private Instant revokedAt;
 
