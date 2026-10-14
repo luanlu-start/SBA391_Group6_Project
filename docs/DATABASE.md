@@ -4,6 +4,24 @@ Nguồn: [Excel v1.0](sources/fptpost-br-uc-v1.0.xlsx), sheet `09_Dữ_liệu`, 
 [SPEC v1.0](sources/fptpost-spec-v1.0.pdf), mục 3–4.
 Đây là từ điển **thiết kế dự kiến**, chưa phải schema đang chạy hoặc ERD hoàn chỉnh.
 
+Nguồn đang áp dụng cho đợt 1: [Excel chính thức](plans/sources/applied-br-uc.xlsx).
+Danh mục cũ bên dưới được giữ để tham chiếu baseline; trạng thái triển khai UC-46 ngày 14/10 được ghi riêng.
+
+## Schema UC-46 đã chạy trên SQL Server/MongoDB thật
+
+| Bảng / collection | Vai trò hiện tại |
+| --- | --- |
+| SQL system_parameters | 109 key duy nhất; PRM/public UUID; giá trị chuỗi có kiểm tra kiểu; version, effective_from, updated_by |
+| SQL parameter_history | Giá trị trước/sau, actor UUID, thời điểm và version của từng lần sửa |
+| SQL outbox_events | Audit event/payload; trạng thái, lease/claim token, retry và thời điểm xử lý |
+| Mongo audit_logs | Audit append-only; eventId chống trùng, actor, before/after, IP, correlationId, thời gian |
+
+Mutation + history + outbox cùng giao dịch SQL. Worker gọi Mongo bên ngoài giao dịch SQL,
+sau đó xác nhận bằng claim token; mất kết nối được retry, duplicate chỉ chấp nhận khi nội dung sự kiện khớp.
+Seed chỉ thêm key thiếu; không ghi đè giá trị đã chỉnh. Không tạo bảng Order/Ledger trong đợt 1.
+Schema và giao dịch đã kiểm tra với database test riêng trên Docker SQL Server 2022/MongoDB 7,
+không thay đổi SQL Server Windows. Contract chi tiết: [UC46-CONTRACT](plans/UC46-CONTRACT.md).
+
 ## Phân chia dữ liệu
 
 | Kho | Dữ liệu và vai trò |

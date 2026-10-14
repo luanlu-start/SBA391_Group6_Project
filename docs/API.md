@@ -3,7 +3,22 @@
 API chạy được tra cứu trong Swagger UI tại `/swagger-ui/index.html`; OpenAPI runtime
 tại `/api-docs` (đường dẫn đã cấu hình trong application.yml). Danh mục FPTPost dự kiến lấy từ
 [Excel v1.0](sources/fptpost-br-uc-v1.0.xlsx), sheet `10_API`, dòng 5–171,
-và [SPEC](sources/fptpost-spec-v1.0.pdf), mục 6.
+và [SPEC](sources/fptpost-spec-v1.0.pdf), mục 6. Danh mục cũ bên dưới là baseline;
+nghiệp vụ/phân công hiện tại đối chiếu [Excel đang áp dụng](plans/sources/applied-br-uc.xlsx)
+và [manifest](plans/plan-manifest.json). UC-46 được triển khai theo bản đang áp dụng.
+
+## UC-46 đã triển khai — ADMIN
+
+| Method | Đường dẫn | Chức năng |
+| --- | --- | --- |
+| GET | /api/v1/admin/params | 109 tham số hiện tại, giá trị và phiên bản |
+| PUT | /api/v1/admin/params/{key} | Sửa một giá trị với expectedVersion |
+| PUT | /api/v1/admin/params/batch | Sửa nhiều giá trị nguyên tử; endpoint bổ sung cho ràng buộc liên khóa |
+| GET | /api/v1/admin/params/{key}/history | Lịch sử phân trang; endpoint bổ sung |
+| POST | /api/v1/admin/params/simulate | Preview tham số đề xuất; không ghi dữ liệu |
+
+Contract request/response, lỗi và adapter bàn giao xem [UC46-CONTRACT](plans/UC46-CONTRACT.md).
+Simulation hiện dùng adapter `REFERENCE` trong dev/demo/test/local; production/staging cần Pricing provider thật.
 
 ## Endpoint base đã có
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { getLoginDestination } from '../../../auth/loginDestination';
 import { authService } from '../../../services/authService';
 import { getApiError } from '../../../api/ApiError';
 import type { ApiError } from '../../../api/ApiError';
@@ -9,6 +10,7 @@ import { saveRegistrationChallenge } from '../../../utils/registrationChallenge'
 
 export function useLogin() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { initializing } = useAuthentication();
   const inFlight = useRef(false);
   const [isPending, setIsPending] = useState(false);
@@ -33,7 +35,7 @@ export function useLogin() {
     setError(undefined);
     try {
       await authService.login(values.identifier, values.password, values.rememberMe);
-      navigate('/account', { replace: true });
+      navigate(getLoginDestination(location.state), { replace: true });
       return true;
     } catch (cause) {
       const failure = getApiError(cause);

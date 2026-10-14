@@ -1,0 +1,181 @@
+{
+  "date": "2026-10-14",
+  "branch": "feature/UC-46-ThuanTC-cau-hinh-tham-so",
+  "merged_develop": "13eeb41",
+  "backend_tests": {
+    "discovered": 177,
+    "executed": 172,
+    "failures": 0,
+    "errors": 0,
+    "live_skipped": 5
+  },
+  "frontend": {
+    "typecheck": "PASS",
+    "lint": "PASS",
+    "build": "PASS"
+  },
+  "docker_build": "PASS",
+  "services": [
+    {
+      "service": "client",
+      "state": "running",
+      "health": "healthy"
+    },
+    {
+      "service": "mongodb",
+      "state": "running",
+      "health": "healthy"
+    },
+    {
+      "service": "server",
+      "state": "running",
+      "health": "healthy"
+    },
+    {
+      "service": "sqlserver",
+      "state": "running",
+      "health": "healthy"
+    }
+  ],
+  "http_checks": [
+    {
+      "path": "/actuator/health",
+      "method": "GET",
+      "http": 200,
+      "expected": 200
+    },
+    {
+      "path": "/api/v1/health",
+      "method": "GET",
+      "http": 200,
+      "expected": 200
+    },
+    {
+      "path": "/api/v1/admin/params",
+      "method": "GET",
+      "http": 401,
+      "expected": 401
+    },
+    {
+      "path": "/api/v1/orders",
+      "method": "GET",
+      "http": 200,
+      "expected": 200
+    },
+    {
+      "path": "/api/v1/auth/csrf",
+      "method": "GET",
+      "http": 200,
+      "expected": 200
+    },
+    {
+      "path": "/api/v1/auth/login",
+      "method": "POST",
+      "http": 200,
+      "expected": 200
+    },
+    {
+      "path": "/api/v1/admin/params",
+      "method": "GET",
+      "http": 200,
+      "expected": 200
+    },
+    {
+      "path": "/api/v1/admin/params/simulate",
+      "method": "POST",
+      "http": 200,
+      "expected": 200
+    },
+    {
+      "path": "/api/v1/admin/params/BASE_FARE/history?page=0&size=10",
+      "method": "GET",
+      "http": 200,
+      "expected": 200
+    },
+    {
+      "path": "/api/v1/admin/params",
+      "method": "GET",
+      "http": 200,
+      "expected": 200
+    },
+    {
+      "path": "/api/v1/auth/csrf",
+      "method": "GET",
+      "http": 200,
+      "expected": 200
+    },
+    {
+      "path": "/api/v1/auth/logout",
+      "method": "POST",
+      "http": 200,
+      "expected": 200
+    },
+    {
+      "path": "/api/v1/auth/csrf",
+      "method": "GET",
+      "http": 200,
+      "expected": 200
+    },
+    {
+      "path": "/api/v1/auth/login",
+      "method": "POST",
+      "http": 200,
+      "expected": 200
+    },
+    {
+      "path": "/api/v1/admin/params",
+      "method": "GET",
+      "http": 403,
+      "expected": 403
+    },
+    {
+      "path": "/api/v1/auth/csrf",
+      "method": "GET",
+      "http": 200,
+      "expected": 200
+    },
+    {
+      "path": "/api/v1/auth/logout",
+      "method": "POST",
+      "http": 200,
+      "expected": 200
+    },
+    {
+      "path": "/admin/params",
+      "method": "GET",
+      "http": 200,
+      "surface": "nginx SPA"
+    },
+    {
+      "path": "/sender/orders",
+      "method": "GET",
+      "http": 200,
+      "surface": "nginx SPA"
+    },
+    {
+      "path": "/sender/orders/new",
+      "method": "GET",
+      "http": 200,
+      "surface": "nginx SPA"
+    },
+    {
+      "path": "/sender/orders/1",
+      "method": "GET",
+      "http": 200,
+      "surface": "nginx SPA"
+    },
+    {
+      "path": "/api/v1/health",
+      "method": "GET",
+      "http": 200,
+      "surface": "nginx proxy"
+    }
+  ],
+  "catalog_count": 109,
+  "simulation_mode": "REFERENCE",
+  "parameters_changed_by_smoke": false,
+  "latest_client_image_running": true,
+  "actuator_status": "UP",
+  "upstream_demo_orders_seen": 4,
+  "note": "Used develop demo identities on local Docker only; no OTP/email/VNPay call; login sessions revoked after smoke. SPA HTTP status checks are not browser UAT."
+}

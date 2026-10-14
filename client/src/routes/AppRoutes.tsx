@@ -1,6 +1,7 @@
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
 import MainLayout from '../layouts/MainLayout';
+import AdminLayout from '../layouts/AdminLayout';
 import HomePage from '../pages/HomePage';
 import ProductsPage from '../pages/ProductsPage';
 import NotFoundPage from '../pages/NotFoundPage';
@@ -10,6 +11,7 @@ import LoginPage from '../pages/LoginPage';
 import AccountPage from '../pages/AccountPage';
 import SecurityPage from '../pages/SecurityPage';
 import LegalPage from '../pages/LegalPage';
+import AdminParametersPage from '../pages/AdminParametersPage';
 import OrdersPage from '../pages/OrdersPage';
 import CreateOrderPage from '../pages/CreateOrderPage';
 import OrderDetailPage from '../pages/OrderDetailPage';
@@ -30,6 +32,11 @@ export default function AppRoutes() {
       {UiKitPage && <Route path="/ui-kit/*" element={<Suspense fallback={<p role="status">Đang tải mẫu giao diện…</p>}><UiKitPage /></Suspense>} />}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route index element={<Navigate to="params" replace />} />
+        <Route path="params" element={<AdminParametersPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
       <Route path="/" element={<MainLayout />}>
         <Route index element={<HomePage />} />
         <Route path="products" element={<ProductsPage />} />

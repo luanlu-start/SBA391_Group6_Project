@@ -10,6 +10,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -42,6 +44,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(EmailDeliveryException.class)
     public ResponseEntity<ApiProblem> handleEmailFailure(HttpServletRequest request) {
         return problems.response(GlobalErrorCode.UPSTREAM_UNAVAILABLE, request, List.of());
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiProblem> handleAccessDenied(HttpServletRequest request) {
+        return problems.response(GlobalErrorCode.FORBIDDEN, request, List.of());
+    }
+
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ApiProblem> handleVersionConflict(HttpServletRequest request) {
+        return problems.response(GlobalErrorCode.RESOURCE_VERSION_CONFLICT, request, List.of());
     }
 
     @ExceptionHandler(Exception.class)

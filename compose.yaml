@@ -8,7 +8,7 @@ services:
       MSSQL_PID: Developer
       MSSQL_SA_PASSWORD: ${SQLSERVER_PASSWORD:?Set SQLSERVER_PASSWORD in the root .env file}
     ports:
-      - "127.0.0.1:${SQLSERVER_PORT:-1433}:1433"
+      - "127.0.0.1:${SQLSERVER_PORT:-31433}:1433"
     volumes:
       - sqlserver-2022-data:/var/opt/mssql
     healthcheck:
@@ -32,7 +32,7 @@ services:
   mongodb:
     image: mongo:7
     ports:
-      - "127.0.0.1:${MONGO_PORT:-27017}:27017"
+      - "127.0.0.1:${MONGO_PORT:-37017}:27017"
     volumes:
       - mongo-data:/data/db
     healthcheck:
@@ -44,6 +44,7 @@ services:
 
   mailpit:
     image: axllent/mailpit:v1.27.4
+    profiles: ["mailpit"]
     ports:
       - "127.0.0.1:${MAILPIT_PORT:-8025}:8025"
       - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
@@ -69,16 +70,14 @@ services:
       MAIL_FROM: ${MAIL_FROM:-no-reply@fptpost.local}
       MAIL_FROM_NAME: ${MAIL_FROM_NAME:-FPTPost}
       MAIL_TEMPLATE_CACHE: ${MAIL_TEMPLATE_CACHE:-false}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:${FRONTEND_PORT:-5173},http://127.0.0.1:${FRONTEND_PORT:-5173},http://localhost:5173,http://127.0.0.1:5173}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:${FRONTEND_PORT:-15173},http://127.0.0.1:${FRONTEND_PORT:-15173}}
     ports:
-      - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
+      - "127.0.0.1:${BACKEND_PORT:-18080}:8080"
     depends_on:
       sqlserver-init:
         condition: service_completed_successfully
       mongodb:
         condition: service_healthy
-      mailpit:
-        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/actuator/health"]
       interval: 10s
@@ -92,7 +91,7 @@ services:
       args:
         VITE_API_URL: /api/v1
     ports:
-      - "127.0.0.1:${FRONTEND_PORT:-5173}:80"
+      - "127.0.0.1:${FRONTEND_PORT:-15173}:80"
     depends_on:
       server:
         condition: service_healthy

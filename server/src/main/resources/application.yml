@@ -37,8 +37,8 @@ spring:
   mail:
     host: ${SMTP_HOST:localhost}
     port: ${SMTP_PORT:1025}
-    username: ${SMTP_USERNAME:fpost1.mail@gmail.com}
-    password: ${SMTP_PASSWORD:gmfa dopr akpq uptn}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
     properties:
       mail.smtp.auth: ${SMTP_AUTH:false}
       mail.smtp.starttls.enable: ${SMTP_STARTTLS:false}
