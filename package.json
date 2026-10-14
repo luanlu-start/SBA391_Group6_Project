@@ -16,7 +16,11 @@
     "docker:up": "docker compose up --build -d",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
-    "docker:db": "docker compose up -d sqlserver-init mongodb"
+    "docker:db": "docker compose up -d sqlserver-init mongodb",
+    "dev:local": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev.ps1",
+    "setup:check": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev.ps1 -Mode Check",
+    "setup:infra": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev.ps1 -Mode Infra",
+    "setup:sync": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev.ps1 -Mode Sync"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
