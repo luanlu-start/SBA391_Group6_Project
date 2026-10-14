@@ -1,15 +1,31 @@
 import axiosClient from './axiosClient';
 import type { ApiResponse } from '../types/api';
-import type { OrderResponse } from '../types/order';
+import type { Order, OrderRequest } from '../types/order';
 import type { OrderPaymentRequest, OrderPaymentResponse } from '../types/payment';
 
 export const orderApi = {
-  getById: (id: number | string) => {
-    return axiosClient.get<unknown, ApiResponse<OrderResponse>>(`/orders/${id}`);
+  create: (data: OrderRequest) => {
+    return axiosClient.post<unknown, ApiResponse<Order>>('/orders', data);
   },
 
   getAll: () => {
-    return axiosClient.get<unknown, ApiResponse<OrderResponse[]>>('/orders');
+    return axiosClient.get<unknown, ApiResponse<Order[]>>('/orders');
+  },
+
+  getById: (id: number | string) => {
+    return axiosClient.get<unknown, ApiResponse<Order>>(`/orders/${id}`);
+  },
+
+  uploadImages: (files: File[]) => {
+    const formData = new FormData();
+    files.forEach(file => {
+      formData.append('files', file);
+    });
+    return axiosClient.post<unknown, ApiResponse<string[]>>('/orders/upload-images', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
   },
 
   payOrder: (id: number | string, data: OrderPaymentRequest) => {

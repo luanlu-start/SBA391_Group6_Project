@@ -159,7 +159,7 @@ export default function OrderPaymentPage() {
   }
 
   const isSender = user.roles.includes('SENDER') || user.roles.includes('ADMIN');
-  const requiredAmount = order ? order.declaredValue : 0;
+  const requiredAmount = (order && order.declaredValue != null) ? order.declaredValue : 0;
   const availableBalance = wallet ? wallet.available : 0;
   const isWalletBalanceEnough = availableBalance >= requiredAmount;
   const isAlreadyEscrowed = order?.status === 'ESCROWED';

@@ -12,6 +12,11 @@ spring:
   messages:
     basename: messages/errors
     encoding: UTF-8
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 50MB
   datasource:
     url: ${SQLSERVER_URL:jdbc:sqlserver://${COMPUTERNAME}:1433;databaseName=group6_project_db;encrypt=true;trustServerCertificate=true}
     username: ${SQLSERVER_USERNAME:sa}
@@ -28,7 +33,7 @@ spring:
   data:
     mongodb:
       uri: ${MONGODB_URI:mongodb://localhost:27017/group6_project_db}
-      auto-index-creation: true
+      auto-index-creation: false
   mail:
     host: ${SMTP_HOST:localhost}
     port: ${SMTP_PORT:1025}
