@@ -10,10 +10,20 @@ import com.fptpost.modules.order.model.Order;
 import com.fptpost.modules.order.model.OrderImage;
 import com.fptpost.modules.order.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -55,6 +65,67 @@ public class OrderService {
     public List<OrderResponse> getAllOrders() {
         List<Order> orders = orderRepository.findAll();
         return orderMapper.toResponses(orders);
+    }
+
+    public List<String> uploadOrderImages(List<MultipartFile> files) {
+        if (files == null || files.isEmpty()) {
+            throw new AppException(OrderErrorCode.INVALID_IMAGE_FILE);
+        }
+
+        Path uploadPath = Paths.get("uploads", "orders").toAbsolutePath().normalize();
+        try {
+            Files.createDirectories(uploadPath);
+        } catch (IOException e) {
+            throw new AppException(OrderErrorCode.FILE_UPLOAD_FAILED);
+        }
+
+        List<String> imageUrls = new ArrayList<>();
+        Set<String> allowedMimeTypes = Set.of(
+                MediaType.IMAGE_JPEG_VALUE,
+                MediaType.IMAGE_PNG_VALUE,
+                "image/webp",
+                MediaType.IMAGE_GIF_VALUE
+        );
+
+        for (MultipartFile file : files) {
+            if (file == null || file.isEmpty()) {
+                continue;
+            }
+
+            String contentType = file.getContentType();
+            if (contentType == null || !allowedMimeTypes.contains(contentType.toLowerCase())) {
+                throw new AppException(OrderErrorCode.INVALID_IMAGE_FILE);
+            }
+
+            String originalFilename = file.getOriginalFilename();
+            String extension = ".jpg";
+            if (originalFilename != null && originalFilename.contains(".")) {
+                extension = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase();
+            }
+
+            String uniqueFileName = UUID.randomUUID() + extension;
+            Path targetLocation = uploadPath.resolve(uniqueFileName);
+
+            try {
+                Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException e) {
+                throw new AppException(OrderErrorCode.FILE_UPLOAD_FAILED);
+            }
+
+            String baseUrl = "";
+            try {
+                baseUrl = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
+            } catch (Exception ignored) {
+                // In non-web contexts such as unit tests, fallback to relative path
+            }
+            imageUrls.add(baseUrl + "/uploads/orders/" + uniqueFileName);
+        }
+
+        if (imageUrls.isEmpty()) {
+            throw new AppException(OrderErrorCode.INVALID_IMAGE_FILE);
+        }
+
+        return imageUrls;
     }
 
     private String generateUniqueOrderCode() {
