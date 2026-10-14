@@ -9,6 +9,9 @@ import VerifyOtpPage from '../pages/VerifyOtpPage';
 import LoginPage from '../pages/LoginPage';
 import AccountPage from '../pages/AccountPage';
 import LegalPage from '../pages/LegalPage';
+import OrdersPage from '../pages/OrdersPage';
+import CreateOrderPage from '../pages/CreateOrderPage';
+import OrderDetailPage from '../pages/OrderDetailPage';
 
 const UiKitPage = import.meta.env.DEV ? lazy(() => import('../pages/UiKitPage')) : null;
 
@@ -29,6 +32,9 @@ export default function AppRoutes() {
       <Route path="/" element={<MainLayout />}>
         <Route index element={<HomePage />} />
         <Route path="products" element={<ProductsPage />} />
+        <Route path="sender/orders" element={<OrdersPage />} />
+        <Route path="sender/orders/new" element={<CreateOrderPage />} />
+        <Route path="sender/orders/:id" element={<OrderDetailPage />} />
         <Route path="verify" element={<VerifyOtpPage />} />
         <Route path="account" element={<AccountPage />} />
         <Route path="legal" element={<LegalPage />} />
