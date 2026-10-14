@@ -51,7 +51,7 @@ public class SecurityConfig {
                                 "/api/v1/auth/login", "/api/v1/auth/refresh").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/orders/*/payment").hasAnyRole("SENDER", "ADMIN")
                         .requestMatchers("/api/v1/orders/**").permitAll()
-                        .requestMatchers("/api/v1/wallet/**").authenticated()
+                        .requestMatchers("/api/v1/wallet/**", "/api/wallet/**").authenticated()
                         .requestMatchers(
                                 "/api/payment/**", "/api/v1/payment/**", "/api/v1/vnpay/**"
                         ).permitAll()
