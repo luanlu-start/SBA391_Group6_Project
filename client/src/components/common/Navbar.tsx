@@ -1,6 +1,6 @@
 import { Link, NavLink } from 'react-router-dom';
 import { useState } from 'react';
-import { Menu, Package, PanelsTopLeft, UserRound, X } from 'lucide-react';
+import { Menu, Package, PanelsTopLeft, Settings2, UserRound, X } from 'lucide-react';
 import { useAuthentication } from '../../auth/useAuthentication';
 import Button from '../ui/Button';
 import copy from '../../i18n/home.vi.json';
@@ -22,6 +22,8 @@ export default function Navbar() {
         <Link to="/#become-courier" className="nav-link" onClick={closeMenu}>{copy.navigation.courier}</Link>
       </nav>
       <div className="navbar-actions ui-row">
+        {user?.roles.includes('ADMIN') && <NavLink to="/admin/params" className="nav-link" onClick={closeMenu}>
+          <Settings2 size={17} aria-hidden="true" />Quản trị</NavLink>}
         {import.meta.env.DEV && <Link to="/ui-kit" className="nav-link navbar-dev-link" onClick={closeMenu}><PanelsTopLeft size={15} aria-hidden="true" />{copy.navigation.uiKit}</Link>}
         {user ? <NavLink to="/account" className="nav-link" onClick={closeMenu}><UserRound size={17} aria-hidden="true" />{copy.navigation.account}</NavLink>
           : <Link to="/login" className="ui-button ui-button-primary ui-button-sm" onClick={closeMenu}>{copy.navigation.login}</Link>}

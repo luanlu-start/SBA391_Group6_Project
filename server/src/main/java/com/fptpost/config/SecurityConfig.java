@@ -49,7 +49,8 @@ public class SecurityConfig {
                                 "/swagger-ui.html", "/api/v1/auth/registration-policies", "/api/v1/auth/csrf").permitAll()
                         .requestMatchers("/api/v1/auth/register", "/api/v1/auth/otp/verify", "/api/v1/auth/otp/resend",
                                 "/api/v1/auth/login", "/api/v1/auth/refresh").permitAll()
-                        .requestMatchers("/actuator/**").hasRole("ADMIN").anyRequest().authenticated())
+                        .requestMatchers("/actuator/**", "/api/v1/admin/**").hasRole("ADMIN")
+                        .anyRequest().authenticated())
                 .exceptionHandling(errors -> errors.authenticationEntryPoint((request, response, exception) ->
                                 writeProblem(problems, mapper, request, response, GlobalErrorCode.UNAUTHORIZED))
                         .accessDeniedHandler((request, response, exception) ->
