@@ -123,4 +123,42 @@ class OrderServiceTest {
         assertThat(results.get(0).getOrderCode()).isEqualTo("ORD001");
         assertThat(results.get(1).getOrderCode()).isEqualTo("ORD002");
     }
+
+    @Test
+    void uploadOrderImages_shouldUploadAndReturnUrls_whenValidImage() {
+        var file = new org.springframework.mock.web.MockMultipartFile(
+                "files",
+                "test-parcel.jpg",
+                "image/jpeg",
+                "sample-image-bytes".getBytes()
+        );
+
+        List<String> urls = service.uploadOrderImages(List.of(file));
+
+        assertThat(urls).isNotEmpty();
+        assertThat(urls.get(0)).contains("/uploads/orders/").endsWith(".jpg");
+    }
+
+    @Test
+    void uploadOrderImages_shouldThrowException_whenInvalidMimeType() {
+        var file = new org.springframework.mock.web.MockMultipartFile(
+                "files",
+                "document.pdf",
+                "application/pdf",
+                "dummy-bytes".getBytes()
+        );
+
+        assertThatThrownBy(() -> service.uploadOrderImages(List.of(file)))
+                .isInstanceOf(AppException.class)
+                .satisfies(ex -> assertThat(((AppException) ex).getErrorCode())
+                        .isEqualTo(OrderErrorCode.INVALID_IMAGE_FILE));
+    }
+
+    @Test
+    void uploadOrderImages_shouldThrowException_whenEmptyList() {
+        assertThatThrownBy(() -> service.uploadOrderImages(List.of()))
+                .isInstanceOf(AppException.class)
+                .satisfies(ex -> assertThat(((AppException) ex).getErrorCode())
+                        .isEqualTo(OrderErrorCode.INVALID_IMAGE_FILE));
+    }
 }

@@ -9,6 +9,8 @@ dist-ssr/
 build/
 target/
 server/target/
+uploads/
+server/uploads/
 *.local
 *.class
 *.jar
