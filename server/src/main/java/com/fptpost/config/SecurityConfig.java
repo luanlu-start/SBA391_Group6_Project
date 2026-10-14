@@ -46,7 +46,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/health", "/actuator/health/**", "/api-docs/**", "/swagger-ui/**",
-                                "/swagger-ui.html", "/api/v1/auth/registration-policies", "/api/v1/auth/csrf").permitAll()
+                                "/swagger-ui.html", "/api/v1/auth/registration-policies", "/api/v1/auth/csrf", "/uploads/**").permitAll()
                         .requestMatchers("/api/v1/auth/register", "/api/v1/auth/otp/verify", "/api/v1/auth/otp/resend",
                                 "/api/v1/auth/login", "/api/v1/auth/refresh").permitAll()
                         .requestMatchers("/api/v1/orders/**").permitAll()

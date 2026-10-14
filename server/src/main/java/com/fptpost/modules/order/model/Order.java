@@ -2,6 +2,7 @@ package com.fptpost.modules.order.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Nationalized;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -16,11 +17,11 @@ import java.util.List;
 @ToString(exclude = "images")
 @EqualsAndHashCode(of = "id")
 @Entity
-@Table(name = "shipping_orders", indexes = {
-    @Index(name = "idx_shipping_orders_order_code", columnList = "order_code", unique = true),
-    @Index(name = "idx_shipping_orders_sender_id", columnList = "sender_id"),
-    @Index(name = "idx_shipping_orders_status", columnList = "status"),
-    @Index(name = "idx_shipping_orders_created_at", columnList = "created_at")
+@Table(name = "orders", indexes = {
+    @Index(name = "idx_orders_order_code", columnList = "order_code", unique = true),
+    @Index(name = "idx_orders_sender_id", columnList = "sender_id"),
+    @Index(name = "idx_orders_status", columnList = "status"),
+    @Index(name = "idx_orders_created_at", columnList = "created_at")
 })
 public class Order {
 
@@ -34,22 +35,30 @@ public class Order {
     @Column(name = "sender_id", nullable = false)
     private Long senderId;
 
-    @Column(name = "pickup_address", nullable = false, length = 500)
+    @Column(name = "courier_id")
+    private Long courierId;
+
+    @Nationalized
+    @Column(name = "pickup_address", nullable = false, length = 500, columnDefinition = "nvarchar(500)")
     private String pickupAddress;
 
-    @Column(name = "delivery_address", nullable = false, length = 500)
+    @Nationalized
+    @Column(name = "delivery_address", nullable = false, length = 500, columnDefinition = "nvarchar(500)")
     private String deliveryAddress;
 
-    @Column(name = "receiver_name", nullable = false, length = 100)
+    @Nationalized
+    @Column(name = "receiver_name", nullable = false, length = 100, columnDefinition = "nvarchar(100)")
     private String receiverName;
 
     @Column(name = "receiver_phone", nullable = false, length = 20)
     private String receiverPhone;
 
-    @Column(name = "product_name", nullable = false, length = 255)
+    @Nationalized
+    @Column(name = "product_name", nullable = false, length = 255, columnDefinition = "nvarchar(255)")
     private String productName;
 
-    @Column(name = "product_description", length = 1000)
+    @Nationalized
+    @Column(name = "product_description", length = 1000, columnDefinition = "nvarchar(1000)")
     private String productDescription;
 
     @Column(name = "quantity", nullable = false)
@@ -61,7 +70,18 @@ public class Order {
     @Column(name = "declared_value", precision = 15, scale = 2)
     private BigDecimal declaredValue;
 
-    @Column(name = "delivery_note", length = 500)
+    @Column(name = "price_suggested", precision = 15, scale = 2)
+    private BigDecimal priceSuggested;
+
+    @Column(name = "price_agreed", precision = 15, scale = 2)
+    private BigDecimal priceAgreed;
+
+
+    @Column(name = "distance_km", precision = 10, scale = 2)
+    private BigDecimal distanceKm;
+
+    @Nationalized
+    @Column(name = "delivery_note", length = 500, columnDefinition = "nvarchar(500)")
     private String deliveryNote;
 
     @Enumerated(EnumType.STRING)
