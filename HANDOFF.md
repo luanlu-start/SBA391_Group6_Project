@@ -9,6 +9,11 @@ Ngày 14/10, Thuận yêu cầu commit và push bản bàn giao trên nhánh nà
 Chi tiết chức năng, API, kết quả kiểm thử và phần còn chờ Pricing: [ROUND1-HANDOFF](docs/plans/ROUND1-HANDOFF.md).
 Trang quản trị: `http://localhost:15173/admin/params`, yêu cầu tài khoản có role `ADMIN`.
 
+**Cập nhật merge develop ngày 14/10:** đã ghép UC-12/UC-34 từ `13eeb41`, giữ route
+đơn hàng/thanh toán và ADMIN guard của UC-46. Kiểm thử sau merge và runtime xem
+[MERGE-DEVELOP-CHECK](docs/plans/MERGE-DEVELOP-CHECK.md). Thông tin SMTP vẫn lấy từ `.env`;
+không dùng credentials dự phòng gán trực tiếp trong source.
+
 **Cấu hình hiện tại dùng SQL Server 2022 và MongoDB riêng trong Docker, Gmail SMTP,
 profile `dev,demo`.** SQL Server Windows không được dùng hoặc thay đổi.
 Backend package đã PASS **144 tests**, Frontend lint/typecheck/build PASS.
@@ -135,7 +140,8 @@ SQL có Product/Identity và UC-46: `system_parameters`, `parameter_history`,
 `activity_logs` và `audit_logs`; outbox dispatcher chạy trong Backend, không cần service mới.
 
 Identity initializer tạo roles `SENDER`, `COURIER`, `MODERATOR`, `ADMIN`;
-không tạo user/admin mặc định. API quản trị UC-46 yêu cầu user có role `ADMIN`.
+seed demo mới từ develop bổ sung user theo từng role ở profile dev/demo/test/local,
+giữ các tài khoản đã tồn tại. API quản trị UC-46 yêu cầu user có role `ADMIN`.
 Profile `dev,demo` thêm Product mẫu còn thiếu, giữ các bản ghi đã chỉnh sửa.
 
 Các trang: `/register`, `/verify`, `/login`, `/account`, `/me/security`, `/products`.

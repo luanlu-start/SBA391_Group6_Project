@@ -14327,6 +14327,18 @@
       "Order snapshot consumer",
       "Identity parameter consumer"
     ],
-    "next_package": "P02"
+    "next_package": "P02",
+    "merge_develop": {
+      "source_commit": "13eeb41",
+      "date": "2026-10-14",
+      "backend_discovered": 177,
+      "backend_executed": 172,
+      "backend_failures": 0,
+      "backend_errors": 0,
+      "live_skipped": 5,
+      "frontend_checks": "PASS",
+      "evidence": "docs/plans/evidence/merge-develop-verification.json",
+      "note": "Original 149-test evidence above belongs to pre-merge verification"
+    }
   }
 }

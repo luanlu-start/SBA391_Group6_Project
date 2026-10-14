@@ -4,6 +4,10 @@ Hoàn tất bản độc lập ngày **14/10/2026** trên máy của Thuận.
 Nhánh **feature/UC-46-ThuanTC-cau-hinh-tham-so**. Thuận yêu cầu commit/push bản bàn giao ngày 14/10; tra mã commit và trạng thái remote bằng Git.
 Yêu cầu Excel đang áp dụng được giữ nguyên; các cập nhật runtime của nhóm đã được tiếp nhận.
 
+Cập nhật sau bàn giao: đã ghép develop `13eeb41` (UC-12/UC-34), giữ UC-46 và kiểm thử
+toàn bộ bản merge. Kết quả mới ở [MERGE-DEVELOP-CHECK.md](MERGE-DEVELOP-CHECK.md);
+các số liệu/ảnh nghiệm thu đầu bên dưới được giữ làm lịch sử.
+
 ## Phần đã hoàn thành
 
 | Gói | Trạng thái | Kết quả |
@@ -30,6 +34,8 @@ Các trọng số tổng bằng 1 được lưu bằng PUT batch nguyên tử.
 Trang quản trị yêu cầu tài khoản thật có role ADMIN. Tài khoản đang có role SENDER
 không được tự nâng quyền. ADMIN dùng trong browser UAT là identity riêng trong database test tạm thời,
 đã dọn sau kiểm thử; không phải tài khoản mặc định của ứng dụng.
+Sau khi ghép develop, UserDemoSeeder của nhóm bổ sung các identity demo, bao gồm ADMIN,
+trong profile dev/demo/test/local; không thay role/password của tài khoản đã tồn tại.
 
 Chạy lại tại thư mục gốc, giữ `.env` hiện có:
 
