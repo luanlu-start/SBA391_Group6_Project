@@ -10,6 +10,8 @@ import LoginPage from '../pages/LoginPage';
 import AccountPage from '../pages/AccountPage';
 import SecurityPage from '../pages/SecurityPage';
 import LegalPage from '../pages/LegalPage';
+import WalletPage from '../pages/WalletPage';
+import VNPayReturnPage from '../pages/VNPayReturnPage';
 
 const UiKitPage = import.meta.env.DEV ? lazy(() => import('../pages/UiKitPage')) : null;
 
@@ -30,6 +32,9 @@ export default function AppRoutes() {
       <Route path="/" element={<MainLayout />}>
         <Route index element={<HomePage />} />
         <Route path="products" element={<ProductsPage />} />
+        <Route path="wallet" element={<WalletPage />} />
+        <Route path="payment/vnpay-return" element={<VNPayReturnPage />} />
+        <Route path="vnpay-return" element={<VNPayReturnPage />} />
         <Route path="verify" element={<VerifyOtpPage />} />
         <Route path="account" element={<AccountPage />} />
         <Route path="me/security" element={<SecurityPage />} />

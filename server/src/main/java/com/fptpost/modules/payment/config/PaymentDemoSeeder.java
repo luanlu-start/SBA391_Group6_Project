@@ -32,6 +32,7 @@ public class PaymentDemoSeeder implements CommandLineRunner {
     private final Optional<OrderRepository> orderRepository;
     private final Optional<UserRepository> userRepository;
     private final Optional<UserDemoSeeder> userDemoSeeder;
+    private final com.fptpost.modules.payment.repository.WalletRepository walletRepository;
 
     @Override
     public void run(String... args) {
@@ -58,6 +59,17 @@ public class PaymentDemoSeeder implements CommandLineRunner {
 
         log.info("--> Initializing VNPay testing sample data (linked to Sender ID: {})...", senderId);
 
+        // Seed demo wallet with 2,500,000 VND available
+        if (walletRepository.findByUserId(senderId).isEmpty()) {
+            walletRepository.save(com.fptpost.modules.payment.model.Wallet.builder()
+                    .userId(senderId)
+                    .available(2_500_000L)
+                    .escrowHeld(0L)
+                    .pendingWithdraw(0L)
+                    .build());
+            log.info("Seeded demo wallet for senderId={}: 2,500,000 VND", senderId);
+        }
+
         seedOrder("ORD-TEST-001", "Tài liệu hợp đồng kinh tế", BigDecimal.valueOf(150000), OrderStatus.PENDING, senderId);
         seedOrder("ORD-TEST-002", "Gói quà lưu niệm công nghệ", BigDecimal.valueOf(250000), OrderStatus.PENDING, senderId);
         seedOrder("ORD-TEST-003", "Thiết bị điện tử chuyển phát nhanh", BigDecimal.valueOf(500000), OrderStatus.FINDING_SHIPPER, senderId);
@@ -68,6 +80,8 @@ public class PaymentDemoSeeder implements CommandLineRunner {
             paymentTransactionRepository.save(PaymentTransaction.builder()
                     .txnRef("ORD-TEST-001")
                     .orderCode("ORD-TEST-001")
+                    .userId(senderId)
+                    .purpose(com.fptpost.modules.payment.model.PaymentPurpose.ORDER_ESCROW)
                     .amount(BigDecimal.valueOf(150000))
                     .orderInfo("Thanh toan don hang test ORD-TEST-001")
                     .bankCode("NCB")
