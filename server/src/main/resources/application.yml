@@ -13,9 +13,9 @@ spring:
     basename: messages/errors
     encoding: UTF-8
   datasource:
-    url: ${SQLSERVER_URL:jdbc:sqlserver://localhost:1433;databaseName=group6_project_db;encrypt=true;trustServerCertificate=true}
+    url: ${SQLSERVER_URL:jdbc:sqlserver://${COMPUTERNAME}:1433;databaseName=group6_project_db;encrypt=true;trustServerCertificate=true}
     username: ${SQLSERVER_USERNAME:sa}
-    password: ${SQLSERVER_PASSWORD:123456}
+    password: ${SQLSERVER_PASSWORD:123}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
   jpa:
     open-in-view: false
@@ -32,8 +32,8 @@ spring:
   mail:
     host: ${SMTP_HOST:localhost}
     port: ${SMTP_PORT:1025}
-    username: ${SMTP_USERNAME:}
-    password: ${SMTP_PASSWORD:}
+    username: ${SMTP_USERNAME:fpost1.mail@gmail.com}
+    password: ${SMTP_PASSWORD:gmfa dopr akpq uptn}
     properties:
       mail.smtp.auth: ${SMTP_AUTH:false}
       mail.smtp.starttls.enable: ${SMTP_STARTTLS:false}
@@ -61,6 +61,9 @@ management:
   endpoint:
     health:
       show-details: always
+  health:
+    mail:
+      enabled: false
 
 # Application Custom Properties
 logging:
@@ -91,3 +94,17 @@ app:
     login-lock-minutes: 15
     max-devices: 5
     cookie-secure: ${AUTH_COOKIE_SECURE:false}
+
+# VNPay Payment Gateway Configuration
+vnpay:
+  vnp_TmnCode: ${VNPAY_TMN_CODE:B91MXQ5Y}
+  vnp_HashSecret: ${VNPAY_HASH_SECRET:HDMKJXGPKGDZUQJDDBEFKXEIXZYWSNCM}
+  vnp_PayUrl: ${VNPAY_PAY_URL:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+  vnp_ReturnUrl: ${VNPAY_RETURN_URL:http://localhost:8080/api/payment/vnpay-return}
+  vnp_ApiUrl: ${VNPAY_API_URL:https://sandbox.vnpayment.vn/merchant_webapi/api/transaction}
+  version: "2.1.0"
+  command: "pay"
+  order-type: "other"
+  curr-code: "VND"
+  locale: "vn"
+  timeout-minutes: 15
