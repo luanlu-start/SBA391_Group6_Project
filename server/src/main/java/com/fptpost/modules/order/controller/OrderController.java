@@ -14,6 +14,19 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import com.fptpost.common.exception.AppException;
+import com.fptpost.common.exception.GlobalErrorCode;
+import com.fptpost.modules.identity.model.User;
+import com.fptpost.modules.identity.repository.UserRepository;
+import com.fptpost.modules.payment.dto.OrderPaymentRequest;
+import com.fptpost.modules.payment.dto.OrderPaymentResponse;
+import com.fptpost.modules.payment.service.OrderPaymentService;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/v1/orders")
 @RequiredArgsConstructor
@@ -21,6 +34,8 @@ import java.util.List;
 public class OrderController {
 
     private final OrderService orderService;
+    private final OrderPaymentService orderPaymentService;
+    private final UserRepository userRepository;
 
     @PostMapping
     @Operation(summary = "Tạo mới đơn hàng", description = "Tạo mới một đơn hàng vào hệ thống")
@@ -43,5 +58,27 @@ public class OrderController {
     public ResponseEntity<ApiResponse<List<OrderResponse>>> getAllOrders() {
         List<OrderResponse> orders = orderService.getAllOrders();
         return ResponseEntity.ok(ApiResponse.success("Orders retrieved successfully", orders));
+    }
+
+    @PostMapping("/{id}/payment")
+    @Operation(summary = "Thanh toán và ký quỹ đơn hàng (UC-35, API-087)", description = "Người gửi thực hiện thanh toán ký quỹ đơn hàng qua Ví nội bộ hoặc Cổng VNPay.")
+    public ResponseEntity<ApiResponse<OrderPaymentResponse>> payOrder(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody OrderPaymentRequest request,
+            HttpServletRequest httpRequest) {
+        Long userId = resolveUserId(jwt);
+        OrderPaymentResponse response = orderPaymentService.payOrder(userId, id, request, httpRequest);
+        return ResponseEntity.ok(ApiResponse.success("Xử lý thanh toán đơn hàng thành công", response));
+    }
+
+    private Long resolveUserId(Jwt jwt) {
+        if (jwt == null || jwt.getSubject() == null) {
+            throw new AppException(GlobalErrorCode.UNAUTHORIZED);
+        }
+        UUID publicId = UUID.fromString(jwt.getSubject());
+        return userRepository.findByPublicId(publicId)
+                .map(User::getId)
+                .orElseThrow(() -> new AppException(GlobalErrorCode.UNAUTHORIZED));
     }
 }

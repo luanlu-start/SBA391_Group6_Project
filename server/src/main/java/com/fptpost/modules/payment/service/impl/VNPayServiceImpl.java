@@ -18,8 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fptpost.modules.payment.model.Wallet;
-import com.fptpost.modules.payment.model.PaymentPurpose;
+import com.fptpost.modules.payment.model.*;
+import com.fptpost.modules.payment.repository.EscrowRepository;
 import com.fptpost.modules.payment.repository.WalletRepository;
 import com.fptpost.modules.payment.service.LedgerService;
 
@@ -48,6 +48,7 @@ public class VNPayServiceImpl implements VNPayService {
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final Optional<OrderRepository> orderRepository;
     private final WalletRepository walletRepository;
+    private final EscrowRepository escrowRepository;
     private final LedgerService ledgerService;
 
     @Override
@@ -266,6 +267,39 @@ public class VNPayServiceImpl implements VNPayService {
 
                     ledgerService.recordWalletTopup(transaction.getUserId(), addAmount, txnRef);
                     log.info("Successfully credited {} VND to wallet of user {} via IPN", addAmount, transaction.getUserId());
+                }
+            }
+            // 2. UC-35: Ký quỹ đơn hàng qua VNPay
+            else if (transaction.getPurpose() == PaymentPurpose.ORDER_ESCROW) {
+                Long orderId = transaction.getOrderId();
+                Long userId = transaction.getUserId();
+                long amount = transaction.getAmount().longValue();
+
+                if (orderId != null && !escrowRepository.existsByOrderId(orderId)) {
+                    Escrow escrow = Escrow.builder()
+                            .orderId(orderId)
+                            .senderId(userId != null ? userId : 0L)
+                            .amount(amount)
+                            .status(EscrowStatus.HELD)
+                            .paymentMethod(EscrowPaymentMethod.VNPAY)
+                            .releaseAt(Instant.now().plus(Duration.ofHours(24)))
+                            .frozen(false)
+                            .build();
+                    escrowRepository.save(escrow);
+                }
+
+                if (orderId != null) {
+                    ledgerService.recordOrderEscrowFromVNPay(orderId, userId != null ? userId : 0L, amount, txnRef);
+                }
+
+                if (orderId != null && orderRepository.isPresent()) {
+                    orderRepository.get().findById(orderId).ifPresent(order -> {
+                        order.setStatus(OrderStatus.ESCROWED);
+                        orderRepository.get().save(order);
+                        log.info("Updated order {} to ESCROWED following VNPay IPN success", orderId);
+                    });
+                } else if (transaction.getOrderCode() != null) {
+                    updateShippingOrderIfPresent(transaction.getOrderCode(), OrderStatus.ESCROWED);
                 }
             } else {
                 // Fallback cho đơn hàng cũ
