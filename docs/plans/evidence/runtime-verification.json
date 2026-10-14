@@ -1,0 +1,130 @@
+{
+  "date": "2026-10-14",
+  "branch": "feature/UC-46-ThuanTC-cau-hinh-tham-so",
+  "compose_build": "PASS",
+  "docker_package_tests": {
+    "discovered": 149,
+    "failures": 0,
+    "errors": 0,
+    "executed": 144,
+    "live_skipped": 5
+  },
+  "services": [
+    {
+      "Service": "client",
+      "State": "running",
+      "Health": "healthy"
+    },
+    {
+      "Service": "mongodb",
+      "State": "running",
+      "Health": "healthy"
+    },
+    {
+      "Service": "server",
+      "State": "running",
+      "Health": "healthy"
+    },
+    {
+      "Service": "sqlserver",
+      "State": "running",
+      "Health": "healthy"
+    }
+  ],
+  "checks": [
+    {
+      "url": "http://localhost:18080/api/v1/health",
+      "status": 200,
+      "result": {
+        "success": true,
+        "status": 200,
+        "code": 1000,
+        "message": "Backend service is healthy and operational",
+        "data": {
+          "service": "sba391-group6-server",
+          "jvmVersion": "21.0.12.1",
+          "profile": "dev,demo",
+          "uptimeMs": 203104,
+          "status": "UP",
+          "timestamp": "2026-10-14T02:14:26.313972499Z"
+        },
+        "timestamp": "2026-10-14T02:14:26.314085515Z"
+      }
+    },
+    {
+      "url": "http://localhost:15173",
+      "status": 200,
+      "result": null
+    },
+    {
+      "url": "http://localhost:15173/api/v1/health",
+      "status": 200,
+      "result": {
+        "success": true,
+        "status": 200,
+        "code": 1000,
+        "message": "Backend service is healthy and operational",
+        "data": {
+          "service": "sba391-group6-server",
+          "jvmVersion": "21.0.12.1",
+          "profile": "dev,demo",
+          "uptimeMs": 207271,
+          "status": "UP",
+          "timestamp": "2026-10-14T02:14:30.480687449Z"
+        },
+        "timestamp": "2026-10-14T02:14:30.480791864Z"
+      }
+    },
+    {
+      "url": "http://localhost:18080/api/v1/admin/params",
+      "status": 401,
+      "result": null
+    }
+  ],
+  "actuator": {
+    "components": [
+      {
+        "name": "db",
+        "status": "UP"
+      },
+      {
+        "name": "diskSpace",
+        "status": "UP"
+      },
+      {
+        "name": "mail",
+        "status": "UP"
+      },
+      {
+        "name": "mongo",
+        "status": "UP"
+      },
+      {
+        "name": "ping",
+        "status": "UP"
+      },
+      {
+        "name": "ssl",
+        "status": "UP"
+      }
+    ],
+    "note": "First probe timeout at 5 seconds; repeat completed with HTTP 200/UP using 25-second timeout",
+    "status": "UP",
+    "http": 200
+  },
+  "frontend_latest_image": true,
+  "sql": {
+    "parameters": 109,
+    "history": 0,
+    "distinct_keys": 109,
+    "database": "group6_project_db",
+    "outbox": 0
+  },
+  "mongo": {
+    "audit_count": 0,
+    "database": "group6_project_db",
+    "eventId_unique_index": true
+  },
+  "data_note": "UAT mutations used isolated test databases; app parameter data remained baseline",
+  "temporary_vite_stopped": true
+}

@@ -1,0 +1,177 @@
+{
+  "date": "2026-10-14",
+  "branch": "feature/UC-46-ThuanTC-cau-hinh-tham-so",
+  "suites": [
+    {
+      "name": "com.fptpost.ActivityLogServiceTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.ActivityTransactionTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.AuthenticationHttpTest",
+      "tests": 21,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.AuthenticationRateLimiterTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.BackendContractTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.common.audit.AuditOutboxTransactionTest",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.common.audit.MongoAuditSinkTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.EmailServiceTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.OtpHttpTest",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.ParameterCatalogTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.ParameterDataInitializerTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.ParameterHttpTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.ParameterLiveIntegrationTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.ParameterTransactionTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.PricingSimulationConfigurationTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.ProductDemoSeederTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.ProductSearchHttpTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.ProductSearchRepositoryTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.ProductServiceTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.ReferencePricingSimulationTest",
+      "tests": 24,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.RegistrationHttpTest",
+      "tests": 22,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "totals": {
+    "errors": 0.0,
+    "skipped": 0.0,
+    "tests": 149.0,
+    "failures": 0.0
+  },
+  "live_test_note": "4 automatic SQL Server/Mongo/JWT integration tests plus 1 browser UAT rendezvous; browser interactions verified separately",
+  "frontend": {
+    "build": "PASS",
+    "lint": "PASS",
+    "typecheck": "PASS"
+  },
+  "browser": {
+    "atomic_weight_batch": "PASS",
+    "database": "isolated test database; removed after test",
+    "parameter_update": "PASS",
+    "preview_without_mutation": "PASS",
+    "client_width": 375,
+    "login": "PASS",
+    "history": "PASS",
+    "viewport": "390x844",
+    "page_width": 375
+  },
+  "workflow_note": "Created workflow, no GitHub Actions execution"
+}
