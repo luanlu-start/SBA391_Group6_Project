@@ -33,4 +33,5 @@ export const apiErrorMessages: Record<string, string> = {
   AUTH_ACCOUNT_DISABLED: 'Tài khoản đang bị khóa hoặc đã ngừng hoạt động.',
   AUTH_REFRESH_INVALID: 'Phiên đăng nhập hết hiệu lực. Vui lòng đăng nhập lại.',
   AUTH_REFRESH_REUSED: 'Phiên đăng nhập đã bị thu hồi. Vui lòng đăng nhập lại.',
+  AUTH_SESSION_NOT_FOUND: 'Phiên không còn hoạt động hoặc không thuộc tài khoản của bạn. Vui lòng tải lại danh sách.',
 };

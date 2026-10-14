@@ -16,6 +16,8 @@ public interface AuthSessionRepository extends JpaRepository<AuthSession, Long> 
     @EntityGraph(attributePaths = {"user", "user.roles"})
     Optional<AuthSession> findByPublicId(UUID publicId);
 
+    Optional<AuthSession> findByPublicIdAndUserId(UUID publicId, Long userId);
+
     List<AuthSession> findByUserIdAndRevokedAtIsNullAndReplacedByIsNullAndExpiresAtAfterOrderByCreatedAtAscIdAsc(Long userId, Instant now);
 
     @Modifying

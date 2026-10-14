@@ -8,6 +8,7 @@ import RegisterPage from '../pages/RegisterPage';
 import VerifyOtpPage from '../pages/VerifyOtpPage';
 import LoginPage from '../pages/LoginPage';
 import AccountPage from '../pages/AccountPage';
+import SecurityPage from '../pages/SecurityPage';
 import LegalPage from '../pages/LegalPage';
 import OrdersPage from '../pages/OrdersPage';
 import CreateOrderPage from '../pages/CreateOrderPage';
@@ -37,6 +38,7 @@ export default function AppRoutes() {
         <Route path="sender/orders/:id" element={<OrderDetailPage />} />
         <Route path="verify" element={<VerifyOtpPage />} />
         <Route path="account" element={<AccountPage />} />
+        <Route path="me/security" element={<SecurityPage />} />
         <Route path="legal" element={<LegalPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
