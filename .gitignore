@@ -24,6 +24,9 @@ server/uploads/
 .env.production.local
 *.env
 
+# Per-machine Docker Compose overrides
+/compose.override.yaml
+
 # Logs
 logs/
 *.log

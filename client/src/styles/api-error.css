@@ -1,3 +1,6 @@
+.api-error-support { margin-top: 8px; font-size: 13px; }
+.api-error-support summary { cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.api-error-support summary:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
 .api-error-reference { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; font-size: 13px; }
 .api-error-reference code { overflow-wrap: anywhere; color: inherit; background: transparent; }
 .api-error-reference .ui-button { color: inherit; border: 1px solid currentColor; }

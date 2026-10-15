@@ -50,7 +50,7 @@ class WalletServiceTest {
         lenient().when(vnPayConfig.getVersion()).thenReturn("2.1.0");
         lenient().when(vnPayConfig.getCommand()).thenReturn("pay");
         lenient().when(vnPayConfig.getVnp_TmnCode()).thenReturn("B91MXQ5Y");
-        lenient().when(vnPayConfig.getVnp_HashSecret()).thenReturn("HDMKJXGPKGDZUQJDDBEFKXEIXZYWSNCM");
+        lenient().when(vnPayConfig.getVnp_HashSecret()).thenReturn("test-only-vnpay-hmac-key-not-for-real-payments");
         lenient().when(vnPayConfig.getCurrCode()).thenReturn("VND");
         lenient().when(vnPayConfig.getOrderType()).thenReturn("other");
         lenient().when(vnPayConfig.getLocale()).thenReturn("vn");

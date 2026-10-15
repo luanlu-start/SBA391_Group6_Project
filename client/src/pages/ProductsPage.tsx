@@ -82,7 +82,7 @@ export default function ProductsPage() {
     </SectionCard>
     <SectionCard title="Danh sách sản phẩm" description={`${list.pagination.totalElements} sản phẩm phù hợp`} className="ui-card-table">
       {list.error ? <div className="ui-card-body ui-stack">
-        <ApiErrorNotice message={list.error.message} correlationId={list.error.correlationId} />
+        <ApiErrorNotice error={list.error} />
         <div><Button variant="secondary" onClick={() => void list.reload()}>Thử lại</Button></div>
       </div> : <>
         <DataTable caption="Danh sách sản phẩm" columns={columns} rows={list.products} rowKey={product => product.id} loading={list.loading}
@@ -98,7 +98,7 @@ export default function ProductsPage() {
     </Modal>
     <Modal isOpen={!!deleting} onClose={() => setDeleting(null)} title="Xóa sản phẩm?" closeDisabled={busy}>
       <div className="ui-stack"><p>Sản phẩm <strong>{deleting?.name}</strong> sẽ bị xóa. Thao tác này không thể hoàn tác.</p>
-        {deleteError && <ApiErrorNotice message={deleteError.message} correlationId={deleteError.correlationId} />}
+        {deleteError && <ApiErrorNotice error={deleteError} />}
         <div className="ui-form-actions"><Button variant="secondary" onClick={() => setDeleting(null)} disabled={busy}>Hủy bỏ</Button>
           <Button variant="danger" onClick={() => void deleteProduct()} loading={busy} loadingText="Đang xóa…">Xóa sản phẩm</Button></div>
       </div>

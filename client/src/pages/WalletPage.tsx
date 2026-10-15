@@ -1,4 +1,5 @@
 import { useEffect, useState, useId } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   Wallet as WalletIcon, 
@@ -14,6 +15,7 @@ import {
 import { useAuthentication } from '../auth/useAuthentication';
 import { walletApi } from '../api/walletApi';
 import { getApiError } from '../api/ApiError';
+import type { ApiError } from '../api/ApiError';
 import type { WalletResponse, VNPayReturnResponse } from '../types/payment';
 import PageHeader from '../components/ui/PageHeader';
 import SectionCard from '../components/ui/SectionCard';
@@ -54,8 +56,7 @@ export default function WalletPage() {
   const [wallet, setWallet] = useState<WalletResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [correlationId, setCorrelationId] = useState<string | undefined>();
+  const [error, setError] = useState<ApiError | null>(null);
 
   // Top-up form state
   const [amount, setAmount] = useState<number>(100_000);
@@ -77,8 +78,7 @@ export default function WalletPage() {
       setWallet(res.data);
     } catch (err) {
       const apiErr = getApiError(err);
-      setError(apiErr.message);
-      setCorrelationId(apiErr.correlationId);
+      setError(apiErr);
     } finally {
       setLoading(false);
     }
@@ -109,7 +109,7 @@ export default function WalletPage() {
           loadWallet();
         } catch (err) {
           const apiErr = getApiError(err);
-          setError(apiErr.message);
+          setError(apiErr);
         } finally {
           setVerifyingReturn(false);
         }
@@ -141,7 +141,7 @@ export default function WalletPage() {
     setCustomInput(val.toString());
   };
 
-  const handleCustomChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCustomChange = (e: ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/\D/g, '');
     const num = Number(raw);
     setCustomInput(raw);
@@ -163,7 +163,7 @@ export default function WalletPage() {
 
   const validationError = validateAmount();
 
-  const handleTopup = async (e: React.FormEvent) => {
+  const handleTopup = async (e: FormEvent) => {
     e.preventDefault();
     if (validationError) return;
 
@@ -182,8 +182,7 @@ export default function WalletPage() {
       }
     } catch (err) {
       const apiErr = getApiError(err);
-      setError(apiErr.message);
-      setCorrelationId(apiErr.correlationId);
+      setError(apiErr);
       setSubmitting(false);
     }
   };
@@ -212,7 +211,7 @@ export default function WalletPage() {
         }
       />
 
-      {error && <ApiErrorNotice message={error} correlationId={correlationId} />}
+      {error && <ApiErrorNotice error={error} />}
 
       {/* Return Notification from VNPay */}
       {verifyingReturn && (

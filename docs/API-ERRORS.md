@@ -100,7 +100,7 @@ Axios nhận Problem Details và chuyển thành
 `errors` giữ mảng gốc; `fieldErrors` là map cho form.
 Từ điển câu chữ tiếng Việt ở `client/src/i18n/apiErrors.ts`, ánh xạ theo code.
 Code chưa biết dùng detail/title an toàn từ backend hoặc câu chữ mặc định.
-`ApiErrorNotice` hiển thị lỗi và nút sao chép mã theo dõi, kể cả khi trình duyệt không cho copy tự động.
+`ApiErrorNotice` hiển thị thông báo lỗi. Với lỗi HTTP 5xx có `correlationId`, mã theo dõi và nút sao chép nằm trong phần "Chi tiết hỗ trợ", mặc định thu gọn. Lỗi nhập liệu và nghiệp vụ không hiển thị mã theo dõi. Nếu trình duyệt không cho copy tự động, người dùng có thể chọn và sao chép mã thủ công.
 
 Swagger khai báo schema ApiProblem, application/problem+json cho response lỗi
 và header X-Correlation-Id. Response thành công giữ schema hiện tại.

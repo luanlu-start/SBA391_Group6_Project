@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @DisplayName("VNPayUtil Unit Tests")
 class VNPayUtilTest {
 
-    private static final String SECRET_KEY = "HDMKJXGPKGDZUQJDDBEFKXEIXZYWSNCM";
+    private static final String SECRET_KEY = "test-only-vnpay-hmac-key-not-for-real-payments";
 
     @Test
     @DisplayName("Should generate accurate HMAC-SHA512 hash")

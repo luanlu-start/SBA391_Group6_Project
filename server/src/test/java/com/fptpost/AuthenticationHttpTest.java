@@ -1,11 +1,15 @@
 package com.fptpost;
 
 import com.fasterxml.jackson.databind.*;
+import com.fptpost.modules.identity.config.AuthenticationProperties;
+import com.fptpost.modules.identity.config.AuthenticationCookies;
 import com.fptpost.modules.identity.enums.UserStatus;
 import com.fptpost.modules.identity.enums.OtpType;
 import com.fptpost.modules.identity.model.*;
 import com.fptpost.modules.identity.repository.*;
+import com.fptpost.modules.identity.service.AuthenticationService;
 import jakarta.servlet.http.Cookie;
+import org.springframework.mock.web.MockCookie;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -32,7 +36,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.datasource.url=jdbc:h2:mem:authentication;MODE=MSSQLServer;DB_CLOSE_DELAY=-1",
         "spring.datasource.driver-class-name=org.h2.Driver", "spring.datasource.username=sa", "spring.datasource.password=",
         "spring.jpa.hibernate.ddl-auto=create-drop", "spring.data.mongodb.auto-index-creation=false",
-        "app.registration.requests-per-minute=1000", "management.health.mail.enabled=false"
+        "app.registration.requests-per-minute=1000", "management.health.mail.enabled=false",
+        "app.authentication.session-cleanup-cron=-"
 })
 @AutoConfigureMockMvc
 class AuthenticationHttpTest {
@@ -46,6 +51,8 @@ class AuthenticationHttpTest {
     @Autowired PasswordEncoder encoder;
     @Autowired JwtDecoder decoder;
     @Autowired PlatformTransactionManager transactions;
+    @Autowired AuthenticationService authenticationService;
+    @Autowired AuthenticationProperties authenticationProperties;
     @MockitoBean JavaMailSender mailSender;
     @MockitoBean Clock identityClock;
     final AtomicReference<Instant> now = new AtomicReference<>();
@@ -57,6 +64,8 @@ class AuthenticationHttpTest {
         ip = "192.0.2." + sequence.incrementAndGet();
         now.set(Instant.parse("2026-10-11T12:00:00Z"));
         when(identityClock.instant()).thenAnswer(invocation -> now.get());
+        authenticationProperties.setExpiredSessionRetentionDays(7);
+        authenticationProperties.setCookieSecure(false);
         sessions.deleteAll(); otps.deleteAll(); profiles.deleteAll(); users.deleteAll();
         new TransactionTemplate(transactions).executeWithoutResult(transaction -> {
             user = users.saveAndFlush(User.builder().publicId(UUID.randomUUID()).email("login@example.com")
@@ -76,12 +85,14 @@ class AuthenticationHttpTest {
         return mvc.perform(request.with(r -> { r.setRemoteAddr(ip); return r; }))
                 .andExpect(status().is(status)).andReturn();
     }
-    MvcResult login(String identifier, String password, int status) throws Exception {
-        return login(Map.of("identifier", identifier, "password", password), status);
+    MvcResult login(String identifier, String password, int status, Cookie... browserCookies) throws Exception {
+        return login(Map.of("identifier", identifier, "password", password), status, browserCookies);
     }
-    MvcResult login(Map<String, ?> payload, int status) throws Exception {
+    MvcResult login(Map<String, ?> payload, int status, Cookie... browserCookies) throws Exception {
         Csrf csrf = csrf();
-        return send(post("/api/v1/auth/login").cookie(csrf.cookie()).header(csrf.header(), csrf.token())
+        var cookies = new ArrayList<>(List.of(browserCookies));
+        cookies.add(csrf.cookie());
+        return send(post("/api/v1/auth/login").cookie(cookies.toArray(Cookie[]::new)).header(csrf.header(), csrf.token())
                 .contentType("application/json").content(json.writeValueAsBytes(payload)), status);
     }
     MvcResult refresh(Cookie token, int status) throws Exception {
@@ -117,6 +128,259 @@ class AuthenticationHttpTest {
             profiles.saveAndFlush(UserProfile.builder().user(other).fullName("Người dùng khác").adultConfirmedAt(now.get()).build());
             return other;
         });
+    }
+
+    AuthSession historicalSession(Instant expiresAt, Instant revokedAt, UUID replacedBy) {
+        String hash = UUID.randomUUID().toString().replace("-", "").repeat(2);
+        return sessions.saveAndFlush(AuthSession.builder().publicId(UUID.randomUUID()).user(user).tokenHash(hash)
+                .deviceInfo("Chrome on Windows").ip(ip).createdAt(expiresAt.minus(Duration.ofDays(7)))
+                .expiresAt(expiresAt).revokedAt(revokedAt).replacedBy(replacedBy).build());
+    }
+
+    @Test void sevenLoginsOnSameBrowserLeaveOnlyLatestSessionAndDoNotEndOtherBrowser() throws Exception {
+        var otherBrowser = login(user.getEmail(), "Secret123!", 200);
+        var first = login(user.getEmail(), "Secret123!", 200);
+        UUID firstId = sessionId(first);
+        Cookie browser = cookie(first, AuthenticationCookies.BROWSER_COOKIE);
+        var current = first;
+        for (int i = 1; i < 7; i++) {
+            var previous = current;
+            now.set(now.get().plusSeconds(1));
+            current = login(user.getEmail(), "Secret123!", 200, browser);
+            assertThat(cookie(current, AuthenticationCookies.BROWSER_COOKIE).getValue()).isEqualTo(browser.getValue());
+            me(access(previous), 401);
+            refresh(cookie(previous, "fptpost_refresh"), 401);
+        }
+        var active = sessions.findByUserIdAndRevokedAtIsNullAndReplacedByIsNullAndExpiresAtAfterOrderByCreatedAtAscIdAsc(user.getId(), now.get());
+        assertThat(active).hasSize(2);
+        assertThat(active).filteredOn(session -> UUID.fromString(browser.getValue()).equals(session.getBrowserId())).hasSize(1);
+        assertThat(sessions.findByPublicId(firstId).orElseThrow().getRevokedAt()).isNotNull();
+        assertThat(body(listSessions(current)).path("data").size()).isEqualTo(2);
+        me(access(current), 200);
+        me(access(otherBrowser), 200);
+        revoke(current, sessionId(otherBrowser), 200);
+        me(access(otherBrowser), 401);
+        me(access(current), 200);
+    }
+
+    @Test void reloginOfRotatedBrowserDoesNotLetRetiredTokensRevokeNewOrOtherSessions() throws Exception {
+        var otherBrowser = login(user.getEmail(), "Secret123!", 200);
+        var first = login(user.getEmail(), "Secret123!", 200);
+        Cookie browser = cookie(first, AuthenticationCookies.BROWSER_COOKIE);
+        UUID browserId = UUID.fromString(browser.getValue());
+        var rotated = refresh(cookie(first, "fptpost_refresh"), 200);
+        assertThat(cookie(rotated, AuthenticationCookies.BROWSER_COOKIE).getValue()).isEqualTo(browser.getValue());
+        assertThat(sessions.findByPublicId(sessionId(rotated)).orElseThrow().getBrowserId()).isEqualTo(browserId);
+
+        var current = login(user.getEmail(), "Secret123!", 200, browser);
+
+        me(access(rotated), 401);
+        for (var previous : List.of(first, rotated)) {
+            assertThat(body(refresh(cookie(previous, "fptpost_refresh"), 401)).path("code").asText()).isEqualTo("AUTH_REFRESH_INVALID");
+        }
+        me(access(current), 200);
+        me(access(otherBrowser), 200);
+        var latest = refresh(cookie(current, "fptpost_refresh"), 200);
+        assertThat(cookie(latest, AuthenticationCookies.BROWSER_COOKIE).getValue()).isEqualTo(browser.getValue());
+    }
+
+    @Test void failedLoginKeepsExistingBrowserSessionAndDoesNotSetCookies() throws Exception {
+        var current = login(user.getEmail(), "Secret123!", 200);
+        Cookie browser = cookie(current, AuthenticationCookies.BROWSER_COOKIE);
+        var failed = login(user.getEmail(), "wrong", 401, browser, cookie(current, "fptpost_refresh"));
+        assertThat(failed.getResponse().getHeaders("Set-Cookie")).isEmpty();
+        assertThat(sessions.count()).isEqualTo(1);
+        me(access(current), 200);
+        refresh(cookie(current, "fptpost_refresh"), 200);
+    }
+
+    @Test void browserCookieIsPrivateIdentificationAndCannotAuthenticateAlone() throws Exception {
+        authenticationProperties.setCookieSecure(true);
+        var current = login(user.getEmail(), "Secret123!", 200);
+        Cookie browser = cookie(current, AuthenticationCookies.BROWSER_COOKIE);
+        String header = current.getResponse().getHeaders("Set-Cookie").stream()
+                .filter(value -> value.startsWith(AuthenticationCookies.BROWSER_COOKIE + "=")).findFirst().orElseThrow();
+        assertThat(UUID.fromString(browser.getValue()).version()).isEqualTo(4);
+        MockCookie attributes = MockCookie.parse(header);
+        assertThat(attributes.isHttpOnly()).isTrue();
+        assertThat(attributes.getSecure()).isTrue();
+        assertThat(attributes.getSameSite()).isEqualTo("Strict");
+        assertThat(attributes.getPath()).isEqualTo("/api/v1/auth");
+        assertThat(attributes.getMaxAge()).isEqualTo((int) Duration.ofDays(365).toSeconds());
+        assertThat(body(current).toString()).doesNotContain("browserId", browser.getValue());
+        assertThat(body(listSessions(current)).toString()).doesNotContain("browserId", browser.getValue());
+        send(get("/api/v1/auth/sessions").cookie(browser), 401);
+        Csrf csrf = csrf();
+        send(post("/api/v1/auth/refresh").cookie(browser, csrf.cookie()).header(csrf.header(), csrf.token()), 401);
+        var logout = send(post("/api/v1/auth/logout").cookie(browser).header("Authorization", "Bearer " + access(current)), 200);
+        assertThat(logout.getResponse().getHeaders("Set-Cookie").toString()).doesNotContain(AuthenticationCookies.BROWSER_COOKIE);
+        var next = login(user.getEmail(), "Secret123!", 200, browser);
+        assertThat(cookie(next, AuthenticationCookies.BROWSER_COOKIE).getValue()).isEqualTo(browser.getValue());
+    }
+
+    @Test void sameBrowserCookieReplacesOnlySessionsForTheAuthenticatedAccount() throws Exception {
+        var first = login(user.getEmail(), "Secret123!", 200);
+        Cookie browser = cookie(first, AuthenticationCookies.BROWSER_COOKIE);
+        User other = anotherUser();
+        var otherAccount = login(other.getEmail(), "Secret123!", 200, browser, cookie(first, "fptpost_refresh"));
+        var current = login(user.getEmail(), "Secret123!", 200, browser, cookie(otherAccount, "fptpost_refresh"));
+        me(access(first), 401);
+        me(access(current), 200);
+        me(access(otherAccount), 200);
+    }
+
+    @Test void legacyLoginAndRefreshAdoptBrowserIdentityWithoutGuessingByDeviceOrIp() throws Exception {
+        var otherBrowser = login(user.getEmail(), "Secret123!", 200);
+        var legacyLogin = login(user.getEmail(), "Secret123!", 200);
+        var legacy = sessions.findByPublicId(sessionId(legacyLogin)).orElseThrow();
+        legacy.setBrowserId(null);
+        sessions.saveAndFlush(legacy);
+        var current = login(user.getEmail(), "Secret123!", 200, cookie(legacyLogin, "fptpost_refresh"));
+        me(access(legacyLogin), 401);
+        me(access(otherBrowser), 200);
+        assertThat(sessions.findByPublicId(sessionId(current)).orElseThrow().getBrowserId()).isNotNull();
+        var migrated = sessions.findByPublicId(sessionId(current)).orElseThrow();
+        migrated.setBrowserId(null);
+        sessions.saveAndFlush(migrated);
+        var refreshed = refresh(cookie(current, "fptpost_refresh"), 200);
+        assertThat(sessions.findByPublicId(sessionId(refreshed)).orElseThrow().getBrowserId())
+                .isEqualTo(UUID.fromString(cookie(refreshed, AuthenticationCookies.BROWSER_COOKIE).getValue()));
+        assertThat(body(listSessions(refreshed)).path("data").size()).isEqualTo(2);
+    }
+
+    @Test void malformedBrowserCookieIsReplacedAndDoesNotRevokeAnUnrelatedSession() throws Exception {
+        var existing = login(user.getEmail(), "Secret123!", 200);
+        var current = login(user.getEmail(), "Secret123!", 200, new Cookie(AuthenticationCookies.BROWSER_COOKIE, "invalid-id"));
+        assertThat(UUID.fromString(cookie(current, AuthenticationCookies.BROWSER_COOKIE).getValue()).version()).isEqualTo(4);
+        me(access(existing), 200);
+        me(access(current), 200);
+    }
+
+    @Test void concurrentReloginsOnSameBrowserCannotLeaveTwoActiveSessions() throws Exception {
+        var first = login(user.getEmail(), "Secret123!", 200);
+        var otherBrowser = login(user.getEmail(), "Secret123!", 200);
+        Cookie browser = cookie(first, AuthenticationCookies.BROWSER_COOKIE);
+        Csrf csrf = csrf();
+        CountDownLatch start = new CountDownLatch(1);
+        try (var pool = Executors.newFixedThreadPool(2)) {
+            List<Future<MvcResult>> results = new ArrayList<>();
+            for (int i = 0; i < 2; i++) results.add(pool.submit(() -> {
+                start.await();
+                return mvc.perform(post("/api/v1/auth/login").cookie(browser, csrf.cookie())
+                        .header(csrf.header(), csrf.token()).contentType("application/json")
+                        .content(json.writeValueAsBytes(Map.of("identifier", user.getEmail(), "password", "Secret123!"))))
+                        .andExpect(status().isOk()).andReturn();
+            }));
+            start.countDown();
+            for (var result : results) result.get(20, TimeUnit.SECONDS);
+        }
+        var active = sessions.findByUserIdAndRevokedAtIsNullAndReplacedByIsNullAndExpiresAtAfterOrderByCreatedAtAscIdAsc(user.getId(), now.get());
+        assertThat(active).hasSize(2);
+        assertThat(active).filteredOn(session -> UUID.fromString(browser.getValue()).equals(session.getBrowserId())).hasSize(1);
+        me(access(first), 401);
+        me(access(otherBrowser), 200);
+    }
+
+    @Test void refreshRacingWithReloginCannotRestoreSupersededBrowserSession() throws Exception {
+        var first = login(user.getEmail(), "Secret123!", 200);
+        var otherBrowser = login(user.getEmail(), "Secret123!", 200);
+        Cookie browser = cookie(first, AuthenticationCookies.BROWSER_COOKIE);
+        Cookie token = cookie(first, "fptpost_refresh");
+        Csrf csrf = csrf();
+        CountDownLatch start = new CountDownLatch(1);
+        MvcResult loggedIn;
+        try (var pool = Executors.newFixedThreadPool(2)) {
+            var refreshing = pool.submit(() -> {
+                start.await();
+                return mvc.perform(post("/api/v1/auth/refresh").cookie(browser, token, csrf.cookie())
+                        .header(csrf.header(), csrf.token())).andReturn();
+            });
+            var loggingIn = pool.submit(() -> {
+                start.await();
+                return mvc.perform(post("/api/v1/auth/login").cookie(browser, token, csrf.cookie())
+                        .header(csrf.header(), csrf.token()).contentType("application/json")
+                        .content(json.writeValueAsBytes(Map.of("identifier", user.getEmail(), "password", "Secret123!"))))
+                        .andExpect(status().isOk()).andReturn();
+            });
+            start.countDown();
+            loggedIn = loggingIn.get(20, TimeUnit.SECONDS);
+            var refreshed = refreshing.get(20, TimeUnit.SECONDS);
+            assertThat(refreshed.getResponse().getStatus()).isIn(200, 401);
+            if (refreshed.getResponse().getStatus() == 200) {
+                me(access(refreshed), 401);
+                refresh(cookie(refreshed, "fptpost_refresh"), 401);
+            }
+        }
+        var active = sessions.findByUserIdAndRevokedAtIsNullAndReplacedByIsNullAndExpiresAtAfterOrderByCreatedAtAscIdAsc(user.getId(), now.get());
+        assertThat(active).extracting(AuthSession::getPublicId).containsExactlyInAnyOrder(sessionId(loggedIn), sessionId(otherBrowser));
+        refresh(token, 401);
+        me(access(loggedIn), 200);
+        me(access(otherBrowser), 200);
+    }
+
+    @Test void cleanupRemovesOldHistoryButKeepsRecentExpiredAndUnexpiredSessions() throws Exception {
+        var current = login(user.getEmail(), "Secret123!", 200);
+        UUID currentId = sessionId(current);
+        Instant cutoff = now.get().minus(Duration.ofDays(7));
+        historicalSession(now.get().minus(Duration.ofDays(365)), null, null);
+        historicalSession(cutoff, null, null);
+        historicalSession(cutoff.minusSeconds(1), cutoff.minus(Duration.ofDays(1)), null);
+        var recent = historicalSession(cutoff.plusSeconds(1), null, null);
+        var expiredToday = historicalSession(now.get().minusSeconds(1), null, null);
+        var revoked = historicalSession(now.get().plus(Duration.ofDays(7)), now.get(), null);
+        var rotated = historicalSession(now.get().plus(Duration.ofDays(7)), now.get(), currentId);
+
+        authenticationService.cleanupExpiredSessions();
+        authenticationService.cleanupExpiredSessions();
+
+        assertThat(sessions.findAll()).extracting(AuthSession::getPublicId).containsExactlyInAnyOrder(
+                currentId, recent.getPublicId(), expiredToday.getPublicId(), revoked.getPublicId(), rotated.getPublicId());
+        assertThat(body(listSessions(current)).path("data").size()).isEqualTo(1);
+        me(access(current), 200);
+        refresh(cookie(current, "fptpost_refresh"), 200);
+    }
+
+    @Test void cleanupWithZeroRetentionStillPreservesLiveRotatedTokenReuseDetection() throws Exception {
+        authenticationProperties.setExpiredSessionRetentionDays(0);
+        var first = login(user.getEmail(), "Secret123!", 200);
+        UUID originalId = sessionId(first);
+        now.set(now.get().plusSeconds(60));
+        var next = refresh(cookie(first, "fptpost_refresh"), 200);
+        var expired = historicalSession(now.get(), null, null);
+
+        authenticationService.cleanupExpiredSessions();
+
+        assertThat(sessions.findByPublicId(expired.getPublicId())).isEmpty();
+        assertThat(sessions.findByPublicId(originalId)).isPresent();
+        me(access(next), 200);
+        assertThat(body(refresh(cookie(first, "fptpost_refresh"), 401)).path("code").asText()).isEqualTo("AUTH_REFRESH_REUSED");
+        me(access(next), 401);
+        refresh(cookie(next, "fptpost_refresh"), 401);
+    }
+
+    @Test void cleanupOfOldRotationHistoryDoesNotEndContinuouslyUsedSession() throws Exception {
+        var first = login(user.getEmail(), "Secret123!", 200);
+        UUID originalId = sessionId(first);
+        Instant loggedInAt = now.get();
+        now.set(loggedInAt.plus(Duration.ofDays(6)));
+        var second = refresh(cookie(first, "fptpost_refresh"), 200);
+        now.set(loggedInAt.plus(Duration.ofDays(12)));
+        var third = refresh(cookie(second, "fptpost_refresh"), 200);
+        now.set(loggedInAt.plus(Duration.ofDays(15)));
+
+        authenticationService.cleanupExpiredSessions();
+
+        assertThat(sessions.findByPublicId(originalId)).isEmpty();
+        var current = refresh(cookie(third, "fptpost_refresh"), 200);
+        me(access(current), 200);
+        var data = body(listSessions(current)).path("data");
+        assertThat(data.size()).isEqualTo(1);
+        assertThat(Instant.parse(data.get(0).path("createdAt").asText())).isEqualTo(loggedInAt);
+        assertThat(data.get(0).path("current").asBoolean()).isTrue();
+        assertThat(body(revoke(current, originalId, 404)).path("code").asText()).isEqualTo("AUTH_SESSION_NOT_FOUND");
+        me(access(current), 200);
+        revoke(current, sessionId(current), 200);
+        me(access(current), 401);
     }
 
     @Test void sessionListContainsOnlyOwnActiveSessionsAndMarksCurrentWithoutLeakingTokens() throws Exception {
@@ -243,7 +507,9 @@ class AuthenticationHttpTest {
             var raw = cookie(result, "fptpost_refresh").getValue();
             assertThat(result.getResponse().getContentAsString()).doesNotContain(raw, "Secret123!", "passwordHash", "tokenHash", "refreshToken");
             assertThat(result.getResponse().getHeaders("Set-Cookie").toString()).contains("HttpOnly", "SameSite=Strict", "Path=/api/v1/auth");
-            assertThat(result.getResponse().getHeaders("Set-Cookie").toString()).doesNotContain("Max-Age", "Expires");
+            String refreshHeader = result.getResponse().getHeaders("Set-Cookie").stream()
+                    .filter(value -> value.startsWith("fptpost_refresh=")).findFirst().orElseThrow();
+            assertThat(refreshHeader).doesNotContain("Max-Age", "Expires");
             assertThat(sessions.findAll()).allSatisfy(session -> assertThat(session.getTokenHash()).hasSize(64).isNotEqualTo(raw));
             assertThat(sessions.findAll()).allSatisfy(session -> assertThat(session.isRememberMe()).isFalse());
             me(access(result), 200);
