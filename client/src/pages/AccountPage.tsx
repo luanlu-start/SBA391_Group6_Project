@@ -33,10 +33,8 @@ export default function AccountPage() {
       <dt>Vai trò</dt><dd>{user.roles.map(role => ({ SENDER: 'Người gửi', COURIER: 'Người giao',
         ADMIN: 'Quản trị viên', MODERATOR: 'Kiểm duyệt viên' }[role] || role)).join(', ')}</dd></dl>
     <div className="ui-form-actions">
-      <Link className="ui-button ui-button-primary" to="/wallet">Ví FPTPost (Nạp tiền)</Link>
-      <Link className="ui-button ui-button-secondary" to="/orders/payment">Thanh toán & Ký quỹ đơn hàng</Link>
-      <Link className="ui-button ui-button-secondary" to="/me/security">Bảo mật và thiết bị</Link>
       <Link className="ui-button ui-button-secondary" to="/">Về trang chủ</Link>
+      <Link className="ui-button ui-button-secondary" to="/me/security">Bảo mật và thiết bị</Link>
       <Button variant="danger" onClick={logout} loading={busy} loadingText="Đang đăng xuất…">Đăng xuất</Button>
     </div>
     </div></SectionCard>

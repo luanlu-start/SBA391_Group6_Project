@@ -34,13 +34,4 @@ export const apiErrorMessages: Record<string, string> = {
   AUTH_REFRESH_INVALID: 'Phiên đăng nhập hết hiệu lực. Vui lòng đăng nhập lại.',
   AUTH_REFRESH_REUSED: 'Phiên đăng nhập đã bị thu hồi. Vui lòng đăng nhập lại.',
   AUTH_SESSION_NOT_FOUND: 'Phiên không còn hoạt động hoặc không thuộc tài khoản của bạn. Vui lòng tải lại danh sách.',
-  WALLET_NOT_FOUND: 'Ví điện tử của người dùng không tồn tại hoặc chưa được khởi tạo.',
-  WALLET_TOPUP_AMOUNT_INVALID: 'Số tiền nạp không hợp lệ (tối thiểu 20.000đ, tối đa 10.000.000đ).',
-  WALLET_MAX_BALANCE_EXCEEDED: 'Tổng số dư ví sau khi nạp vượt hạn mức 20.000.000đ.',
-  WALLET_INSUFFICIENT_BALANCE: 'Số dư khả dụng trong ví không đủ. Vui lòng nạp thêm tiền.',
-  ORDER_ALREADY_ESCROWED: 'Khoản tiền ký quỹ cho đơn hàng này đã được thanh toán.',
-  ORDER_PAYMENT_NOT_ALLOWED: 'Đơn hàng không ở trạng thái cho phép thanh toán ký quỹ.',
-  ORDER_PAYMENT_FORBIDDEN: 'Bạn không phải là người tạo đơn hàng này.',
-  PAYMENT_TRANSACTION_NOT_FOUND: 'Không tìm thấy giao dịch thanh toán.',
-  PAYMENT_EXPIRED: 'Liên kết thanh toán đã hết hạn (quá 15 phút). Vui lòng tạo lại.',
 };

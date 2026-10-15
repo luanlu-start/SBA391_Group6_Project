@@ -1,6 +1,6 @@
 import { Link, NavLink } from 'react-router-dom';
 import { useState } from 'react';
-import { Menu, Package, PanelsTopLeft, UserRound, Wallet, X } from 'lucide-react';
+import { Menu, Package, PanelsTopLeft, UserRound, X } from 'lucide-react';
 import { useAuthentication } from '../../auth/useAuthentication';
 import Button from '../ui/Button';
 import copy from '../../i18n/home.vi.json';
@@ -20,15 +20,11 @@ export default function Navbar() {
         <Link to="/#how-it-works" className="nav-link" onClick={closeMenu}>{copy.navigation.how}</Link>
         <Link to="/#shipping-prices" className="nav-link" onClick={closeMenu}>{copy.navigation.pricing}</Link>
         <Link to="/#become-courier" className="nav-link" onClick={closeMenu}>{copy.navigation.courier}</Link>
-        {user && <NavLink to="/wallet" className="nav-link" onClick={closeMenu}><Wallet size={16} aria-hidden="true" />Ví tiền</NavLink>}
       </nav>
       <div className="navbar-actions ui-row">
         {import.meta.env.DEV && <Link to="/ui-kit" className="nav-link navbar-dev-link" onClick={closeMenu}><PanelsTopLeft size={15} aria-hidden="true" />{copy.navigation.uiKit}</Link>}
-        {user ? (
-          <>
-            <NavLink to="/account" className="nav-link" onClick={closeMenu}><UserRound size={17} aria-hidden="true" />{copy.navigation.account}</NavLink>
-          </>
-        ) : <Link to="/login" className="ui-button ui-button-primary ui-button-sm" onClick={closeMenu}>{copy.navigation.login}</Link>}
+        {user ? <NavLink to="/account" className="nav-link" onClick={closeMenu}><UserRound size={17} aria-hidden="true" />{copy.navigation.account}</NavLink>
+          : <Link to="/login" className="ui-button ui-button-primary ui-button-sm" onClick={closeMenu}>{copy.navigation.login}</Link>}
         <Button className="navbar-toggle" variant="ghost" size="sm" aria-expanded={menuOpen} aria-controls="main-navigation"
           aria-label={menuOpen ? copy.navigation.closeMenu : copy.navigation.menu} onClick={() => setMenuOpen(!menuOpen)}
           icon={menuOpen ? <X size={20} /> : <Menu size={20} />} />

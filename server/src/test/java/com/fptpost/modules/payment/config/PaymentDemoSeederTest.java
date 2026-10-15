@@ -26,9 +26,6 @@ class PaymentDemoSeederTest {
     @Mock
     private OrderRepository orderRepository;
 
-    @Mock
-    private com.fptpost.modules.payment.repository.WalletRepository walletRepository;
-
     @Test
     @DisplayName("Should seed sample orders and transactions when not existing")
     void testSeedDemoData_WhenEmpty() {
@@ -36,8 +33,7 @@ class PaymentDemoSeederTest {
                 paymentTransactionRepository,
                 Optional.of(orderRepository),
                 Optional.empty(),
-                Optional.empty(),
-                walletRepository
+                Optional.empty()
         );
 
         when(orderRepository.existsByOrderCode(any())).thenReturn(false);
@@ -56,11 +52,9 @@ class PaymentDemoSeederTest {
                 paymentTransactionRepository,
                 Optional.of(orderRepository),
                 Optional.empty(),
-                Optional.empty(),
-                walletRepository
+                Optional.empty()
         );
 
-        when(walletRepository.findByUserId(any())).thenReturn(Optional.of(new com.fptpost.modules.payment.model.Wallet()));
         when(orderRepository.existsByOrderCode(any())).thenReturn(true);
         when(paymentTransactionRepository.existsByTxnRef(any())).thenReturn(true);
 
