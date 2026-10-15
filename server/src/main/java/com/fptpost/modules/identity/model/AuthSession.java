@@ -8,7 +8,11 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "sessions",
-        indexes = @Index(name = "ix_sessions_user_expiry", columnList = "user_id, expires_at"))
+        indexes = {
+                @Index(name = "ix_sessions_user_expiry", columnList = "user_id, expires_at"),
+                @Index(name = "ix_sessions_user_browser", columnList = "user_id, browser_id"),
+                @Index(name = "ix_sessions_expiry", columnList = "expires_at")
+        })
 @Getter
 @Setter
 @Builder
@@ -28,6 +32,9 @@ public class AuthSession {
 
     @Column(name = "token_hash", nullable = false, unique = true, length = 64)
     private String tokenHash;
+
+    @Column(name = "browser_id", columnDefinition = "uniqueidentifier")
+    private UUID browserId;
 
     @Column(name = "device_info", nullable = false, columnDefinition = "nvarchar(255)")
     private String deviceInfo;

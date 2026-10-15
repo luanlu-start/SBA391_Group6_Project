@@ -131,7 +131,7 @@ export default function OrderForm({ onSuccess, onCancel }: OrderFormProps) {
   return (
     <form className="ui-form" noValidate onSubmit={handleSubmit(submit)} aria-busy={isSubmitting || uploading}>
       {apiError && (
-        <ApiErrorNotice message={apiError.message} correlationId={apiError.correlationId} />
+        <ApiErrorNotice error={apiError} />
       )}
 
       {/* Thông tin người gửi & Điểm lấy hàng */}

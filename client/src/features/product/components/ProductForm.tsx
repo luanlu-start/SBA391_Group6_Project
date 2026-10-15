@@ -47,7 +47,7 @@ export default function ProductForm({ product, onCancel, onSaved, onBusyChange }
   }
 
   return <form className="ui-form" noValidate onSubmit={handleSubmit(submit)} aria-busy={isSubmitting}>
-    {error && <ApiErrorNotice message={error.message} correlationId={error.correlationId} />}
+    {error && <ApiErrorNotice error={error} />}
     <fieldset className="ui-form-section" disabled={isSubmitting}>
       <div className="ui-form-grid">
         <Input label="Tên sản phẩm" placeholder="Nhập tên sản phẩm" required maxLength={100}

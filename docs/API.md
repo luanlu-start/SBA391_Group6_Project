@@ -88,8 +88,9 @@ cookie có Max-Age 7 ngày theo `app.authentication.refresh-ttl-days`; khi `fals
 không gửi trường này, cookie chỉ tồn tại trong phiên trình duyệt (không có Max-Age/Expires).
 Refresh giữ nguyên lựa chọn này. Trình duyệt có tính năng khôi phục phiên có thể khôi phục
 cả cookie phiên; thao tác đăng xuất vẫn thu hồi phiên ở backend và xóa cookie.
-Refresh xoay token/phiên;
-dùng lại token đã thay sẽ thu hồi mọi phiên của tài khoản. Giới hạn mặc định 5 phiên.
+Refresh xoay token/phiên; dùng lại token đã thay của một phiên còn hoạt động sẽ thu hồi
+mọi phiên của tài khoản. Token đã hết hạn hoặc có phiên tiếp nối đã đăng xuất/bị thay bởi
+đăng nhập mới trả `AUTH_REFRESH_INVALID`, không thu hồi các phiên khác. Giới hạn mặc định 5 phiên.
 Không lưu token, mật khẩu hoặc OTP vào localStorage/sessionStorage;
 trang OTP chỉ lưu metadata challenge trong sessionStorage để tiếp tục khi tải lại.
 
@@ -102,6 +103,21 @@ Phiên đã hết hạn/thu hồi, ID không tồn tại hoặc thuộc tài kho
 `AUTH_SESSION_NOT_FOUND`/404. Khi ID trong danh sách đã được thay do refresh, backend
 thu hồi phiên tiếp nối của cùng tài khoản; refresh và thu hồi cùng dùng khóa theo User.
 Refresh giữ nguyên `createdAt` của lần đăng nhập để danh sách và thứ tự giới hạn thiết bị ổn định.
+
+Cookie `fptpost_browser` là UUID ngẫu nhiên nhận diện trình duyệt/profile, không có quyền xác thực.
+Cookie dùng HttpOnly, SameSite=Strict, Path=/api/v1/auth, thời hạn 365 ngày; Secure theo
+`app.authentication.cookie-secure`. Login/refresh thành công đặt cookie này cùng refresh cookie;
+logout chỉ xóa refresh cookie. Không trả mã nhận diện trình duyệt trong JSON hoặc dùng tên trình
+duyệt/IP làm khóa nhóm. Login đúng thông tin thu hồi phiên cũ của cùng tài khoản và mã trình duyệt,
+rồi cấp phiên mới. Login sai không thu hồi phiên nào. Refresh giữ nguyên mã trình duyệt của phiên.
+Hai máy/profile có mã khác nhau vẫn có hai phiên, kể cả cùng tên Chrome/Windows và IP.
+Xóa cookie, đổi profile hoặc dùng ẩn danh sẽ có mã mới; không nhận diện phần cứng của máy.
+Phiên cũ chưa có `browser_id` được gắn mã khi refresh; login có refresh cookie cũ thu hồi
+phiên thuộc tài khoản đang đăng nhập. Các phiên cũ khác không bị gộp theo tên/IP và sẽ hết hạn.
+Người dùng chỉ cần đăng xuất phiên không còn dùng hoặc không nhận ra. Mặc định tối đa 5
+phiên hoạt động; đăng nhập ở trình duyệt thứ 6 thu hồi phiên cũ nhất.
+Phiên hết hạn/thu hồi không xuất hiện trong danh sách. Dữ liệu đã hết hạn thêm 7 ngày được
+dọn mỗi giờ; bản ghi token bị thay thế nhưng chưa hết hạn vẫn được giữ để phát hiện dùng lại.
 
 ## API Ví tiền & Ký quỹ (UC-34 & UC-35)
 
@@ -196,7 +212,7 @@ Ví dụ Product không tồn tại (HTTP 404):
 
 Lỗi validation trả `errors` danh sách `{field, code, message}`; frontend chuyển thành
 `ApiError.fieldErrors` để hiển thị theo field. Header `X-Correlation-Id` có ở thành công/lỗi,
-body lỗi dùng cùng ID, log có ID và frontend cho sao chép khi có lỗi.
+body lỗi dùng cùng ID và log có ID. Với lỗi 5xx, frontend cho xem/sao chép mã trong phần chi tiết hỗ trợ mặc định thu gọn.
 Xem [contract lỗi và cách thêm mã](API-ERRORS.md).
 
 Danh sách ở `data.content`, có `page`, `size`, `totalElements`, `totalPages`, `first`, `last`.

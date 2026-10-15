@@ -56,8 +56,8 @@ services:
       JWT_SECRET: ${JWT_SECRET:-}
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
       SPRING_PROFILES_ACTIVE: ${BACKEND_PROFILES:-dev}
-      SQLSERVER_URL: jdbc:sqlserver://sqlserver:1433;databaseName=group6_project_db;encrypt=true;trustServerCertificate=true
-      SQLSERVER_USERNAME: sa
+      SQLSERVER_URL: ${SQLSERVER_URL:-jdbc:sqlserver://sqlserver:1433;databaseName=group6_project_db;encrypt=true;trustServerCertificate=true}
+      SQLSERVER_USERNAME: ${SQLSERVER_USERNAME:-sa}
       SQLSERVER_PASSWORD: ${SQLSERVER_PASSWORD:?Set SQLSERVER_PASSWORD in the root .env file}
       MONGODB_URI: mongodb://mongodb:27017/group6_project_db
       SMTP_HOST: ${SMTP_HOST:-mailpit}

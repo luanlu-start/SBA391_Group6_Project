@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { useAuthentication } from '../auth/useAuthentication';
 import { authService } from '../services/authService';
 import { getApiError } from '../api/ApiError';
+import type { ApiError } from '../api/ApiError';
 import ApiErrorNotice from '../components/ApiErrorNotice';
 import Button from '../components/ui/Button';
 import PageHeader from '../components/ui/PageHeader';
@@ -13,20 +14,19 @@ import '../styles/registration.css';
 export default function AccountPage() {
   const { user, initializing } = useAuthentication();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const [correlationId, setCorrelationId] = useState<string>();
+  const [error, setError] = useState<ApiError>();
   useEffect(() => { window.scrollTo(0, 0); }, []);
   async function logout() {
-    setBusy(true); setError('');
+    setBusy(true); setError(undefined);
     try { await authService.logout(); }
-    catch (cause) { const failure = getApiError(cause); setError(failure.message); setCorrelationId(failure.correlationId); }
+    catch (cause) { setError(getApiError(cause)); }
     finally { setBusy(false); }
   }
   if (initializing) return <section className="registration-page" role="status">Đang kiểm tra phiên đăng nhập…</section>;
   if (!user) return <Navigate to="/login" replace />;
   return <div className="ui-stack">
     <PageHeader title={`Xin chào, ${user.fullName}`} description="Thông tin tài khoản và phiên đăng nhập hiện tại." />
-    {error && <ApiErrorNotice message={error} correlationId={correlationId} />}
+    {error && <ApiErrorNotice error={error} />}
     <SectionCard title="Thông tin tài khoản" actions={<Badge tone="success" dot>Đã xác thực</Badge>}>
     <div className="ui-stack">
     <dl className="account-details"><dt>Email</dt><dd>{user.email}</dd><dt>Số điện thoại</dt><dd>{user.phone}</dd>

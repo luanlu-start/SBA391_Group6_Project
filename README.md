@@ -235,6 +235,29 @@ Frontend được phục vụ qua Nginx và proxy `/api` tới backend.
 
 Địa chỉ sử dụng cổng đã đặt trong `.env` nếu khác mặc định.
 
+Nếu dùng SQL Server đã cài trên Windows, backend trong Docker kết nối qua
+`SQLSERVER_URL=jdbc:sqlserver://host.docker.internal:1433;databaseName=group6_project_db;encrypt=true;trustServerCertificate=true`.
+Đặt `SQLSERVER_USERNAME` và `SQLSERVER_PASSWORD` trong `.env`, tạo database trước khi chạy.
+Để bỏ SQL container khi chạy stack, tạo `compose.override.yaml` riêng cho máy:
+
+```yaml
+services:
+  sqlserver:
+    profiles: [docker-sql]
+  sqlserver-init:
+    profiles: [docker-sql]
+  server:
+    depends_on: !override
+      mongodb:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+```
+
+Docker Compose 2.24.4 trở lên tự đọc file override này cùng `compose.yaml`.
+File override và `.env` không được commit. SSMS dùng `localhost,1433` để xem SQL trên Windows;
+backend chạy trực tiếp ngoài Docker dùng `localhost:1433` thay cho `host.docker.internal:1433`.
+
 ```powershell
 docker compose ps -a
 docker compose logs -f server
@@ -322,7 +345,7 @@ Compose tự đọc `.env` ở thư mục gốc; Spring Boot chạy ngoài Docke
 | `JWT_SECRET` | Compose/backend | Khóa JWT Base64 chứa tối thiểu 32 byte ngẫu nhiên; giữ riêng trong `.env` |
 | `AUTH_COOKIE_SECURE` | Compose/backend | `false` cho localhost HTTP; `true` khi chạy production qua HTTPS |
 | `SQLSERVER_PASSWORD` | Compose/backend | Mật khẩu SQL Server |
-| `SQLSERVER_URL`, `SQLSERVER_USERNAME` | Backend | Kết nối SQL Server |
+| `SQLSERVER_URL`, `SQLSERVER_USERNAME` | Compose/backend | Kết nối SQL Server; Compose mặc định dùng service `sqlserver`, tài khoản `sa` |
 | `MONGODB_URI` | Backend | Kết nối MongoDB |
 | `SERVER_PORT` | Backend | Cổng HTTP, mặc định 8080 |
 | `SPRING_PROFILES_ACTIVE` | Backend | Profile, mặc định `dev` |

@@ -95,6 +95,8 @@ app:
     jwt-secret: ${JWT_SECRET:}
     access-ttl-minutes: 15
     refresh-ttl-days: 7
+    expired-session-retention-days: 7
+    session-cleanup-cron: "0 0 * * * *"
     max-login-attempts: 5
     login-lock-minutes: 15
     max-devices: 5
