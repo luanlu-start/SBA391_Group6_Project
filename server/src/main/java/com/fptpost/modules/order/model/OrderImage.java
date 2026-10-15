@@ -16,8 +16,8 @@ import java.time.Instant;
 @ToString(exclude = "order")
 @EqualsAndHashCode(of = "id")
 @Entity
-@Table(name = "shipping_order_images", indexes = {
-    @Index(name = "idx_shipping_order_images_order_id", columnList = "order_id")
+@Table(name = "order_images", indexes = {
+    @Index(name = "idx_order_images_order_id", columnList = "order_id")
 })
 public class OrderImage {
 
