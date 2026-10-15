@@ -19,8 +19,6 @@ import java.time.Instant;
 @Table(name = "payment_transactions", indexes = {
         @Index(name = "idx_payment_txn_ref", columnList = "txn_ref", unique = true),
         @Index(name = "idx_payment_order_code", columnList = "order_code"),
-        @Index(name = "idx_payment_user_id", columnList = "user_id"),
-        @Index(name = "idx_payment_purpose", columnList = "purpose"),
         @Index(name = "idx_payment_status", columnList = "status"),
         @Index(name = "idx_payment_created_at", columnList = "created_at")
 })
@@ -33,17 +31,7 @@ public class PaymentTransaction {
     @Column(name = "txn_ref", nullable = false, unique = true, length = 100)
     private String txnRef;
 
-    @Column(name = "user_id")
-    private Long userId;
-
-    @Column(name = "order_id")
-    private Long orderId;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "purpose", length = 30)
-    private PaymentPurpose purpose;
-
-    @Column(name = "order_code", length = 50)
+    @Column(name = "order_code", nullable = false, length = 50)
     private String orderCode;
 
     @Column(name = "amount", nullable = false, precision = 18, scale = 2)
@@ -79,9 +67,6 @@ public class PaymentTransaction {
 
     @Column(name = "pay_date", length = 20)
     private String payDate;
-
-    @Column(name = "expires_at")
-    private Instant expiresAt;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
