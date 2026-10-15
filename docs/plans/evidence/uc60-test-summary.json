@@ -1,0 +1,306 @@
+{
+  "date": "2026-10-15",
+  "branch": "feature/UC-60-ThuanTC-tra-cuu-audit",
+  "base_commit": "cef0f4e",
+  "standard_run": {
+    "discovered": 212,
+    "executed": 200,
+    "failures": 0,
+    "errors": 0,
+    "opt_in_skipped": 12
+  },
+  "live_final_run": {
+    "discovered": 7,
+    "executed": 6,
+    "failures": 0,
+    "errors": 0,
+    "browser_rendezvous_skipped": 1,
+    "database_cleanup": "PASS"
+  },
+  "combined_latest_reports": {
+    "tests": 212,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 6,
+    "executed": 206
+  },
+  "suites": [
+    {
+      "name": "com.fptpost.ActivityLogServiceTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.ActivityTransactionTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.AuditLogHttpTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.AuditLogLiveIntegrationTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "name": "com.fptpost.AuthenticationHttpTest",
+      "tests": 21,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.AuthenticationRateLimiterTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.BackendContractTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.common.audit.AuditOutboxTransactionTest",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.common.audit.AuditPayloadMaskerTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.common.audit.AuditRetentionServiceTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.common.audit.MongoAuditIndexInitializerTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.common.audit.MongoAuditSinkTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.EmailServiceTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.modules.audit.AuditLogQueryRepositoryTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.modules.audit.AuditLogServiceTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.modules.identity.config.UserDemoSeederIntegrationTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.modules.identity.config.UserDemoSeederTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.modules.payment.config.PaymentDemoSeederTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.modules.payment.controller.PaymentControllerTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.modules.payment.service.VNPayServiceTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.modules.payment.util.VNPayUtilTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.OrderServiceTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.OtpHttpTest",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.ParameterCatalogTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.ParameterDataInitializerTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.ParameterHttpTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.ParameterLiveIntegrationTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 5
+    },
+    {
+      "name": "com.fptpost.ParameterTransactionTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.PricingSimulationConfigurationTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.ProductDemoSeederTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.ProductSearchHttpTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.ProductSearchRepositoryTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.ProductServiceTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.ReferencePricingSimulationTest",
+      "tests": 24,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.fptpost.RegistrationHttpTest",
+      "tests": 22,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "frontend": {
+    "typecheck": "PASS",
+    "lint": "PASS",
+    "build": "PASS",
+    "helper_assertions": 9
+  },
+  "browser_uat": {
+    "login_returnTo": "PASS",
+    "test_events": 35,
+    "combined_filter_result": 30,
+    "server_paging": "21-30 of 30",
+    "detail_before_after": "PASS",
+    "privacy_masking": "PASS",
+    "empty_state": "PASS",
+    "invalid_uuid": "PASS",
+    "vietnam_time_filter": "PASS",
+    "responsive_viewport": "390x844",
+    "page_width": 375,
+    "client_width": 375,
+    "database": "isolated disposable test database, removed",
+    "note": "Browser UAT completed before Docker/Java interruption. Final six automatic live tests rerun after restart; rendezvous skipped."
+  },
+  "docker_package": {
+    "executed": 200,
+    "failures": 0,
+    "errors": 0,
+    "opt_in_skipped": 12
+  },
+  "producer_coverage": [
+    "UC-46 parameter mutation"
+  ],
+  "whole_project_sensitive_action_coverage": false
+}

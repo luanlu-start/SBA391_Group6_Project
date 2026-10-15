@@ -8,7 +8,7 @@ import org.springframework.data.mongodb.core.mapping.Field;
 import java.time.Instant;
 import java.util.Map;
 
-/** No update/delete path: capture is insert-only, with event UUID also used as MongoDB's unique _id. */
+/** Capture is insert-only; only the internal retention job can purge expired records. */
 @Document("audit_logs")
 public record MongoAuditDocument(@Id String id, @Indexed(unique = true) String eventId,
                                  String actorType, @Field("actor") String actorPublicId, String action, String entityType,

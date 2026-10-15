@@ -212,7 +212,10 @@ Activity listener ghi MongoDB ở `AFTER_COMMIT`, tránh ghi lịch sử cho tha
 Lịch sử hiện là best effort: lỗi Mongo được log sau SQL commit và có thể mất bản ghi.
 API đọc lịch sử vẫn trả lỗi khi Mongo không truy cập được.
 Đối với sự kiện nghiệp vụ FPTPost, thiết kế SQL outbox cùng transaction,
-worker retry/idempotency theo eventId như SPEC yêu cầu; cơ chế này chưa triển khai.
+worker retry/idempotency theo eventId như SPEC yêu cầu. Cơ chế này đã có cho UC-46 qua
+`common.audit.AuditOutboxService`; UC-60 cung cấp query và retention của cùng collection.
+Các module nhạy cảm tiếp theo gọi producer trong transaction nghiệp vụ của owner;
+xem [contract UC-60](plans/UC60-CONTRACT.md), không tạo thêm kho audit riêng.
 
 Không dùng ActivityLog mẫu làm bằng chứng duy nhất cho trạng thái đơn, ví/ký quỹ hoặc đối soát.
 Chỉ module ledger được ghi bút toán; ghi lịch sử trạng thái và bút toán liên quan trong

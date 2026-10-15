@@ -5,7 +5,7 @@ Baseline audit: **13/10/2026**. Ngày cập nhật: **14/10/2026**, múi giờ A
 ## Quyết định đã được người dùng xác nhận
 
 - Excel `FPTPost_Dac_ta_BR_UC (1).xlsx` do người dùng cung cấp là **nguồn yêu cầu và phân công chính thức đang áp dụng**. Không thay bằng bản Excel cũ trong `docs/sources`, kế hoạch TV1–TV6 hay phân công PAY cũ.
-- Người dùng là **Trần Công Thuận**. Lúc lập plan, phần Thuận chưa triển khai và bắt đầu ở `NOT_STARTED`; ngày 14/10 đã hoàn tất nền P00 và bản độc lập P01/UC-46. Các gói P02–P15 vẫn chưa bắt đầu.
+- Người dùng là **Trần Công Thuận**. Lúc lập plan, phần Thuận chưa triển khai và bắt đầu ở `NOT_STARTED`; ngày 14/10 đã hoàn tất nền P00 và bản độc lập P01/UC-46. Ngày 15/10 hoàn tất P02/UC-60 tra cứu audit và retention. P03–P15 chưa bắt đầu.
 - Giữ nguyên 15 UC và người phụ trách trong sheet `15_Chia task(UC)`. Bảng `04_UC` lấy người/sprint từ sheet này. Bảng phân hệ tổng hợp không thu hẹp phạm vi xuống 11 UC.
 - Người dùng cho phép lập lại thứ tự và thời gian thực hiện **phần Thuận** theo phụ thuộc; có thể triển khai độc lập bằng contract và dữ liệu giả lập, thay adapter khi đồng đội bàn giao.
 - Mục tiêu vẫn đủ **63 UC của dự án**, bao gồm Should/Could đã có trong Excel. Plan này không giao 48 UC của đồng đội cho agent của Thuận.
@@ -18,6 +18,8 @@ Baseline audit: **13/10/2026**. Ngày cập nhật: **14/10/2026**, múi giờ A
 | --- | --- |
 | [AGENT-START.md](AGENT-START.md) | Prompt có thể đưa ngay cho agent, giới hạn đợt đầu P00/P01 |
 | [ROUND1-HANDOFF.md](ROUND1-HANDOFF.md) | Kết quả code, chạy Docker, kiểm thử và bàn giao đợt 1 |
+| [UC60-HANDOFF.md](UC60-HANDOFF.md) | Kết quả UC-60, kiểm thử SQL/Mongo/browser, trạng thái tích hợp và bước tiếp theo |
+| [UC60-CONTRACT.md](UC60-CONTRACT.md) | API-157, chính sách tra cứu/masking/index/retention và hook producer của các owner |
 | [UC46-CONTRACT.md](UC46-CONTRACT.md) | Contract C01/C02 thực tế và API UC-46 để đồng đội tích hợp |
 | [THUAN-IMPLEMENTATION-PLAN.md](THUAN-IMPLEMENTATION-PLAN.md) | 5 đợt triển khai, backlog P00–P15, đầu ra FE/BE, fixture và tiêu chí nghiệm thu |
 | [CONTRACTS-AND-INTEGRATION.md](CONTRACTS-AND-INTEGRATION.md) | Interface với đồng đội, dữ liệu giả lập, quy trình thay bằng module thật |

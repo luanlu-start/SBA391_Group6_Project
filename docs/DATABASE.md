@@ -22,6 +22,16 @@ Seed chỉ thêm key thiếu; không ghi đè giá trị đã chỉnh. Không t�
 Schema và giao dịch đã kiểm tra với database test riêng trên Docker SQL Server 2022/MongoDB 7,
 không thay đổi SQL Server Windows. Contract chi tiết: [UC46-CONTRACT](plans/UC46-CONTRACT.md).
 
+## Index và retention UC-60 đã triển khai
+
+UC-60 đọc trực tiếp `audit_logs`, không nhân bản collection. Unique eventId giữ nguyên index
+tương đương đã tồn tại; thêm sáu compound index cho thời gian, actor, action và đối tượng.
+Không tạo TTL cố định trên audit. Job nội bộ đọc AUDIT_KEEP hiện tại, tính cutoff theo năm lịch UTC,
+loại bỏ từng document có at < cutoff bằng findAndRemove atomic, tối đa 250/lần mặc định.
+Job chạy sau 60 giây rồi mỗi giờ; lỗi/giá trị không an toàn giữ lại bản ghi để thử lại.
+Không có đường dẫn API purge/sửa/xóa, không xóa lịch sử trạng thái SQL hoặc ledger.
+Chi tiết property và bảo vệ payload xem [UC60-CONTRACT](plans/UC60-CONTRACT.md).
+
 ## Phân chia dữ liệu
 
 | Kho | Dữ liệu và vai trò |

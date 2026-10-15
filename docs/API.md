@@ -20,6 +20,15 @@ và [manifest](plans/plan-manifest.json). UC-46 được triển khai theo bản
 Contract request/response, lỗi và adapter bàn giao xem [UC46-CONTRACT](plans/UC46-CONTRACT.md).
 Simulation hiện dùng adapter `REFERENCE` trong dev/demo/test/local; production/staging cần Pricing provider thật.
 
+## UC-60 đã triển khai — ADMIN
+
+`GET /api/v1/admin/audit-logs` trả `ApiResponse<PageResponse<AuditLogResponse>>`.
+Lọc AND theo `actor` (UUID), `action`, `entityType`, `entityId`, `from/to` ISO Instant inclusive;
+`page=0`, `size=20` mặc định, size tối đa 100. Thứ tự `at DESC,eventId DESC`.
+Chi tiết before/after đã mask nằm trong mỗi dòng; response no-store; không có API ghi/xóa.
+Kho Mongo không khả dụng trả `AUDIT_STORE_UNAVAILABLE`/503, khác với query thành công nhưng rỗng.
+Xem [UC60-CONTRACT](plans/UC60-CONTRACT.md) và [bàn giao UC-60](plans/UC60-HANDOFF.md).
+
 ## Endpoint base đã có
 
 | Method | Đường dẫn | Kết quả |

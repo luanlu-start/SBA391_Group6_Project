@@ -18,6 +18,8 @@ export const apiErrorMessages: Record<string, string> = {
   PARAMETER_VERSION_CONFLICT: 'Tham số đã được người khác cập nhật. Bản nháp của bạn được giữ để kiểm tra lại.',
   PARAMETER_SIMULATION_UNAVAILABLE: 'Mô phỏng biểu phí hiện chưa khả dụng.',
   PARAMETER_QUOTE_INVALID: 'Thông tin đơn mô phỏng chưa hợp lệ. Vui lòng kiểm tra lại.',
+  AUDIT_INVALID_FILTER: 'Bộ lọc nhật ký chưa hợp lệ. Kiểm tra mã người thực hiện và khoảng thời gian.',
+  AUDIT_STORE_UNAVAILABLE: 'Kho nhật ký kiểm toán tạm thời không khả dụng. Vui lòng thử lại sau.',
   AUTH_EMAIL_ALREADY_EXISTS: 'Email đã được sử dụng. Bạn có thể đăng nhập hoặc đặt lại mật khẩu.',
   AUTH_PHONE_ALREADY_EXISTS: 'Số điện thoại đã được sử dụng.',
   AUTH_PASSWORD_INVALID: 'Mật khẩu phải có chữ hoa, chữ thường, chữ số; không trùng email/SĐT và tối đa 72 byte.',

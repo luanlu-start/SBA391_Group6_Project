@@ -118,6 +118,11 @@ Giữ các tầng controller/service/repository hiện có, không bổ sung b�
 
 ### C11 — DomainEventEnvelope và Audit/Notification APIs (Thuận → tất cả)
 
+Cập nhật triển khai ngày 15/10: audit capture/outbox đã có từ UC-46; API đọc, index và
+retention UC-60 đã chạy thật. Contract thực tế xem [UC46-CONTRACT](UC46-CONTRACT.md)
+và [UC60-CONTRACT](UC60-CONTRACT.md). Envelope minh họa bên dưới vẫn là đề xuất cho
+event/notification các domain tiếp theo; không đổi payload AUDIT hiện có để khớp ví dụ.
+
 ```json
 {
   "eventId": "uuid",

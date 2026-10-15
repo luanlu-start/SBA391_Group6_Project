@@ -35,7 +35,7 @@ public class AuditPayloadMasker {
             String name = String.valueOf(key);
             String normalized = name.replaceAll("[^a-zA-Z0-9]", "").toLowerCase(java.util.Locale.ROOT);
             boolean sensitive = SENSITIVE_KEYS.contains(normalized) || normalized.contains("password")
-                    || normalized.contains("secret") || normalized.endsWith("token")
+                    || normalized.contains("secret") || normalized.contains("token") || normalized.startsWith("otp")
                     || normalized.startsWith("cccd") || normalized.startsWith("nationalid")
                     || normalized.startsWith("idcard");
             result.put(name, sensitive ? "[REDACTED]" : maskValue(value, depth + 1));

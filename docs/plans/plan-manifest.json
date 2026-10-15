@@ -89,7 +89,18 @@
       "id": "P02",
       "uc": "UC-60",
       "iteration": "T2",
-      "status": "NOT_STARTED"
+      "status": "VERIFIED",
+      "implementation_date": "2026-10-15",
+      "branch": "feature/UC-60-ThuanTC-tra-cuu-audit",
+      "evidence": "docs/plans/UC60-HANDOFF.md",
+      "provider_mode": "REAL",
+      "verified_scope": "ADMIN search/detail/masking/index/retention and UC46 SQL outbox -> Mongo -> query",
+      "remaining_producer_integration": [
+        "KYC",
+        "Order status history",
+        "role/account management",
+        "Ledger/Payment sensitive actions"
+      ]
     },
     {
       "id": "P03",
@@ -2231,7 +2242,7 @@
       "proposed_integration_wave": "W1",
       "thuan_package": "P02",
       "thuan_independent_iteration": "T2",
-      "implementation_status": "NOT_STARTED"
+      "implementation_status": "VERIFIED"
     },
     {
       "id": "UC-61",
@@ -14339,6 +14350,18 @@
       "frontend_checks": "PASS",
       "evidence": "docs/plans/evidence/merge-develop-verification.json",
       "note": "Original 149-test evidence above belongs to pre-merge verification"
+    },
+    "uc60": {
+      "date": "2026-10-15",
+      "branch": "feature/UC-60-ThuanTC-tra-cuu-audit",
+      "base_commit": "cef0f4e",
+      "standard_tests_passed": 200,
+      "live_tests_passed": 6,
+      "browser_uat": "PASS",
+      "handoff": "docs/plans/UC60-HANDOFF.md",
+      "contract": "docs/plans/UC60-CONTRACT.md",
+      "whole_project_sensitive_action_coverage": false,
+      "next_package": "P03"
     }
   }
 }

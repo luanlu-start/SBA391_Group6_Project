@@ -1,6 +1,6 @@
 # Bàn giao cấu hình FPTPost của nhóm
 
-Workspace hiện ở `feature/UC-46-ThuanTC-cau-hinh-tham-so`, theo quy định nhánh của nhóm.
+Workspace hiện ở `feature/UC-60-ThuanTC-tra-cuu-audit`, kế thừa UC-46 tại cef0f4e và theo quy định nhánh của nhóm.
 Các thay đổi nghiệp vụ được giữ nguyên; thiết lập này bổ sung cấu hình chạy, launcher
 và sửa hẹp Mockito stubbing trong test harness. Nhánh UC-46 đã được đổi tên theo yêu cầu của Thuận.
 Ngày 14/10, Thuận yêu cầu commit và push bản bàn giao trên nhánh này.
@@ -8,6 +8,11 @@ Ngày 14/10, Thuận yêu cầu commit và push bản bàn giao trên nhánh nà
 **Bàn giao đợt 1 ngày 14/10/2026:** P00 và bản độc lập P01/UC-46 đã triển khai và kiểm thử.
 Chi tiết chức năng, API, kết quả kiểm thử và phần còn chờ Pricing: [ROUND1-HANDOFF](docs/plans/ROUND1-HANDOFF.md).
 Trang quản trị: `http://localhost:15173/admin/params`, yêu cầu tài khoản có role `ADMIN`.
+
+**Bàn giao UC-60 ngày 15/10/2026:** `/admin/audit` và GET `/api/v1/admin/audit-logs`
+đã có query/phân trang/chi tiết/masking, index và retention AUDIT_KEEP.
+Xem [UC60-HANDOFF](docs/plans/UC60-HANDOFF.md) và [UC60-CONTRACT](docs/plans/UC60-CONTRACT.md).
+Các số liệu kiểm thử đợt đầu bên dưới là lịch sử; báo cáo UC-60 chứa kết quả mới nhất.
 
 **Cập nhật merge develop ngày 14/10:** đã ghép UC-12/UC-34 từ `13eeb41`, giữ route
 đơn hàng/thanh toán và ADMIN guard của UC-46. Kiểm thử sau merge và runtime xem

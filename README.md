@@ -7,6 +7,10 @@ và UC-01–04 Identity. Đợt 1 của Thuận bổ sung UC-46 quản trị 109
 
 [Bàn giao đợt 1](docs/plans/ROUND1-HANDOFF.md) • [Contract UC-46](docs/plans/UC46-CONTRACT.md) • [Tiến độ phần Thuận](docs/plans/PROGRESS.md).
 
+UC-60 bổ sung `/admin/audit`: Admin lọc/phân trang, xem chi tiết before/after đã che dữ liệu nhạy cảm,
+truy vết event/IP/correlationId; Mongo index và job retention theo AUDIT_KEEP.
+[Bàn giao UC-60](docs/plans/UC60-HANDOFF.md) • [Contract API-157](docs/plans/UC60-CONTRACT.md).
+
 Đọc [thông tin dự án](docs/PROJECT-INFO.md), [63 Use Case](docs/USE-CASES.md) và
 [quy ước code](docs/CONTRIBUTING.md) trước khi bắt đầu chức năng.
 
@@ -637,7 +641,8 @@ Preview dùng Pricing adapter REFERENCE trong dev/demo; chưa tích hợp Pricin
 
 Các phần Identity còn lại (quên/đổi mật khẩu, hồ sơ/KYC) và các module
 order, market, pricing, ledger/payment, tracking, reputation,
-dispute, messaging và các UC admin còn lại cần triển khai theo BR/UC. UC-60 query/UI audit chưa có.
+dispute, messaging và các UC admin còn lại cần triển khai theo BR/UC. UC-60 query/UI và retention đã có;
+producer audit cho KYC/Order/Ledger/phân quyền tiếp tục tích hợp tại các UC tương ứng.
 COD, bưu cục/kho và AI/eKYC
 tự động nằm ngoài phạm vi v1.0. Demo thanh toán theo tài liệu dùng sandbox/tiền mô phỏng.
 Tài liệu là dự thảo, không phải chứng nhận các UC đã hoàn thành.
