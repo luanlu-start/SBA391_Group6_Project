@@ -1,6 +1,7 @@
 import axiosClient from './axiosClient';
 import type { ApiResponse } from '../types/api';
 import type { Order, OrderRequest } from '../types/order';
+import type { OrderPaymentRequest, OrderPaymentResponse } from '../types/payment';
 
 export const orderApi = {
   create: (data: OrderRequest) => {
@@ -25,5 +26,9 @@ export const orderApi = {
         'Content-Type': 'multipart/form-data',
       },
     });
+  },
+
+  payOrder: (id: number | string, data: OrderPaymentRequest) => {
+    return axiosClient.post<unknown, ApiResponse<OrderPaymentResponse>>(`/orders/${id}/payment`, data);
   },
 };

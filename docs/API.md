@@ -26,12 +26,20 @@ và [SPEC](sources/fptpost-spec-v1.0.pdf), mục 6.
 | POST | /api/v1/auth/logout | Đăng xuất phiên hiện tại |
 | GET | /api/v1/auth/sessions | UC-04 danh sách phiên đang hoạt động của tài khoản hiện tại |
 | DELETE | /api/v1/auth/sessions/{id} | UC-04 thu hồi một phiên của tài khoản hiện tại |
+| GET | /api/v1/wallet | UC-38 xem thông tin số dư ví, tiền ký quỹ; HTTP 200 |
+| POST | /api/v1/wallet/topups | UC-34 (API-084) nạp tiền ví qua VNPay, sinh paymentUrl; HTTP 200 |
+| GET | /api/v1/payment/vnpay-return | UC-34 (API-085) nhận return từ VNPay, hiển thị biên lai giao dịch |
+| GET/POST | /api/v1/payment/vnpay-ipn | UC-42 (API-086) webhook IPN từ VNPay, ghi nhận số dư và sổ cái kép |
+| POST | /api/v1/orders/{id}/payment | UC-35 (API-087) thanh toán & ký quỹ đơn hàng qua Ví hoặc VNPay |
+| GET | /api/v1/orders | Danh sách đơn hàng |
+| GET | /api/v1/orders/{id} | Chi tiết đơn hàng |
+| POST | /api/v1/orders | Tạo đơn hàng mới; HTTP 201 |
 | GET | /api/v1/me | Thông tin người dùng đang đăng nhập |
 
 Product CRUD là ví dụ kỹ thuật, không tương ứng UC-12 hay các API orders.
 UC-01–04 đã có đăng ký, xác thực email, đăng nhập, refresh rotation và quản lý phiên.
-Product/Activity và các API nội bộ yêu cầu Bearer; health và các endpoint auth công khai
-được liệt kê trong SecurityConfig. Chưa có VNPay/WebSocket hoặc đầy đủ role/ownership cho các module chưa triển khai.
+UC-34 và UC-35 đã được triển khai hoàn chỉnh cho cả Backend, Security và Frontend: nạp tiền vào ví qua cổng VNPay (SCR-42), thanh toán và ký quỹ đơn hàng (SCR-22), quản lý bút toán sổ cái kép (ledger) và xử lý IPN đa mục đích (WALLET_TOPUP / ORDER_ESCROW) bảo đảm tính toàn vẹn (idempotency).
+Product/Activity, Wallet và Order Payment yêu cầu Bearer JWT; các endpoint callback VNPay công khai (return/ipn) được cấu hình trong SecurityConfig.
 
 ## API xác thực UC-01–04
 
@@ -94,6 +102,73 @@ Phiên đã hết hạn/thu hồi, ID không tồn tại hoặc thuộc tài kho
 `AUTH_SESSION_NOT_FOUND`/404. Khi ID trong danh sách đã được thay do refresh, backend
 thu hồi phiên tiếp nối của cùng tài khoản; refresh và thu hồi cùng dùng khóa theo User.
 Refresh giữ nguyên `createdAt` của lần đăng nhập để danh sách và thứ tự giới hạn thiết bị ổn định.
+
+## API Ví tiền & Ký quỹ (UC-34 & UC-35)
+
+Luồng giao diện:
+- **SCR-42 (Nạp tiền vào ví)** tại `/wallet`: xem số dư khả dụng, tiền ký quỹ, tổng tài sản; chọn hạn mức nạp (tối thiểu 20.000 đ, tối đa 10.000.000 đ/lần, trần số dư 20.000.000 đ theo BR-R-050/PRM-058) và chuyển hướng tới VNPay Sandbox.
+- **SCR-22 (Thanh toán đơn và ký quỹ)** tại `/orders/:id/payment`: xem chi tiết đơn hàng, chọn thanh toán bằng Ví FPTPost (trừ số dư khả dụng, giữ tiền ký quỹ Escrow, cập nhật trạng thái đơn `ESCROWED`) hoặc thanh toán trực tiếp qua VNPay Sandbox.
+- **Biên lai giao dịch VNPay** tại `/payment/vnpay-return`: tự động kiểm tra chữ ký SHA-512, hiển thị biên lai giao dịch minh bạch.
+
+### Chi tiết các Endpoint đã triển khai
+
+| API | Method | Endpoint | Quyền | Mục đích |
+| --- | --- | --- | --- | --- |
+| API-084 | POST | `/api/v1/wallet/topups` | Đăng nhập | Tạo giao dịch nạp ví qua VNPay (UC-34) |
+| API-085 | GET | `/api/v1/payment/vnpay-return` | Công khai | Nhận phản hồi thanh toán người dùng từ VNPay |
+| API-086 | GET/POST | `/api/v1/payment/vnpay-ipn` | Webhook IPN | Nhận IPN từ VNPay, xử lý cộng tiền/ký quỹ & sổ cái kép (UC-42) |
+| API-087 | POST | `/api/v1/orders/{id}/payment` | SENDER | Thanh toán & ký quỹ đơn hàng qua Ví hoặc VNPay (UC-35) |
+| API-088 | GET | `/api/v1/wallet` | Đăng nhập | Xem thông tin số dư ví và tiền ký quỹ (UC-38) |
+
+### Request & Response Payload
+
+#### 1. Nạp tiền vào ví (API-084)
+- **Request Body**:
+  ```json
+  {
+    "amount": 100000,
+    "bankCode": "NCB",
+    "language": "vn"
+  }
+  ```
+- **Validation**:
+  - `amount` >= 20.000 VND [PRM-056].
+  - `amount` <= 10.000.000 VND [PRM-057].
+  - `currentBalance + amount` <= 20.000.000 VND [PRM-058 / BR-R-050]. Vượt quá trả `WALLET_BALANCE_LIMIT_EXCEEDED` (HTTP 400).
+- **Response `data`**:
+  ```json
+  {
+    "code": "00",
+    "message": "success",
+    "paymentUrl": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?...",
+    "txnRef": "TOPUP-1718000000-A1B2C3"
+  }
+  ```
+
+#### 2. Thanh toán đơn hàng & Ký quỹ (API-087)
+- **Request Body**:
+  ```json
+  {
+    "paymentMethod": "WALLET", // hoặc "VNPAY"
+    "bankCode": "NCB", // Tùy chọn khi paymentMethod là VNPAY
+    "language": "vn"
+  }
+  ```
+- **Quyền & Kiểm tra**:
+  - Bắt buộc có role `SENDER` hoặc `ADMIN`.
+  - Phải là chủ đơn hàng (`order.senderId == currentUser.id`).
+  - Đơn hàng phải ở trạng thái hợp lệ (`PENDING_ESCROW`, `CONFIRMED`, `DRAFT`). Nếu đã `ESCROWED` trả thông báo thành công hoặc không trừ tiền trùng lặp.
+- **Xử lý theo phương thức**:
+  - **`WALLET`**: Kiểm tra `wallet.available >= order.declaredValue`. Trừ số dư khả dụng, tăng số dư `escrowHeld`, tạo bản ghi bảng `escrows` (`status = HELD`, `paymentMethod = WALLET`), ghi nhận bút toán kép Sổ cái (`ledger_transactions` và `ledger_entries`), chuyển trạng thái đơn hàng sang `ESCROWED`.
+  - **`VNPAY`**: Sinh URL thanh toán VNPay với mục đích `ORDER_ESCROW`. Khi IPN VNPay trả về mã `00`, hệ thống tự động tạo `escrows`, ghi nhận bút toán kép và chuyển trạng thái đơn hàng sang `ESCROWED`.
+
+#### 3. Toàn vẹn dữ liệu & Idempotency
+- Mọi thao tác biến động số dư và sổ cái được bọc trong `@Transactional` với khóa bi quan (`PESSIMISTIC_WRITE`) trên bản ghi `wallets`.
+- VNPay IPN (`/api/v1/payment/vnpay-ipn`) kiểm tra trạng thái giao dịch trước khi xử lý: nếu giao dịch không còn ở trạng thái `PENDING`, trả về ngay mã `02` (Order already confirmed) theo đúng quy chuẩn VNPay, ngăn chặn hoàn toàn việc cộng tiền hoặc ký quỹ trùng lặp.
+- Hệ thống Sổ cái kép (`ledger_transactions` và `ledger_entries`):
+  - Nạp ví: Ghi Nợ (DEBIT) tài khoản trung gian `VNPAY_CLEARING`, Ghi Có (CREDIT) tài khoản ví `USER_WALLET_{userId}`.
+  - Ký quỹ bằng ví: Ghi Nợ (DEBIT) `USER_WALLET_{userId}`, Ghi Có (CREDIT) `ESCROW_ORDER_{orderId}`.
+  - Ký quỹ qua VNPay: Ghi Nợ (DEBIT) `VNPAY_CLEARING`, Ghi Có (CREDIT) `ESCROW_ORDER_{orderId}`.
 
 Quên/đổi mật khẩu, Google login và KYC chưa triển khai.
 Cấu hình SMTP/template nằm trong [README](../README.md), schema trong [DATABASE](DATABASE.md),

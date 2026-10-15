@@ -1,0 +1,23 @@
+package com.fptpost.modules.payment.exception;
+
+import com.fptpost.common.exception.ErrorCode;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+
+@Getter
+@RequiredArgsConstructor
+public enum PaymentErrorCode implements ErrorCode {
+    WALLET_NOT_FOUND("WALLET_NOT_FOUND", HttpStatus.NOT_FOUND),
+    WALLET_TOPUP_AMOUNT_INVALID("WALLET_TOPUP_AMOUNT_INVALID", HttpStatus.BAD_REQUEST),
+    WALLET_MAX_BALANCE_EXCEEDED("WALLET_MAX_BALANCE_EXCEEDED", HttpStatus.BAD_REQUEST),
+    WALLET_INSUFFICIENT_BALANCE("WALLET_INSUFFICIENT_BALANCE", HttpStatus.BAD_REQUEST),
+    ORDER_ALREADY_ESCROWED("ORDER_ALREADY_ESCROWED", HttpStatus.CONFLICT),
+    ORDER_PAYMENT_NOT_ALLOWED("ORDER_PAYMENT_NOT_ALLOWED", HttpStatus.BAD_REQUEST),
+    ORDER_PAYMENT_FORBIDDEN("ORDER_PAYMENT_FORBIDDEN", HttpStatus.FORBIDDEN),
+    PAYMENT_TRANSACTION_NOT_FOUND("PAYMENT_TRANSACTION_NOT_FOUND", HttpStatus.NOT_FOUND),
+    PAYMENT_EXPIRED("PAYMENT_EXPIRED", HttpStatus.BAD_REQUEST);
+
+    private final String code;
+    private final HttpStatus httpStatus;
+}

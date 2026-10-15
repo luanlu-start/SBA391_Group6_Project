@@ -1,0 +1,345 @@
+/* Styles for Wallet (SCR-42) and Order Payment & Escrow (SCR-22) */
+
+.wallet-dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.wallet-stat-card {
+  background: linear-gradient(135deg, rgba(24, 30, 39, 0.9) 0%, rgba(36, 45, 57, 0.6) 100%);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.wallet-stat-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-focus);
+}
+
+.wallet-stat-card.primary {
+  background: linear-gradient(135deg, rgba(243, 112, 33, 0.15) 0%, rgba(24, 30, 39, 0.9) 100%);
+  border-color: var(--brand-border);
+}
+
+.wallet-stat-card .card-glow {
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.wallet-stat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.wallet-stat-header svg {
+  color: var(--primary);
+}
+
+.wallet-stat-value {
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  font-feature-settings: "tnum";
+}
+
+.wallet-stat-subtext {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: var(--space-2);
+}
+
+/* Preset buttons grid */
+.amount-presets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.amount-preset-chip {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.amount-preset-chip:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--border-focus);
+}
+
+.amount-preset-chip.active {
+  background: var(--primary);
+  color: var(--on-primary);
+  border-color: var(--primary);
+  box-shadow: 0 0 12px var(--primary-glow);
+}
+
+/* Bank Selection Pills / Grid */
+.bank-selection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.bank-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: center;
+}
+
+.bank-option:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--border-focus);
+}
+
+.bank-option.active {
+  border-color: var(--primary);
+  background: rgba(243, 112, 33, 0.08);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.bank-option-icon {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text-accent);
+  margin-bottom: var(--space-1);
+}
+
+.bank-option-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* Order Payment Styles */
+.order-summary-box {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  margin-bottom: var(--space-5);
+}
+
+.order-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.order-detail-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.order-detail-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: var(--space-1);
+}
+
+.order-detail-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.order-total-highlight {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  background: rgba(243, 112, 33, 0.1);
+  border: 1px solid var(--brand-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.order-total-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.order-total-amount {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-accent);
+}
+
+/* Payment Method Cards */
+.payment-methods-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.payment-method-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-5);
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.payment-method-card:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--border-focus);
+}
+
+.payment-method-card.selected {
+  border-color: var(--primary);
+  background: rgba(243, 112, 33, 0.08);
+  box-shadow: 0 0 16px var(--primary-glow);
+}
+
+.payment-method-card.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.payment-method-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.payment-method-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+}
+
+.payment-method-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.payment-method-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin-top: var(--space-1);
+}
+
+/* Receipt / Result Page */
+.payment-result-container {
+  max-width: 600px;
+  margin: var(--space-8) auto;
+  text-align: center;
+}
+
+.payment-result-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8);
+  box-shadow: var(--shadow-lg);
+}
+
+.payment-result-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--space-4);
+}
+
+.payment-result-icon.success {
+  background: var(--success-bg);
+  color: var(--accent-emerald);
+}
+
+.payment-result-icon.failed {
+  background: var(--danger-bg);
+  color: var(--accent-rose);
+}
+
+.payment-result-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: var(--space-2);
+}
+
+.payment-result-message {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin-bottom: var(--space-6);
+}
+
+.payment-receipt-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: var(--space-6);
+  text-align: left;
+}
+
+.payment-receipt-table td {
+  padding: var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.payment-receipt-table td:first-child {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.payment-receipt-table td:last-child {
+  color: var(--text-primary);
+  font-weight: 600;
+  text-align: right;
+  font-feature-settings: "tnum";
+}

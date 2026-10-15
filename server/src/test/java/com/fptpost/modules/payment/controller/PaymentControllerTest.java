@@ -5,7 +5,6 @@ import com.fptpost.modules.payment.dto.PaymentCreationRequest;
 import com.fptpost.modules.payment.dto.PaymentCreationResponse;
 import com.fptpost.modules.payment.dto.VNPayIpnResponse;
 import com.fptpost.modules.payment.dto.VNPayReturnResponse;
-import com.fptpost.modules.payment.service.VNPayService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -72,6 +71,33 @@ class PaymentControllerTest {
                 .andExpect(jsonPath("$.data.code").value("00"))
                 .andExpect(jsonPath("$.data.paymentUrl").value("https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_Amount=25000000"))
                 .andExpect(jsonPath("$.data.txnRef").value("ORD-20261013-001"));
+
+        mockMvc.perform(post("/api/v1/payment/create-vnpay-url")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.code").value("00"));
+    }
+
+    @Test
+    @DisplayName("POST /api/payment/wallet/topups and /api/v1/payment/wallet/topups should return 404 on PaymentController")
+    void testWalletTopupsNotMappedOnPaymentController() throws Exception {
+        PaymentCreationRequest request = PaymentCreationRequest.builder()
+                .orderCode("TOPUP-001")
+                .amount(BigDecimal.valueOf(100000))
+                .orderInfo("Nap tien")
+                .build();
+
+        mockMvc.perform(post("/api/payment/wallet/topups")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound());
+
+        mockMvc.perform(post("/api/v1/payment/wallet/topups")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound());
     }
 
     @Test

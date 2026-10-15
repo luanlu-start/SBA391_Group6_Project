@@ -4,6 +4,7 @@ import com.fptpost.modules.payment.model.PaymentTransaction;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -17,4 +18,8 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
     Optional<PaymentTransaction> findFirstByOrderCodeOrderByCreatedAtDesc(String orderCode);
 
     boolean existsByTxnRef(String txnRef);
+
+    List<PaymentTransaction> findByUserIdOrderByCreatedAtDesc(Long userId);
+
+    Optional<PaymentTransaction> findByOrderId(Long orderId);
 }
