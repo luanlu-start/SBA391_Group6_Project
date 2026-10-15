@@ -55,6 +55,8 @@ services:
       SERVER_PORT: "8080"
       JWT_SECRET: ${JWT_SECRET:-}
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
+      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-}
+      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-}
       SPRING_PROFILES_ACTIVE: ${BACKEND_PROFILES:-dev}
       SQLSERVER_URL: ${SQLSERVER_URL:-jdbc:sqlserver://sqlserver:1433;databaseName=group6_project_db;encrypt=true;trustServerCertificate=true}
       SQLSERVER_USERNAME: ${SQLSERVER_USERNAME:-sa}

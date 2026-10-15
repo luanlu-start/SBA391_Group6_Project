@@ -20,7 +20,7 @@ spring:
   datasource:
     url: ${SQLSERVER_URL:jdbc:sqlserver://${COMPUTERNAME}:1433;databaseName=group6_project_db;encrypt=true;trustServerCertificate=true}
     username: ${SQLSERVER_USERNAME:sa}
-    password: ${SQLSERVER_PASSWORD:123}
+    password: ${SQLSERVER_PASSWORD}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
   jpa:
     open-in-view: false
@@ -37,8 +37,8 @@ spring:
   mail:
     host: ${SMTP_HOST:localhost}
     port: ${SMTP_PORT:1025}
-    username: ${SMTP_USERNAME:fpost1.mail@gmail.com}
-    password: ${SMTP_PASSWORD:gmfa dopr akpq uptn}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
     properties:
       mail.smtp.auth: ${SMTP_AUTH:false}
       mail.smtp.starttls.enable: ${SMTP_STARTTLS:false}
@@ -104,8 +104,8 @@ app:
 
 # VNPay Payment Gateway Configuration
 vnpay:
-  vnp_TmnCode: ${VNPAY_TMN_CODE:B91MXQ5Y}
-  vnp_HashSecret: ${VNPAY_HASH_SECRET:HDMKJXGPKGDZUQJDDBEFKXEIXZYWSNCM}
+  vnp_TmnCode: ${VNPAY_TMN_CODE:}
+  vnp_HashSecret: ${VNPAY_HASH_SECRET:}
   vnp_PayUrl: ${VNPAY_PAY_URL:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
   vnp_ReturnUrl: ${VNPAY_RETURN_URL:http://localhost:8080/api/payment/vnpay-return}
   vnp_ApiUrl: ${VNPAY_API_URL:https://sandbox.vnpayment.vn/merchant_webapi/api/transaction}

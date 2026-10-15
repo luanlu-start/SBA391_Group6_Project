@@ -17,12 +17,12 @@ public class VNPayConfig {
     /**
      * VNPay Merchant Terminal Code (vnp_TmnCode)
      */
-    private String vnp_TmnCode = "B91MXQ5Y";
+    private String vnp_TmnCode = "";
 
     /**
      * VNPay Secret Hash Key (vnp_HashSecret / secretKey)
      */
-    private String vnp_HashSecret = "HDMKJXGPKGDZUQJDDBEFKXEIXZYWSNCM";
+    private String vnp_HashSecret = "";
 
     /**
      * VNPay Payment Gateway URL (vnp_PayUrl)

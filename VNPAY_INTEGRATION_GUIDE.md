@@ -532,7 +532,7 @@ Trong [`SecurityConfig.java`](file:///c:/Users/Le%20Nhut%20Huy/Desktop/Projects/
 | Tên cấu hình | Giá trị cấu hình Sandbox |
 |---|---|
 | **Terminal ID (`vnp_TmnCode`)** | `B91MXQ5Y` |
-| **Secret Hash Key (`vnp_HashSecret`)** | `HDMKJXGPKGDZUQJDDBEFKXEIXZYWSNCM` |
+| **Secret Hash Key (`vnp_HashSecret`)** | `YOUR_VNPAY_HASH_SECRET` |
 | **URL cổng thanh toán (`vnp_PayUrl`)** | `https://sandbox.vnpayment.vn/paymentv2/vpcpay.html` |
 | **Return Callback URL (`vnp_ReturnUrl`)** | `http://localhost:8080/api/v1/payment/vnpay-return` |
 | **Ngân hàng test Sandbox** | **NCB** (Ngân hàng Quốc Dân) |

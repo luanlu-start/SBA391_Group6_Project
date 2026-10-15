@@ -346,6 +346,7 @@ Compose tự đọc `.env` ở thư mục gốc; Spring Boot chạy ngoài Docke
 | `AUTH_COOKIE_SECURE` | Compose/backend | `false` cho localhost HTTP; `true` khi chạy production qua HTTPS |
 | `SQLSERVER_PASSWORD` | Compose/backend | Mật khẩu SQL Server |
 | `SQLSERVER_URL`, `SQLSERVER_USERNAME` | Compose/backend | Kết nối SQL Server; Compose mặc định dùng service `sqlserver`, tài khoản `sa` |
+| `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET` | Compose/backend | Thông tin VNPay Sandbox từ tài khoản merchant; đặt riêng trong `.env` để dùng chức năng thanh toán |
 | `MONGODB_URI` | Backend | Kết nối MongoDB |
 | `SERVER_PORT` | Backend | Cổng HTTP, mặc định 8080 |
 | `SPRING_PROFILES_ACTIVE` | Backend | Profile, mặc định `dev` |
