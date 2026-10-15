@@ -6,7 +6,6 @@ import com.fptpost.modules.payment.dto.PaymentCreationRequest;
 import com.fptpost.modules.payment.dto.PaymentCreationResponse;
 import com.fptpost.modules.payment.dto.VNPayIpnResponse;
 import com.fptpost.modules.payment.dto.VNPayReturnResponse;
-import com.fptpost.modules.payment.service.VNPayService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;

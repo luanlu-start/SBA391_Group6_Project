@@ -8,7 +8,6 @@ import com.fptpost.modules.identity.repository.UserRepository;
 import com.fptpost.modules.payment.dto.PaymentCreationResponse;
 import com.fptpost.modules.payment.dto.WalletResponse;
 import com.fptpost.modules.payment.dto.WalletTopupRequest;
-import com.fptpost.modules.payment.service.WalletService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;

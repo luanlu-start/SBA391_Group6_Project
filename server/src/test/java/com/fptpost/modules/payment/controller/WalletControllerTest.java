@@ -6,7 +6,6 @@ import com.fptpost.modules.identity.repository.UserRepository;
 import com.fptpost.modules.payment.dto.PaymentCreationResponse;
 import com.fptpost.modules.payment.dto.WalletResponse;
 import com.fptpost.modules.payment.dto.WalletTopupRequest;
-import com.fptpost.modules.payment.service.WalletService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

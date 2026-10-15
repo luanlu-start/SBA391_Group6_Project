@@ -10,7 +10,6 @@ import com.fptpost.modules.payment.model.PaymentTransaction;
 import com.fptpost.modules.payment.model.Wallet;
 import com.fptpost.modules.payment.repository.PaymentTransactionRepository;
 import com.fptpost.modules.payment.repository.WalletRepository;
-import com.fptpost.modules.payment.service.impl.WalletServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -41,7 +40,7 @@ class WalletServiceTest {
     private VNPayConfig vnPayConfig;
 
     @InjectMocks
-    private WalletServiceImpl walletService;
+    private WalletService walletService;
 
     private static final Long USER_ID = 1L;
 

@@ -5,7 +5,6 @@ import com.fptpost.modules.payment.dto.PaymentCreationRequest;
 import com.fptpost.modules.payment.dto.PaymentCreationResponse;
 import com.fptpost.modules.payment.dto.VNPayIpnResponse;
 import com.fptpost.modules.payment.dto.VNPayReturnResponse;
-import com.fptpost.modules.payment.service.VNPayService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
