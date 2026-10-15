@@ -8,8 +8,8 @@ import java.time.Instant;
 public record MarketplaceOrderResponse(
          Long id,
          String orderCode,
-         String pickupArea,
-         String deliveryArea,
+         String pickupAddress,
+         String deliveryAddress,
          String productName,
          Integer quantity,
          BigDecimal weightKg,

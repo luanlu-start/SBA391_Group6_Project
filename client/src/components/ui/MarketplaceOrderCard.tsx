@@ -36,7 +36,7 @@ export default function MarketplaceOrderCard({
                     <span className="route-bullet pickup" />
                     <div>
                         <dt>Điểm lấy hàng</dt>
-                        <dd>{order.pickupArea}</dd>
+                        <dd>{order.pickupAddress}</dd>
                     </div>
                 </div>
 
@@ -46,7 +46,7 @@ export default function MarketplaceOrderCard({
                     <span className="route-bullet dropoff" />
                     <div>
                         <dt>Điểm giao hàng</dt>
-                        <dd>{order.deliveryArea}</dd>
+                        <dd>{order.deliveryAddress}</dd>
                     </div>
                 </div>
             </div>

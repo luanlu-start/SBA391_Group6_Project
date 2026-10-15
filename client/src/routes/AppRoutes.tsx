@@ -10,12 +10,20 @@ import LoginPage from '../pages/LoginPage';
 import AccountPage from '../pages/AccountPage';
 import SecurityPage from '../pages/SecurityPage';
 import LegalPage from '../pages/LegalPage';
+
+// Các trang quản lý đơn của Người gửi (Sender)
+import OrdersPage from '../pages/OrdersPage';
+import CreateOrderPage from '../pages/CreateOrderPage';
+import OrderDetailPage from '../pages/OrderDetailPage';
+
+// Trang Sàn đơn dành cho Bưu tá (Courier)
 import CourierMarketplacePage from '../pages/CourierMarketplacePage';
 
 const UiKitPage = import.meta.env.DEV ? lazy(() => import('../pages/UiKitPage')) : null;
 
 export default function AppRoutes() {
   const { pathname, hash, key } = useLocation();
+
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
       if (hash) document.getElementById(hash.slice(1))?.scrollIntoView();
@@ -23,21 +31,46 @@ export default function AppRoutes() {
     });
     return () => cancelAnimationFrame(frame);
   }, [pathname, hash, key]);
+
   return (
-    <Routes>
-      {UiKitPage && <Route path="/ui-kit/*" element={<Suspense fallback={<p role="status">Đang tải mẫu giao diện…</p>}><UiKitPage /></Suspense>} />}
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/" element={<MainLayout />}>
-        <Route index element={<HomePage />} />
-        <Route path="courier/market" element={<CourierMarketplacePage />} />
-        <Route path="products" element={<ProductsPage />} />
-        <Route path="verify" element={<VerifyOtpPage />} />
-        <Route path="account" element={<AccountPage />} />
-        <Route path="me/security" element={<SecurityPage />} />
-        <Route path="legal" element={<LegalPage />} />
-        <Route path="*" element={<NotFoundPage />} />
-      </Route>
-    </Routes>
+      <Routes>
+        {UiKitPage && (
+            <Route
+                path="/ui-kit/*"
+                element={
+                  <Suspense fallback={<p role="status">Đang tải mẫu giao diện…</p>}>
+                    <UiKitPage />
+                  </Suspense>
+                }
+            />
+        )}
+
+        {/* Auth routes ngoài layout chính */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+
+        {/* Các route sử dụng chung MainLayout */}
+        <Route path="/" element={<MainLayout />}>
+          <Route index element={<HomePage />} />
+          <Route path="products" element={<ProductsPage />} />
+
+          {/* Luồng người gửi đơn (Sender) */}
+          <Route path="sender/orders" element={<OrdersPage />} />
+          <Route path="sender/orders/new" element={<CreateOrderPage />} />
+          <Route path="sender/orders/:id" element={<OrderDetailPage />} />
+
+          {/* Luồng sàn đơn bưu tá (Courier) - SCR-28 / UC-16 */}
+          <Route path="courier/market" element={<CourierMarketplacePage />} />
+
+          {/* Tài khoản & Cài đặt */}
+          <Route path="verify" element={<VerifyOtpPage />} />
+          <Route path="account" element={<AccountPage />} />
+          <Route path="me/security" element={<SecurityPage />} />
+          <Route path="legal" element={<LegalPage />} />
+
+          {/* Trang 404 */}
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
+      </Routes>
   );
 }
