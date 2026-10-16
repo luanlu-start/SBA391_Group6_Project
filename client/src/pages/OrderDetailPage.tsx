@@ -76,7 +76,7 @@ export default function OrderDetailPage() {
         <SectionCard>
           <div className="ui-stack">
             {error ? (
-              <ApiErrorNotice message={error.message} correlationId={error.correlationId} />
+              <ApiErrorNotice error={error} />
             ) : (
               <p>Đơn hàng không tồn tại hoặc đã bị gỡ bỏ khỏi hệ thống.</p>
             )}

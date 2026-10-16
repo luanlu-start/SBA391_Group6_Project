@@ -210,7 +210,7 @@ export default function OrdersPage() {
       >
         {error ? (
           <div className="ui-card-body ui-stack">
-            <ApiErrorNotice message={error.message} correlationId={error.correlationId} />
+            <ApiErrorNotice error={error} />
             <div>
               <Button variant="secondary" onClick={() => void loadOrders()}>
                 Thử lại

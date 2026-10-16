@@ -15,6 +15,8 @@ import com.fptpost.modules.identity.security.LoginAttemptLimiter;
 import com.fptpost.modules.identity.util.ContactUtils;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +28,7 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthenticationService {
     private final UserRepository userRepository;
     private final UserProfileRepository profileRepository;
@@ -60,7 +63,8 @@ public class AuthenticationService {
         return user.getId();
     }
     @Transactional(noRollbackFor = IdentityException.class)
-    public AuthenticationResult authenticate(AuthenticationRequest request, String ip, String userAgent) {
+    public AuthenticationResult authenticate(AuthenticationRequest request, String ip, String userAgent,
+            UUID browserId, String previousRefreshToken) {
         loginLimiter.check(ip);
         String identifier = request.getIdentifier().trim().toLowerCase(Locale.ROOT);
         if (identifier.matches("0[35789]\\d{8}")) identifier = ContactUtils.normalizePhone(identifier);
@@ -99,27 +103,34 @@ public class AuthenticationService {
         user.setFailedLoginCount(0);
         user.setLoginLockedUntil(null);
         userRepository.saveAndFlush(user);
-        AuthenticationResult result = createSession(user, ip, userAgent, request.isRememberMe());
+        revokeBrowserSessions(user.getId(), browserId, previousRefreshToken, now);
+        AuthenticationResult result = createSession(user, ip, userAgent, request.isRememberMe(), browserId);
         loginLimiter.success(ip);
         return result;
     }
 
     @Transactional(noRollbackFor = IdentityException.class)
-    public AuthenticationResult refresh(String token, String ip, String userAgent) {
+    public AuthenticationResult refresh(String token, String ip, String userAgent, UUID browserId) {
         if (token == null || !token.matches("[A-Za-z0-9_-]{43}")) throw invalidRefresh();
         String hash = hash(token);
         Long userId = sessionRepository.findUserIdByTokenHash(hash).orElseThrow(this::invalidRefresh);
         User user = userRepository.findByIdForUpdate(userId).orElseThrow(this::invalidRefresh);
         AuthSession old = sessionRepository.findByTokenHash(hash).orElseThrow(this::invalidRefresh);
         Instant now = identityClock.instant();
+        if (!now.isBefore(old.getExpiresAt())) throw invalidRefresh();
         if (old.getReplacedBy() != null) {
+            AuthSession latest = findLatestSession(userId, old.getPublicId()).orElseThrow(this::invalidRefresh);
+            // A login/logout may have already retired this token family. Do not revoke unrelated sessions then.
+            if (latest.getRevokedAt() != null || !now.isBefore(latest.getExpiresAt())) throw invalidRefresh();
             sessionRepository.revokeAll(userId, now);
             throw new IdentityException(IdentityErrorCode.REFRESH_REUSED);
         }
-        if (old.getRevokedAt() != null || !now.isBefore(old.getExpiresAt())) throw invalidRefresh();
+        if (old.getRevokedAt() != null) throw invalidRefresh();
         requireActive(user);
         old.setRevokedAt(now);
-        AuthenticationResult result = createSession(user, ip, userAgent, old.isRememberMe());
+        UUID effectiveBrowserId = old.getBrowserId() == null ? browserId : old.getBrowserId();
+        revokeBrowserSessions(userId, effectiveBrowserId, null, now);
+        AuthenticationResult result = createSession(user, ip, userAgent, old.isRememberMe(), effectiveBrowserId);
         String nextHash = hash(result.getRefreshToken());
         AuthSession next = sessionRepository.findByTokenHash(nextHash).orElseThrow();
         next.setCreatedAt(old.getCreatedAt());
@@ -167,6 +178,15 @@ public class AuthenticationService {
         revokeSession(userPublicId, sessionId, sessionId);
     }
 
+    @Scheduled(cron = "${app.authentication.session-cleanup-cron:0 0 * * * *}", zone = "UTC")
+    @Transactional
+    public void cleanupExpiredSessions() {
+        Instant cutoff = identityClock.instant().minus(Duration.ofDays(properties.getExpiredSessionRetentionDays()));
+        // Keep rotated/revoked tokens until expiry so reuse detection remains effective.
+        int deleted = sessionRepository.deleteExpiredBefore(cutoff);
+        if (deleted > 0) log.info("Deleted {} expired authentication session records", deleted);
+    }
+
     @Transactional(readOnly = true)
     public UserResponse currentUser(UUID publicId) {
         User user = userRepository.findByPublicId(publicId).orElseThrow(() -> new AppException(GlobalErrorCode.UNAUTHORIZED));
@@ -174,7 +194,24 @@ public class AuthenticationService {
         return response(user);
     }
 
-    private AuthenticationResult createSession(User user, String ip, String userAgent, boolean rememberMe) {
+    private void revokeBrowserSessions(Long userId, UUID browserId, String previousRefreshToken, Instant now) {
+        UUID previousId = null;
+        if (previousRefreshToken != null && previousRefreshToken.matches("[A-Za-z0-9_-]{43}")) {
+            AuthSession previous = sessionRepository.findByTokenHash(hash(previousRefreshToken)).orElse(null);
+            if (previous != null && previous.getUser().getId().equals(userId)) {
+                previousId = findLatestSession(userId, previous.getPublicId()).map(AuthSession::getPublicId).orElse(null);
+            }
+        }
+        var active = sessionRepository.findByUserIdAndRevokedAtIsNullAndReplacedByIsNullAndExpiresAtAfterOrderByCreatedAtAscIdAsc(userId, now);
+        for (AuthSession session : active) {
+            if (browserId.equals(session.getBrowserId()) || session.getPublicId().equals(previousId)) {
+                session.setRevokedAt(now);
+                sessionRepository.save(session);
+            }
+        }
+    }
+
+    private AuthenticationResult createSession(User user, String ip, String userAgent, boolean rememberMe, UUID browserId) {
         Instant now = identityClock.instant();
         var active = sessionRepository.findByUserIdAndRevokedAtIsNullAndReplacedByIsNullAndExpiresAtAfterOrderByCreatedAtAscIdAsc(user.getId(), now);
         while (active.size() >= properties.getMaxDevices()) {
@@ -186,13 +223,13 @@ public class AuthenticationService {
         identityRandom.nextBytes(bytes);
         String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
         String device = userAgent == null ? "Unknown device" : userAgent.replaceAll("\\p{Cntrl}", "");
-        AuthSession session = AuthSession.builder().publicId(UUID.randomUUID()).user(user).tokenHash(hash(token))
+        AuthSession session = AuthSession.builder().publicId(UUID.randomUUID()).user(user).tokenHash(hash(token)).browserId(browserId)
                 .ip(ip.length() > 45 ? "unknown" : ip).deviceInfo(device.substring(0, Math.min(255, device.length())))
                 .createdAt(now).expiresAt(now.plusSeconds(properties.getRefreshTtlDays() * 86400L)).rememberMe(rememberMe).build();
         sessionRepository.saveAndFlush(session);
         var jwt = jwtTokenService.issue(user, session);
         return new AuthenticationResult(AuthenticationResponse.builder().accessToken(jwt.getTokenValue()).tokenType("Bearer")
-                .expiresAt(jwt.getExpiresAt()).user(response(user)).build(), token, rememberMe);
+                .expiresAt(jwt.getExpiresAt()).user(response(user)).build(), token, rememberMe, browserId);
     }
 
     private UserResponse response(User user) {
@@ -201,11 +238,15 @@ public class AuthenticationService {
     }
 
     private AuthSession latestSession(Long userId, UUID sessionId) {
+        return findLatestSession(userId, sessionId).orElseThrow(() -> new AppException(IdentityErrorCode.SESSION_NOT_FOUND));
+    }
+
+    private Optional<AuthSession> findLatestSession(Long userId, UUID sessionId) {
         Set<UUID> visited = new HashSet<>();
         while (visited.add(sessionId)) {
-            AuthSession session = sessionRepository.findByPublicIdAndUserId(sessionId, userId)
-                    .orElseThrow(() -> new AppException(IdentityErrorCode.SESSION_NOT_FOUND));
-            if (session.getReplacedBy() == null) return session;
+            AuthSession session = sessionRepository.findByPublicIdAndUserId(sessionId, userId).orElse(null);
+            if (session == null) return Optional.empty();
+            if (session.getReplacedBy() == null) return Optional.of(session);
             // Resolve rotation under the user lock when revoking a device from an older list.
             sessionId = session.getReplacedBy();
         }

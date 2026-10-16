@@ -31,7 +31,7 @@ export default function LoginForm() {
   }
 
   return <form className="login-form" onSubmit={handleSubmit(submit)} noValidate aria-busy={isPending}>
-    {error && <ApiErrorNotice message={error.message} correlationId={error.correlationId} />}
+    {error && <ApiErrorNotice error={error} />}
     <Input id="identifier" label="Email hoặc số điện thoại" placeholder="Email hoặc số điện thoại của bạn"
       autoComplete="username" maxLength={254} {...register('identifier')} disabled={isPending} required
       icon={<UserRound size={18} />} error={errors.identifier?.message} />

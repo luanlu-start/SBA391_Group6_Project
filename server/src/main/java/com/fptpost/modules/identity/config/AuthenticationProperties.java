@@ -20,6 +20,9 @@ public class AuthenticationProperties {
     @Min(1)
     @Max(30)
     private int refreshTtlDays = 7;
+    @Min(0)
+    @Max(365)
+    private int expiredSessionRetentionDays = 7;
     @Min(1)
     @Max(10)
     private int maxLoginAttempts = 5;
