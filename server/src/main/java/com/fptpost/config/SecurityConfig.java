@@ -51,7 +51,7 @@ public class SecurityConfig {
                                 "/api/v1/auth/login", "/api/v1/auth/refresh").permitAll()
                         .requestMatchers("/api/v1/orders/**").permitAll()
                         .requestMatchers("/api/payment/**", "/api/v1/payment/**").permitAll()
-                        .requestMatchers("/actuator/**").hasRole("ADMIN").anyRequest().authenticated())
+                        .requestMatchers("/actuator/**").hasRole("ADMIN").requestMatchers(HttpMethod.GET, "/ws/chat").permitAll().anyRequest().authenticated())
                 .exceptionHandling(errors -> errors.authenticationEntryPoint((request, response, exception) ->
                                 writeProblem(problems, mapper, request, response, GlobalErrorCode.UNAUTHORIZED))
                         .accessDeniedHandler((request, response, exception) ->

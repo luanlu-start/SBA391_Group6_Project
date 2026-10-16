@@ -13,6 +13,7 @@ import LegalPage from '../pages/LegalPage';
 import OrdersPage from '../pages/OrdersPage';
 import CreateOrderPage from '../pages/CreateOrderPage';
 import OrderDetailPage from '../pages/OrderDetailPage';
+import ChatPage from '../pages/ChatPage';
 
 const UiKitPage = import.meta.env.DEV ? lazy(() => import('../pages/UiKitPage')) : null;
 
@@ -41,6 +42,7 @@ export default function AppRoutes() {
         <Route path="me/security" element={<SecurityPage />} />
         <Route path="legal" element={<LegalPage />} />
         <Route path="*" element={<NotFoundPage />} />
+        <Route path="orders/:orderId/chat" element={<ChatPage />} />
       </Route>
     </Routes>
   );

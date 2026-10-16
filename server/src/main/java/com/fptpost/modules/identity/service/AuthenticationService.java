@@ -45,7 +45,20 @@ public class AuthenticationService {
     void initializeDummyHash() {
         dummyPasswordHash = passwordEncoder.encode(UUID.randomUUID().toString());
     }
+    @Transactional(readOnly = true)
+    public Long requireActiveUserId(UUID publicId) {
+        if (publicId == null) {
+            throw new AppException(GlobalErrorCode.UNAUTHORIZED);
+        }
 
+        User user = userRepository.findByPublicId(publicId)
+                .orElseThrow(() ->
+                        new AppException(GlobalErrorCode.UNAUTHORIZED)
+                );
+
+        requireActive(user);
+        return user.getId();
+    }
     @Transactional(noRollbackFor = IdentityException.class)
     public AuthenticationResult authenticate(AuthenticationRequest request, String ip, String userAgent) {
         loginLimiter.check(ip);

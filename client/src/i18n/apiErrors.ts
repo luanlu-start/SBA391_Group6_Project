@@ -34,4 +34,8 @@ export const apiErrorMessages: Record<string, string> = {
   AUTH_REFRESH_INVALID: 'Phiên đăng nhập hết hiệu lực. Vui lòng đăng nhập lại.',
   AUTH_REFRESH_REUSED: 'Phiên đăng nhập đã bị thu hồi. Vui lòng đăng nhập lại.',
   AUTH_SESSION_NOT_FOUND: 'Phiên không còn hoạt động hoặc không thuộc tài khoản của bạn. Vui lòng tải lại danh sách.',
+  CHAT_ROOM_NOT_FOUND: 'Không tìm thấy cuộc trò chuyện.',
+  CHAT_ACCESS_DENIED: 'Bạn không có quyền truy cập cuộc trò chuyện này.',
+  CHAT_ROOM_READ_ONLY: 'Cuộc trò chuyện hiện chỉ cho phép xem lịch sử.',
+  CHAT_ORDER_NOT_ASSIGNED: 'Đơn hàng chưa được gán người giao để mở trò chuyện.',
 };
