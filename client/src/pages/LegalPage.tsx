@@ -40,7 +40,7 @@ export default function LegalPage() {
       <Link to="/legal#terms">{copy.footer.terms}</Link><Link to="/legal#privacy">{copy.footer.privacy}</Link>
     </nav>
     {loading ? <div className="legal-loading" role="status">{copy.footer.loadingPolicies}</div>
-      : error ? <div className="ui-stack"><ApiErrorNotice message={error.message} correlationId={error.correlationId} />
+      : error ? <div className="ui-stack"><ApiErrorNotice error={error} />
         <div><Button variant="secondary" onClick={() => setRetry(value => value + 1)}>{copy.footer.retry}</Button></div></div>
         : policies && (['terms', 'privacy'] as const).map(key => <section key={key} id={key} className="legal-policy" aria-labelledby={`legal-${key}-title`}>
           <h2 id={`legal-${key}-title`}>{policies[key].title}</h2>

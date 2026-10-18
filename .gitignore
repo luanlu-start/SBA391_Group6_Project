@@ -24,6 +24,9 @@ server/uploads/
 .env.production.local
 *.env
 
+# Per-machine Docker Compose overrides
+/compose.override.yaml
+
 # Logs
 logs/
 *.log
@@ -50,3 +53,7 @@ Thumbs.db
 
 # Local toolchains used for build verification
 .tools/
+
+# VNPay sample JSP project
+vnpay_jsp/
+

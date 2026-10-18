@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { CheckCircle2, Mail, ShieldCheck } from 'lucide-react';
 import { authService } from '../services/authService';
-import { getApiError } from '../api/ApiError';
+import { ApiError, getApiError } from '../api/ApiError';
 import ApiErrorNotice from '../components/ApiErrorNotice';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
@@ -20,8 +20,7 @@ export default function VerifyOtpPage() {
   const [otp, setOtp] = useState('');
   const [now, setNow] = useState(Date.now);
   const [busy, setBusy] = useState<'verify' | 'resend' | null>(null);
-  const [error, setError] = useState('');
-  const [correlationId, setCorrelationId] = useState<string>();
+  const [error, setError] = useState<ApiError>();
   const [notice, setNotice] = useState('');
   const [verified, setVerified] = useState(false);
   const [mustResend, setMustResend] = useState(false);
@@ -45,8 +44,7 @@ export default function VerifyOtpPage() {
 
   function showError(cause: unknown) {
     const failure = getApiError(cause);
-    setError(failure.message);
-    setCorrelationId(failure.correlationId);
+    setError(failure);
     if (failure.retryAfterSeconds) setRetryAt(Date.now() + failure.retryAfterSeconds * 1000);
     if (['AUTH_OTP_EXPIRED', 'AUTH_OTP_ATTEMPTS_EXCEEDED', 'AUTH_OTP_SUPERSEDED'].includes(failure.code ?? '')) {
       setMustResend(true);
@@ -61,14 +59,12 @@ export default function VerifyOtpPage() {
     event.preventDefault();
     if (!challenge || busy || unavailable || mustResend || expiresIn === 0 || retryAt > Date.now()) return;
     if (!/^[0-9]{6}$/.test(otp)) {
-      setError('Vui lòng nhập đủ 6 chữ số trong email.');
-      setCorrelationId(undefined);
+      setError(new ApiError('Vui lòng nhập đủ 6 chữ số trong email.'));
       input.current?.focus();
       return;
     }
     setBusy('verify');
-    setError('');
-    setCorrelationId(undefined);
+    setError(undefined);
     setNotice('');
     try {
       await authService.verifyOtp(challenge.challengeId, otp);
@@ -85,8 +81,7 @@ export default function VerifyOtpPage() {
   async function resend() {
     if (!challenge || busy || unavailable || resendIn > 0) return;
     setBusy('resend');
-    setError('');
-    setCorrelationId(undefined);
+    setError(undefined);
     setNotice('');
     try {
       const response = await authService.resendOtp(challenge.challengeId);
@@ -130,7 +125,7 @@ export default function VerifyOtpPage() {
         <p>Mã xác thực đã được gửi đến email:</p>
         <div className="registration-email"><Mail size={22} aria-hidden="true" /><strong>{challenge.maskedTarget}</strong></div>
         <p className="registration-hint">Kiểm tra hộp thư đến và thư rác. Không chia sẻ mã với người khác.</p>
-        {error && <ApiErrorNotice message={error} correlationId={correlationId} />}
+        {error && <ApiErrorNotice error={error} />}
         {notice && <p className="registration-otp-notice" role="status">{notice}</p>}
         <form onSubmit={verify} noValidate>
             <Input ref={input} id="otp" label="Mã xác thực gồm 6 chữ số" className="registration-otp-input" type="text" inputMode="numeric"
