@@ -52,9 +52,13 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/orders/**").permitAll()
                         .requestMatchers("/api/v1/wallet/**").authenticated()
                         .requestMatchers(
-                                "/api/payment/**", "/api/v1/payment/**", "/api/v1/vnpay/**"
+                                "/api/payment/**",
+                                "/api/v1/payment/**",
+                                "/api/v1/vnpay/**"
                         ).permitAll()
-                        .requestMatchers("/actuator/**").hasRole("ADMIN").anyRequest().authenticated())
+                        .requestMatchers(HttpMethod.GET, "/ws/chat").permitAll()
+                        .requestMatchers("/actuator/**").hasRole("ADMIN")
+                        .anyRequest().authenticated())
                 .exceptionHandling(errors -> errors.authenticationEntryPoint((request, response, exception) ->
                                 writeProblem(problems, mapper, request, response, GlobalErrorCode.UNAUTHORIZED))
                         .accessDeniedHandler((request, response, exception) ->
