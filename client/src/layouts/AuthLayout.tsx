@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, Package, Route } from 'lucide-react';
 import '../styles/auth.css';
 
-export default function AuthLayout({ children, variant = 'login' }: { children: ReactNode; variant?: 'login' | 'register' }) {
+export default function AuthLayout({ children, variant = 'login' }: { children: ReactNode; variant?: 'login' | 'register' | 'recovery' }) {
   return (
     <main id="main-content" className={`auth-layout${variant === 'register' ? ' auth-layout-register' : ''}`}>
       <aside className="auth-visual" aria-label="FPost — Kết nối những hành trình">
@@ -28,13 +28,14 @@ export default function AuthLayout({ children, variant = 'login' }: { children: 
         </div>
         <p className="auth-visual-footer">FPost · Kết nối những hành trình</p>
       </aside>
-      <section className="auth-panel" aria-label={variant === 'register' ? 'Đăng ký FPost' : 'Đăng nhập FPost'}>
+      <section className="auth-panel" aria-label={variant === 'register' ? 'Đăng ký FPost' : variant === 'recovery' ? 'Khôi phục tài khoản FPost' : 'Đăng nhập FPost'}>
         <Link className="auth-back" to="/"><ArrowLeft size={17} aria-hidden="true" />Về trang chủ</Link>
         <div className="auth-content">
           <Link className="auth-brand auth-form-brand" to="/" aria-label="FPost — Trang chủ"><Package size={25} aria-hidden="true" />F<span>Post</span></Link>
           {children}
         </div>
-        <p className="auth-panel-footer">{variant === 'register' ? 'FPost · Kết nối những hành trình.' : 'Dùng tài khoản đã xác thực email để tiếp tục.'}</p>
+        <p className="auth-panel-footer">{variant === 'register' ? 'FPost · Kết nối những hành trình.' : variant === 'recovery'
+          ? 'Không chia sẻ mã OTP và mật khẩu với người khác.' : 'Dùng tài khoản đã xác thực email để tiếp tục.'}</p>
       </section>
     </main>
   );

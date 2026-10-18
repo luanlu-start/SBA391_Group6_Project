@@ -23,7 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
+import com.fptpost.modules.identity.util.PasswordPolicy;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
@@ -42,12 +42,13 @@ public class UserService {
     OtpService otpService;
     RegistrationProperties registrationProperties;
     Clock identityClock;
+    PasswordPolicy passwordPolicy;
 
     @Transactional
     public RegisterResponse createUser(UserCreationRequest request, String remoteAddress) {
         validatePolicyVersions(request);
         String phone = ContactUtils.normalizePhone(request.getPhone());
-        validatePassword(request.getPassword(), request.getEmail(), phone, request.getPhone());
+        passwordPolicy.validate(request.getPassword(), request.getEmail(), phone);
         validateContactUtils(request.getEmail(), phone);
 
         Instant now = identityClock.instant();
@@ -110,14 +111,4 @@ public class UserService {
         consentRepository.save(consent);
     }
 
-    private void validatePassword(String password, String email, String phone, String submittedPhone) {
-        if (password.codePointCount(0, password.length()) < registrationProperties.getPasswordMinLength()
-                || password.getBytes(StandardCharsets.UTF_8).length > 72
-                || password.codePoints().noneMatch(Character::isUpperCase)
-                || password.codePoints().noneMatch(Character::isLowerCase)
-                || password.codePoints().noneMatch(Character::isDigit)
-                || password.equalsIgnoreCase(email) || password.equals(phone) || password.equals(submittedPhone)) {
-            throw new AppException(IdentityErrorCode.PASSWORD_INVALID);
-        }
-    }
 }
