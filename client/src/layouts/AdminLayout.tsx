@@ -1,5 +1,5 @@
 import { Link, Navigate, Outlet, useLocation } from 'react-router-dom';
-import { History, Settings2 } from 'lucide-react';
+import { History, Settings2, TicketPercent } from 'lucide-react';
 import { useAuthentication } from '../auth/useAuthentication';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import EmptyState from '../components/ui/EmptyState';
@@ -18,6 +18,7 @@ export default function AdminLayout() {
     navigation={[
       { label: 'Tham số và biểu phí', to: '/admin/params', icon: <Settings2 size={17} /> },
       { label: 'Nhật ký kiểm toán', to: '/admin/audit', icon: <History size={17} /> },
+      { label: 'Quản lý khuyến mãi', to: '/admin/promotions', icon: <TicketPercent size={17} /> },
     ]}
     headerActions={<Link to="/account" className="ui-button ui-button-ghost ui-button-sm">{user.fullName}</Link>}>
     <Outlet />

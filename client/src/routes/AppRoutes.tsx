@@ -13,6 +13,7 @@ import SecurityPage from '../pages/SecurityPage';
 import LegalPage from '../pages/LegalPage';
 import AdminParametersPage from '../pages/AdminParametersPage';
 import AdminAuditPage from '../pages/AdminAuditPage';
+import AdminPromotionsPage from '../pages/AdminPromotionsPage';
 import OrdersPage from '../pages/OrdersPage';
 import CreateOrderPage from '../pages/CreateOrderPage';
 import OrderDetailPage from '../pages/OrderDetailPage';
@@ -37,6 +38,7 @@ export default function AppRoutes() {
         <Route index element={<Navigate to="params" replace />} />
         <Route path="params" element={<AdminParametersPage />} />
         <Route path="audit" element={<AdminAuditPage />} />
+        <Route path="promotions" element={<AdminPromotionsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
       <Route path="/" element={<MainLayout />}>
