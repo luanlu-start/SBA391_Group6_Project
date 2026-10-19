@@ -14,6 +14,8 @@ export const apiErrorMessages: Record<string, string> = {
   AUTH_EMAIL_ALREADY_EXISTS: 'Email đã được sử dụng. Bạn có thể đăng nhập hoặc đặt lại mật khẩu.',
   AUTH_PHONE_ALREADY_EXISTS: 'Số điện thoại đã được sử dụng.',
   AUTH_PASSWORD_INVALID: 'Mật khẩu phải có chữ hoa, chữ thường, chữ số; không trùng email/SĐT và tối đa 72 byte.',
+  AUTH_CURRENT_PASSWORD_INCORRECT: 'Mật khẩu hiện tại không đúng. Vui lòng kiểm tra lại.',
+  AUTH_PASSWORD_UNCHANGED: 'Mật khẩu mới phải khác mật khẩu hiện tại.',
   AUTH_PASSWORD_RESET_INVALID: 'Thông tin xác thực không hợp lệ hoặc mã OTP đã hết hiệu lực. Vui lòng kiểm tra lại hoặc yêu cầu mã mới.',
   AUTH_POLICY_CHANGED: 'Chính sách đã thay đổi. Vui lòng tải lại và đọc phiên bản mới.',
   AUTH_REGISTRATION_BLOCKED: 'Không thể đăng ký với thông tin này.',
