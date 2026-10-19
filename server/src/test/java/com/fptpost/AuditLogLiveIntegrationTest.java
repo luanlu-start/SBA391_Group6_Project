@@ -269,6 +269,62 @@ class AuditLogLiveIntegrationTest {
     }
 
     @Test @Order(7)
+    void filterOptionsUseRealDistinctValuesAndIdentityLabelsWithLiteralSearch() throws Exception {
+        String token = admin();
+        String url = "/api/v1/admin/audit-logs/filter-options";
+        var first = mvc.perform(get(url).header("Authorization", "Bearer " + token)
+                        .param("field", "action").param("limit", "1"))
+                .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
+                .andReturn();
+        var firstData = json.readTree(first.getResponse().getContentAsByteArray()).path("data");
+        assertThat(firstData.path("options").size()).isEqualTo(1);
+        assertThat(firstData.path("hasMore").asBoolean()).isTrue();
+
+        var entity = mvc.perform(get(url).header("Authorization", "Bearer " + token)
+                        .param("field", "entityId").param("entityType", "TEST_FIXTURE").param("q", "literal.a[*]"))
+                .andExpect(status().isOk()).andReturn();
+        var options = json.readTree(entity.getResponse().getContentAsByteArray()).path("data").path("options");
+        assertThat(options.size()).isEqualTo(1);
+        assertThat(options.get(0).path("value").asText()).isEqualTo("literal.a[*]");
+        mvc.perform(get(url).header("Authorization", "Bearer " + token).param("field", "entityId")
+                        .param("entityType", "SYSTEM_PARAMETER").param("q", "literal.a[*]"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.options").isEmpty());
+
+        var actor = mvc.perform(get(url).header("Authorization", "Bearer " + token)
+                        .param("field", "actor").param("q", "uc60-admin@example.invalid"))
+                .andExpect(status().isOk()).andReturn();
+        var actorOptions = json.readTree(actor.getResponse().getContentAsByteArray()).path("data").path("options");
+        assertThat(actorOptions.size()).isEqualTo(1);
+        assertThat(actorOptions.get(0).path("label").asText()).isEqualTo("Kiểm thử nhật ký UC-60");
+        assertThat(actorOptions.get(0).path("description").asText()).isEqualTo("uc60-admin@example.invalid");
+        String actorId = actorOptions.get(0).path("value").asText();
+        assertThat(UUID.fromString(actorId)).isNotNull();
+        assertThat(read(token, "actor", actorId).path("totalElements").asInt()).isPositive();
+        assertThat(actor.getResponse().getContentAsString()).doesNotContain("passwordHash", PASSWORD, "phone", "roles");
+        mvc.perform(get(url).header("Authorization", "Bearer " + token).param("field", "actor").param("q", actorId))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.options[0].label").value("Kiểm thử nhật ký UC-60"));
+        for (String literal : List.of("%", "_", "[a]", "!")) {
+            mvc.perform(get(url).header("Authorization", "Bearer " + token).param("field", "actor").param("q", literal))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.data.options").isEmpty());
+        }
+
+        String missingActor = UUID.randomUUID().toString(), event = UUID.randomUUID().toString();
+        mongo.insert(new MongoAuditDocument(event, event, "USER", missingActor, "FUTURE_AUDIT_ACTION",
+                "FUTURE_OBJECT", "future-object", Map.of(), Map.of(), null, "filter-options", Instant.now()));
+        mvc.perform(get(url).header("Authorization", "Bearer " + token).param("field", "actor").param("q", missingActor))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.options[0].value").value(missingActor));
+        mvc.perform(get(url).header("Authorization", "Bearer " + token).param("field", "action").param("q", "future_audit"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.options[0].value").value("FUTURE_AUDIT_ACTION"));
+        mvc.perform(get(url).header("Authorization", "Bearer " + token).param("field", "actor").param("q", UUID.randomUUID().toString()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.options").isEmpty());
+        mvc.perform(get(url).param("field", "action")).andExpect(status().isUnauthorized());
+        String sender = login("uc60-sender@example.invalid", "SENDER", "+84990000061");
+        mvc.perform(get(url).header("Authorization", "Bearer " + sender).param("field", "actor"))
+                .andExpect(status().isForbidden());
+        org.mockito.Mockito.verifyNoInteractions(mail);
+    }
+
+    @Test @Order(8)
     @EnabledIfEnvironmentVariable(named = "FPTPOST_UC60_BROWSER_TEST", matches = "1")
     void exposeIsolatedRealApiForBrowserAcceptance() throws Exception {
         String token = admin();

@@ -24,3 +24,23 @@ export interface AuditQuery {
   page: number;
   size: number;
 }
+
+export type AuditFilterField = 'actor' | 'action' | 'entityType' | 'entityId';
+
+export interface AuditFilterOption {
+  value: string;
+  label: string;
+  description?: string;
+}
+
+export interface AuditFilterOptions {
+  options: AuditFilterOption[];
+  hasMore: boolean;
+}
+
+export interface AuditFilterOptionsQuery {
+  field: AuditFilterField;
+  q?: string;
+  entityType?: string;
+  limit?: number;
+}

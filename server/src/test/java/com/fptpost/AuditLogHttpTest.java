@@ -4,6 +4,10 @@ import com.fptpost.common.audit.MongoAuditDocument;
 import com.fptpost.modules.audit.dto.request.AuditLogSearchRequest;
 import com.fptpost.modules.audit.repository.AuditLogQueryRepository;
 import com.fptpost.modules.audit.service.AuditLogService;
+import com.fptpost.modules.audit.repository.AuditFilterOptionsRepository;
+import com.fptpost.modules.audit.service.AuditFilterOptionsService;
+import com.fptpost.modules.identity.service.UserDirectoryLookup;
+import com.fptpost.modules.identity.dto.response.UserDirectoryEntry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -46,7 +50,10 @@ class AuditLogHttpTest {
     private static final String ACTOR = "a914bf06-62cd-43a3-9672-982d40a32f6a";
     @Autowired MockMvc mvc;
     @Autowired AuditLogService service;
+    @Autowired AuditFilterOptionsService filterOptionsService;
     @MockitoBean AuditLogQueryRepository queryRepository;
+    @MockitoBean AuditFilterOptionsRepository filterOptionsRepository;
+    @MockitoBean UserDirectoryLookup userDirectoryLookup;
     @MockitoBean JwtDecoder decoder;
     @MockitoBean JavaMailSender mailSender;
 
@@ -134,6 +141,60 @@ class AuditLogHttpTest {
                     .andExpect(status().isMethodNotAllowed()).andExpect(jsonPath("$.code").value("SYS_METHOD_NOT_ALLOWED"));
         }
         verifyNoInteractions(queryRepository);
+    }
+
+    @Test void filterOptionsAreAdminOnlyAndServiceAuthorizationAlsoApplies() throws Exception {
+        String url = URL + "/filter-options";
+        mvc.perform(get(url).param("field", "action")).andExpect(status().isUnauthorized());
+        for (String token : List.of("sender-token", "courier-token")) {
+            mvc.perform(get(url).param("field", "action").header("Authorization", "Bearer " + token))
+                    .andExpect(status().isForbidden());
+        }
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("sender", null,
+                List.of(new SimpleGrantedAuthority("ROLE_SENDER"))));
+        try {
+            assertThatThrownBy(() -> filterOptionsService.options("actor", null, null, "30"))
+                    .isInstanceOf(AccessDeniedException.class);
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+        verifyNoInteractions(filterOptionsRepository, userDirectoryLookup);
+    }
+
+    @Test void actorOptionsExposeOnlyPublicIdNameAndEmailAndAreNeverCached() throws Exception {
+        when(userDirectoryLookup.search("Thuận", 31)).thenReturn(List.of(
+                new UserDirectoryEntry(UUID.fromString(ACTOR), "Trần Công Thuận", "thuan@example.invalid")));
+        mvc.perform(get(URL + "/filter-options").param("field", "actor").param("q", "Thuận")
+                        .header("Authorization", "Bearer admin-token"))
+                .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.data.options[0].value").value(ACTOR))
+                .andExpect(jsonPath("$.data.options[0].label").value("Trần Công Thuận"))
+                .andExpect(jsonPath("$.data.options[0].description").value("thuan@example.invalid"))
+                .andExpect(jsonPath("$.data.options[0].passwordHash").doesNotExist())
+                .andExpect(jsonPath("$.data.options[0].roles").doesNotExist())
+                .andExpect(jsonPath("$.data.options[0].phone").doesNotExist())
+                .andExpect(jsonPath("$.data.hasMore").value(false));
+        verifyNoInteractions(queryRepository, filterOptionsRepository, mailSender);
+    }
+
+    @Test void invalidOptionParamsReturnAudit400AndStoreFailuresReturnGeneric503() throws Exception {
+        String url = URL + "/filter-options";
+        for (String[] parameter : List.of(new String[]{"field", "bad"}, new String[]{"q", "a".repeat(101)},
+                new String[]{"limit", "0"}, new String[]{"limit", "51"}, new String[]{"limit", "nan"},
+                new String[]{"entityType", "x".repeat(101)})) {
+            mvc.perform(get(url).header("Authorization", "Bearer admin-token").param("field", "action")
+                            .param(parameter[0], parameter[1]))
+                    .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("AUDIT_INVALID_FILTER"));
+        }
+        mvc.perform(get(url).header("Authorization", "Bearer admin-token"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("AUDIT_INVALID_FILTER"));
+        verifyNoInteractions(filterOptionsRepository, userDirectoryLookup);
+        when(filterOptionsRepository.distinct("action", "", null, 31))
+                .thenThrow(new DataAccessResourceFailureException("mongodb://private-options/secret"));
+        mvc.perform(get(url).header("Authorization", "Bearer admin-token").param("field", "action"))
+                .andExpect(status().isServiceUnavailable()).andExpect(jsonPath("$.code").value("AUDIT_STORE_UNAVAILABLE"))
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("private-options"))));
     }
 
     private static Jwt jwt(String token, String role) {

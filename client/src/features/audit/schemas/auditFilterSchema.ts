@@ -6,7 +6,7 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const datetime = z.string().refine(value => !value || !!vietnamDateTimeToIso(value), 'Nhập thời điểm hợp lệ theo giờ Việt Nam.');
 
 export const auditFilterSchema = z.object({
-  actor: z.string().trim().refine(value => !value || uuid.test(value), 'Nhập mã UUID đầy đủ của người thực hiện.'),
+  actor: z.string().trim().refine(value => !value || uuid.test(value), 'Chọn người thực hiện hợp lệ trong danh sách.'),
   action: z.string().trim().max(100, 'Thao tác tối đa 100 ký tự.'),
   entityType: z.string().trim().max(100, 'Loại đối tượng tối đa 100 ký tự.'),
   entityId: z.string().trim().max(200, 'Mã đối tượng tối đa 200 ký tự.'),

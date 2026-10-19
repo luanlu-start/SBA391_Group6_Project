@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, History, RefreshCw, Search } from 'lucide-react';
 import type { AuditLog, AuditQuery } from '../types/audit';
@@ -8,6 +8,7 @@ import { auditFilterSchema, auditFiltersToQuery, emptyAuditFilters } from '../fe
 import type { AuditFilterValues } from '../features/audit/schemas/auditFilterSchema';
 import { formatAuditDate } from '../features/audit/auditPresentation';
 import AuditLogDetail from '../features/audit/components/AuditLogDetail';
+import AuditFilterChooser from '../features/audit/components/AuditFilterChooser';
 import ApiErrorNotice from '../components/ApiErrorNotice';
 import PageHeader from '../components/ui/PageHeader';
 import SectionCard from '../components/ui/SectionCard';
@@ -28,10 +29,12 @@ const maximumPage = 100000;
 export default function AdminAuditPage() {
   const [query, setQuery] = useState<AuditQuery>({ page: 0, size: 20 });
   const [selected, setSelected] = useState<AuditLog | null>(null);
+  const [optionsRefresh, setOptionsRefresh] = useState(0);
   const logs = useAuditLogs(query);
-  const { register, handleSubmit, reset, setError, formState: { errors, isDirty } } = useForm<AuditFilterValues>({
+  const { control, register, handleSubmit, reset, setError, setValue, watch, formState: { errors, isDirty } } = useForm<AuditFilterValues>({
     resolver: zodResolver(auditFilterSchema), defaultValues: emptyAuditFilters,
   });
+  const selectedEntityType = watch('entityType');
 
   useEffect(() => {
     if (!logs.result || logs.loading || logs.error) return;
@@ -77,7 +80,9 @@ export default function AdminAuditPage() {
   return <div className="ui-stack audit-page">
     <PageHeader title="Nhật ký kiểm toán" eyebrow="Quản trị"
       description="Tra cứu các thao tác đã được hệ thống ghi nhận và kiểm tra dữ liệu trước, sau thay đổi."
-      actions={<Button variant="secondary" disabled={logs.loading} onClick={() => void logs.reload()}
+      actions={<Button variant="secondary" disabled={logs.loading} onClick={() => {
+        setOptionsRefresh(previous => previous + 1); void logs.reload();
+      }}
         icon={<RefreshCw size={17} />}>Tải lại</Button>} />
     <SectionCard title="Bộ lọc tra cứu" description="Các điều kiện được kết hợp với nhau. Thời gian dùng múi giờ Việt Nam (UTC+7), bao gồm hai mốc."
       className="audit-filters">
@@ -85,14 +90,26 @@ export default function AdminAuditPage() {
         reset(values); setSelected(null); setQuery(auditFiltersToQuery(values));
       })}>
         <div className="audit-filter-grid">
-          <Input label="Người thực hiện (UUID)" placeholder="Mã UUID của người dùng" maxLength={36}
-            hint="Để trống để tra cứu tất cả người thực hiện." {...register('actor')} error={errors.actor?.message} />
-          <Input label="Thao tác" placeholder="Ví dụ: PARAMETER_UPDATED" maxLength={100}
-            hint="Nhập mã thao tác đầy đủ, khớp chính xác." {...register('action')} error={errors.action?.message} />
-          <Input label="Loại đối tượng" placeholder="Ví dụ: SYSTEM_PARAMETER" maxLength={100}
-            hint="Nhập loại đối tượng đầy đủ, khớp chính xác." {...register('entityType')} error={errors.entityType?.message} />
-          <Input label="Mã đối tượng" placeholder="Ví dụ: BASE_FARE" maxLength={200}
-            hint="Nhập mã đối tượng đầy đủ, khớp chính xác." {...register('entityId')} error={errors.entityId?.message} />
+          <Controller name="actor" control={control} render={({ field }) => <AuditFilterChooser
+            field="actor" label="Người thực hiện" allLabel="Tất cả người thực hiện" placeholder="Tìm theo tên hoặc email…"
+            hint="Chọn người thực hiện theo tên hoặc email, không cần nhập UUID." value={field.value}
+            onChange={field.onChange} onBlur={field.onBlur} error={errors.actor?.message} refreshToken={optionsRefresh} />} />
+          <Controller name="action" control={control} render={({ field }) => <AuditFilterChooser
+            field="action" label="Thao tác" allLabel="Tất cả thao tác" placeholder="Tìm thao tác…"
+            hint="Chọn thao tác đã được ghi nhận trong nhật ký." value={field.value}
+            onChange={field.onChange} onBlur={field.onBlur} error={errors.action?.message} refreshToken={optionsRefresh} />} />
+          <Controller name="entityType" control={control} render={({ field }) => <AuditFilterChooser
+            field="entityType" label="Loại đối tượng" allLabel="Tất cả loại đối tượng" placeholder="Tìm loại đối tượng…"
+            hint="Chọn loại đối tượng đã được ghi nhận trong nhật ký." value={field.value}
+            onChange={value => {
+              if (value !== field.value) setValue('entityId', '', { shouldDirty: true, shouldValidate: true });
+              field.onChange(value);
+            }} onBlur={field.onBlur} error={errors.entityType?.message} refreshToken={optionsRefresh} />} />
+          <Controller name="entityId" control={control} render={({ field }) => <AuditFilterChooser
+            field="entityId" label="Đối tượng" allLabel="Tất cả đối tượng" placeholder="Tìm đối tượng…"
+            hint={selectedEntityType ? 'Chọn đối tượng thuộc loại đã chọn.' : 'Có thể chọn loại đối tượng trước để thu hẹp danh sách.'}
+            value={field.value} onChange={field.onChange} onBlur={field.onBlur} error={errors.entityId?.message}
+            entityType={selectedEntityType || undefined} refreshToken={optionsRefresh} />} />
           <Input label="Từ thời điểm (giờ Việt Nam)" type="datetime-local" step={1}
             {...register('from')} error={errors.from?.message} />
           <Input label="Đến thời điểm (giờ Việt Nam)" type="datetime-local" step={1}
@@ -121,7 +138,7 @@ export default function AdminAuditPage() {
         <DataTable caption="Danh sách sự kiện kiểm toán" columns={columns} rows={logs.result?.content ?? []}
           rowKey={event => event.eventId} loading={logs.loading}
           emptyState={<EmptyState title={hasFilters ? 'Không có sự kiện khớp bộ lọc' : 'Chưa có sự kiện kiểm toán'}
-            description={hasFilters ? 'Kiểm tra mã thao tác, đối tượng hoặc mở rộng khoảng thời gian.'
+            description={hasFilters ? 'Thay đổi thao tác, đối tượng hoặc mở rộng khoảng thời gian.'
               : 'Các sự kiện sẽ xuất hiện sau khi hệ thống ghi nhận thành công.'} icon={<History size={24} />}
             action={hasFilters ? <Button variant="secondary" onClick={resetFilters}>Xóa bộ lọc</Button> : undefined} />} />
         {!logs.loading && logs.result && <Pagination page={logs.result.page} size={logs.result.size}
