@@ -31,7 +31,7 @@ export default function OrdersPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await orderApi.getAll();
+      const response = await orderApi.getMyOrders();
       setOrders(response.data || []);
     } catch (cause) {
       setError(getApiError(cause));
@@ -139,9 +139,9 @@ export default function OrdersPage() {
   return (
     <div className="ui-stack">
       <PageHeader
-        title="Danh sách đơn hàng"
+        title="Đơn hàng của tôi"
         eyebrow="Quản lý giao nhận"
-        description="Theo dõi, tra cứu trạng thái và quản lý toàn bộ các đơn hàng trong hệ thống FPTPost."
+        description="Theo dõi, tra cứu trạng thái và quản lý các đơn hàng bạn đã tạo trên FPTPost."
         actions={
           <Button
             icon={<Plus size={18} />}

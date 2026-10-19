@@ -41,7 +41,7 @@ export interface Order {
 }
 
 export interface OrderRequest {
-  senderId: number;
+  senderId?: number;
   pickupAddress: string;
   deliveryAddress: string;
   receiverName: string;
