@@ -34,4 +34,13 @@ export const apiErrorMessages: Record<string, string> = {
   AUTH_REFRESH_INVALID: 'Phiên đăng nhập hết hiệu lực. Vui lòng đăng nhập lại.',
   AUTH_REFRESH_REUSED: 'Phiên đăng nhập đã bị thu hồi. Vui lòng đăng nhập lại.',
   AUTH_SESSION_NOT_FOUND: 'Phiên không còn hoạt động hoặc không thuộc tài khoản của bạn. Vui lòng tải lại danh sách.',
+  ORDER_NOT_FOUND: 'Đơn hàng không tồn tại hoặc đã bị xóa.',
+  ORDER_NOT_AVAILABLE: 'Đơn hàng không còn ở trạng thái khả dụng trên sàn hoặc đã có tài xế khác nhận.',
+  ORDER_ALREADY_ACCEPTED: 'Đơn hàng đã được nhận bởi một tài xế khác.',
+  ORDER_SELF_ACCEPT_FORBIDDEN: 'Bạn không thể tự nhận đơn hàng do chính mình tạo (Quy tắc BR-R-008).',
+  COURIER_ROLE_REQUIRED: 'Tài khoản cần có vai trò Người giao (Courier) để nhận đơn.',
+  COURIER_ACCOUNT_RESTRICTED: 'Tài khoản của bạn đang bị hạn chế hoặc tạm khóa nhận đơn.',
+  COURIER_HIGH_VALUE_RESTRICTED: 'Đơn hàng có giá trị khai báo trên 1.000.000đ yêu cầu tài xế từ hạng Bạc trở lên (Quy tắc BR-R-024).',
+  COURIER_MAX_ORDERS_EXCEEDED: 'Bạn đã đạt giới hạn số lượng đơn nhận đồng thời tối đa cho hạng của mình (Quy tắc BR-R-028).',
+  COURIER_MAX_VALUE_EXCEEDED: 'Tổng giá trị khai báo các đơn đang giao vượt quá hạn mức cho phép của hạng (Quy tắc BR-R-028).',
 };

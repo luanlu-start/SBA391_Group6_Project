@@ -1,11 +1,11 @@
 package com.fptpost.modules.order.mapper;
 
-import com.fptpost.modules.order.dto.MarketplaceOrderResponse;
-import com.fptpost.modules.order.dto.OrderRequest;
-import com.fptpost.modules.order.dto.OrderResponse;
+import com.fptpost.modules.order.dto.response.MarketplaceOrderResponse;
+import com.fptpost.modules.order.dto.request.OrderRequest;
+import com.fptpost.modules.order.dto.response.OrderDetailResponse;
+import com.fptpost.modules.order.dto.response.OrderResponse;
 import com.fptpost.modules.order.model.Order;
 import com.fptpost.modules.order.model.OrderImage;
-import org.aspectj.weaver.ast.Or;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
@@ -38,6 +38,8 @@ public interface OrderMapper {
         }
         return orders.map(this::toMarketplaceOrderResponse);
     }
+
+    OrderDetailResponse toOrderDetailResponse(Order order);
 
     @Named("mapImagesToUrls")
     default List<String> mapImagesToUrls(List<OrderImage> images) {

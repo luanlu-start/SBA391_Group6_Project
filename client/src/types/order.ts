@@ -1,3 +1,27 @@
+export type OrderStatus =
+    | 'PENDING'
+    | 'FINDING_SHIPPER'
+    | 'AWAITING_PAYMENT'
+    | 'SHIPPER_ASSIGNED'
+    | 'IN_DELIVERY'
+    | 'COMPLETED'
+    | 'CANCELLED';
+
+export interface OrderStatusConfig {
+    label: string;
+    tone: 'neutral' | 'success' | 'warning' | 'danger' | 'info';
+}
+
+export const ORDER_STATUS_MAP: Record<OrderStatus, OrderStatusConfig> = {
+    PENDING: { label: 'Chờ xử lý', tone: 'warning' },
+    FINDING_SHIPPER: { label: 'Đang tìm tài xế', tone: 'info' },
+    AWAITING_PAYMENT: { label: 'Chờ ký quỹ', tone: 'warning' },
+    SHIPPER_ASSIGNED: { label: 'Đã có tài xế', tone: 'info' },
+    IN_DELIVERY: { label: 'Đang giao hàng', tone: 'warning' },
+    COMPLETED: { label: 'Giao thành công', tone: 'success' },
+    CANCELLED: { label: 'Đã hủy', tone: 'danger' },
+};
+
 export interface MarketPlaceOrder {
     id: number;
     orderCode: string;
@@ -7,9 +31,15 @@ export interface MarketPlaceOrder {
     quantity: number;
     weightKg: number;
     declaredValue: number;
-    status: 'CANCELLED' | 'COMPLETED' | 'IN_DELIVERY' | 'SHIPPER_ASSIGNED' | 'FINDING_SHIPPER' | 'PENDING';
-    createAt: string;
+    status: OrderStatus;
+    createdAt: string;
+    estimatedDistanceKm?: number;
+    priceSuggested?: number;
+    priceAgreed?: number;
 }
+
+// Alias for flexibility
+export type MarketplaceOrder = MarketPlaceOrder;
 
 export interface SpringPageResponse<T> {
     content: T[];
@@ -29,27 +59,45 @@ export interface MarketplaceOrderParams {
     keyword?: string;
 }
 
-export type OrderStatus =
-    | 'PENDING'
-    | 'FINDING_SHIPPER'
-    | 'SHIPPER_ASSIGNED'
-    | 'IN_DELIVERY'
-    | 'COMPLETED'
-    | 'CANCELLED';
-
-export interface OrderStatusConfig {
-    label: string;
-    tone: 'neutral' | 'success' | 'warning' | 'danger' | 'info';
+export interface MarketplaceOrderDetail {
+    id: number;
+    orderCode: string;
+    senderId: number;
+    pickupAddress: string;
+    deliveryAddress: string;
+    maskedReceiverName: string;
+    maskedReceiverPhone: string;
+    productName: string;
+    productDescription?: string | null;
+    quantity: number;
+    weightKg: number;
+    declaredValue?: number | null;
+    priceSuggested?: number | null;
+    distanceKm?: number | null;
+    deliveryNote?: string | null;
+    status: OrderStatus;
+    createdAt: string;
+    imageUrls?: string[];
+    requiresSilverTier: boolean;
+    isAvailable: boolean;
 }
 
-export const ORDER_STATUS_MAP: Record<OrderStatus, OrderStatusConfig> = {
-    PENDING: { label: 'Chờ xử lý', tone: 'warning' },
-    FINDING_SHIPPER: { label: 'Đang tìm tài xế', tone: 'info' },
-    SHIPPER_ASSIGNED: { label: 'Đã có tài xế', tone: 'info' },
-    IN_DELIVERY: { label: 'Đang giao hàng', tone: 'warning' },
-    COMPLETED: { label: 'Giao thành công', tone: 'success' },
-    CANCELLED: { label: 'Đã hủy', tone: 'danger' },
-};
+export interface MarketOrderAcceptResponse {
+    id: number;
+    orderCode: string;
+    senderId: number;
+    courierId: number;
+    pickupAddress: string;
+    deliveryAddress: string;
+    productName: string;
+    quantity: number;
+    weightKg: number;
+    declaredValue?: number | null;
+    priceAgreed: number;
+    status: OrderStatus;
+    acceptedAt: string;
+    message: string;
+}
 
 export interface Order {
     id: number;
@@ -64,6 +112,9 @@ export interface Order {
     quantity: number;
     weightKg: number;
     declaredValue?: number | null;
+    priceSuggested?: number | null;
+    priceAgreed?: number | null;
+    distanceKm?: number | null;
     deliveryNote?: string | null;
     status: OrderStatus;
     createdAt: string;

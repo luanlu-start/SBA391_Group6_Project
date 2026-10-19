@@ -18,6 +18,7 @@ import OrderDetailPage from '../pages/OrderDetailPage';
 
 // Trang Sàn đơn dành cho Bưu tá (Courier)
 import CourierMarketplacePage from '../pages/CourierMarketplacePage';
+import CourierOrderDetailPage from '../pages/CourierOrderDetailPage';
 
 const UiKitPage = import.meta.env.DEV ? lazy(() => import('../pages/UiKitPage')) : null;
 
@@ -59,8 +60,9 @@ export default function AppRoutes() {
           <Route path="sender/orders/new" element={<CreateOrderPage />} />
           <Route path="sender/orders/:id" element={<OrderDetailPage />} />
 
-          {/* Luồng sàn đơn bưu tá (Courier) - SCR-28 / UC-16 */}
+          {/* Luồng sàn đơn bưu tá (Courier) - SCR-28 / UC-16 & SCR-30 / UC-17 */}
           <Route path="courier/market" element={<CourierMarketplacePage />} />
+          <Route path="courier/market/:id" element={<CourierOrderDetailPage />} />
 
           {/* Tài khoản & Cài đặt */}
           <Route path="verify" element={<VerifyOtpPage />} />

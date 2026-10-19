@@ -32,4 +32,41 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     """)
     Page<Order> findAvailableShippingOrderByKeyword(Pageable pageable, String keyword);
 
+    @Query("""
+        select o
+        from Order o
+        where o.status = 'FINDING_SHIPPER'
+        and o.id = :id
+    """)
+    Optional<Order> findAvailableOrderById(Long id);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select o from Order o where o.id = :id")
+    Optional<Order> findByIdForUpdate(@org.springframework.data.repository.query.Param("id") Long id);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select o from Order o where o.orderCode = :orderCode")
+    Optional<Order> findByOrderCodeForUpdate(@org.springframework.data.repository.query.Param("orderCode") String orderCode);
+
+    @Query("""
+        select count(o)
+        from Order o
+        where o.courierId = :courierId
+        and o.status in (:statuses)
+    """)
+    long countByCourierIdAndStatusIn(
+            @org.springframework.data.repository.query.Param("courierId") Long courierId,
+            @org.springframework.data.repository.query.Param("statuses") List<com.fptpost.modules.order.model.OrderStatus> statuses
+    );
+
+    @Query("""
+        select sum(o.declaredValue)
+        from Order o
+        where o.courierId = :courierId
+        and o.status in (:statuses)
+    """)
+    java.math.BigDecimal sumDeclaredValueByCourierIdAndStatusIn(
+            @org.springframework.data.repository.query.Param("courierId") Long courierId,
+            @org.springframework.data.repository.query.Param("statuses") List<com.fptpost.modules.order.model.OrderStatus> statuses
+    );
 }

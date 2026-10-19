@@ -1,4 +1,4 @@
-package com.fptpost.modules.order.dto;
+package com.fptpost.modules.order.dto.request;
 
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
@@ -17,7 +17,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ShippingOrderRequest {
+public class OrderRequest {
 
     @NotNull(message = "Sender ID is required")
     private Long senderId;

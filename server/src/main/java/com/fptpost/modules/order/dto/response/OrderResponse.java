@@ -1,4 +1,4 @@
-package com.fptpost.modules.order.dto;
+package com.fptpost.modules.order.dto.response;
 
 import com.fptpost.modules.order.model.OrderStatus;
 import lombok.AllArgsConstructor;

@@ -1,9 +1,9 @@
 package com.fptpost.modules.order.controller;
 
 import com.fptpost.common.response.ApiResponse;
-import com.fptpost.modules.order.dto.MarketplaceOrderResponse;
-import com.fptpost.modules.order.dto.OrderRequest;
-import com.fptpost.modules.order.dto.OrderResponse;
+import com.fptpost.modules.order.dto.response.MarketplaceOrderResponse;
+import com.fptpost.modules.order.dto.request.OrderRequest;
+import com.fptpost.modules.order.dto.response.OrderResponse;
 import com.fptpost.modules.order.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,6 +27,7 @@ import java.util.List;
 public class OrderController {
 
     private final OrderService orderService;
+    private final com.fptpost.modules.identity.repository.UserRepository userRepository;
 
     @PostMapping(value = "/upload-images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Tải lên hình ảnh đơn hàng", description = "Tải lên một hoặc nhiều hình ảnh cho đơn hàng (hỗ trợ JPG, PNG, WEBP, GIF)")
@@ -67,5 +68,21 @@ public class OrderController {
             ) {
         Page<MarketplaceOrderResponse> marketplaceOrderResponses = orderService.viewAvailableOrder(pageable, keyword);
         return ResponseEntity.ok(ApiResponse.success("Orders retrieved successfully", marketplaceOrderResponses));
+    }
+
+    @PostMapping("/{id}/accept")
+    @Operation(summary = "Nhận đơn hàng theo giá niêm yết (UC-17)", description = "Bưu tá nhận đơn hàng khả dụng trên sàn")
+    public ResponseEntity<ApiResponse<com.fptpost.modules.order.dto.response.MarketOrderAcceptResponse>> acceptOrder(
+            @PathVariable Long id,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal org.springframework.security.oauth2.jwt.Jwt jwt
+    ) {
+        if (jwt == null || jwt.getSubject() == null) {
+            throw new com.fptpost.common.exception.AppException(com.fptpost.common.exception.GlobalErrorCode.UNAUTHORIZED);
+        }
+        com.fptpost.modules.identity.model.User courierUser = userRepository.findByPublicId(java.util.UUID.fromString(jwt.getSubject()))
+                .orElseThrow(() -> new com.fptpost.common.exception.AppException(com.fptpost.common.exception.GlobalErrorCode.UNAUTHORIZED));
+
+        var response = orderService.acceptMarketOrder(id, courierUser);
+        return ResponseEntity.ok(ApiResponse.success(response.message(), response));
     }
 }
