@@ -55,6 +55,11 @@ export interface UserResponse {
   status: 'ACTIVE';
   roles: string[];
   emailVerifiedAt: string;
+  dob?: string | null;
+  bio?: string | null;
+  emergencyContact?: string | null;
+  fptBadge?: boolean;
+  avatarAvailable?: boolean;
 }
 
 export interface AuthenticationResponse {

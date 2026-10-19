@@ -7,7 +7,7 @@ import LoginForm from '../features/auth/components/LoginForm';
 
 export default function LoginPage() {
   const { user } = useAuthentication();
-  const state = useLocation().state as { passwordReset?: boolean; passwordChanged?: boolean } | null;
+  const state = useLocation().state as { passwordReset?: boolean; passwordChanged?: boolean; contactChanged?: boolean } | null;
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
   if (user) return <Navigate to="/account" replace />;
@@ -26,6 +26,7 @@ export default function LoginPage() {
         Đổi mật khẩu thành công. Các phiên cũ đã được đăng xuất. Vui lòng đăng nhập bằng mật khẩu mới.
       </Alert></div>}
       <LoginForm />
+      {state?.contactChanged && <Alert tone="success">Đã cập nhật thông tin liên hệ. Vui lòng đăng nhập bằng email hoặc SĐT hiện tại.</Alert>}
     </AuthLayout>
   );
 }

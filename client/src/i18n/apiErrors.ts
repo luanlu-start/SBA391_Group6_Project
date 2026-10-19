@@ -1,4 +1,11 @@
 export const apiErrorMessages: Record<string, string> = {
+  PROFILE_AGE_INVALID: 'Người dùng phải đủ 18 tuổi.',
+  PROFILE_CONTACT_INVALID: 'Vui lòng nhập email hoặc số di động Việt Nam hợp lệ.',
+  PROFILE_CONTACT_UNCHANGED: 'Thông tin mới trùng với thông tin đang sử dụng.',
+  PROFILE_CONTACT_SUPERSEDED: 'Vui lòng tạo yêu cầu đổi liên hệ mới.',
+  FILE_INVALID_IMAGE: 'Chỉ chấp nhận ảnh JPG, PNG hoặc WEBP hợp lệ, tối đa 20 megapixel.',
+  FILE_TOO_LARGE: 'Mỗi ảnh không được vượt quá 5 MB.',
+  FILE_STORAGE_UNAVAILABLE: 'Chưa thể lưu hoặc đọc tệp. Vui lòng thử lại sau.',
   SYS_UNAUTHORIZED: 'Vui lòng đăng nhập để thực hiện thao tác này.',
   SYS_INVALID_REQUEST: 'Vui lòng kiểm tra dữ liệu và tham số gửi lên.',
   SYS_FORBIDDEN: 'Bạn không có quyền thực hiện thao tác này.',

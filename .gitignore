@@ -10,6 +10,7 @@ build/
 target/
 server/target/
 uploads/
+private-data/
 server/uploads/
 *.local
 *.class

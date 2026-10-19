@@ -115,6 +115,11 @@ Giữ nguyên mã phân hệ và cách viết phạm vi UC trong nguồn.
 
 ## Schema hiện tại và code first
 
+UC-07 mở rộng `user_profiles` với `dob`, `bio`, `emergency_contact`, `avatar_storage_key`, `avatar_content_type`;
+thêm `addresses`, `contact_changes`, `account_data_requests`. Họ tên/DOB dùng đối chiếu KYC, email/SĐT không cập nhật qua hồ sơ thông thường.
+Địa chỉ dùng tọa độ DECIMAL(10,7), đổi mặc định dưới khóa User. OTP đổi liên hệ dùng purpose EMAIL_CHANGE/PHONE_CHANGE và lưu hash trong `otp_codes`.
+Ảnh đại diện nằm ngoài thư mục public; Docker giữ tệp bằng volume `identity-private-data`.
+
 SQL có `products` phục vụ ví dụ và các bảng Identity cho UC-01–03:
 `users`, `roles`, `user_roles`, `user_profiles`, `consents`, `otp_codes`, `blacklist`.
 UC-03 thêm `sessions` lưu hash refresh token/phiên và bộ đếm khóa đăng nhập trong User.
