@@ -50,3 +50,15 @@ Thumbs.db
 
 # Local toolchains used for build verification
 .tools/
+
+# Temporary files and test outputs
+/tmp/
+/client/.vite/
+/client/coverage/
+/server/coverage/
+*.hprof
+
+# Local Eclipse / Spring Tools metadata
+/server/.classpath
+/server/.project
+/server/.settings/

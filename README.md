@@ -3,13 +3,17 @@
 FPTPost là nền tảng giao hàng tiện đường P2P, kết nối người gửi với người giao,
 hỗ trợ KYC, sàn đơn/chào giá, ký quỹ, theo dõi và thanh toán theo đặc tả của nhóm.
 Repository hiện cung cấp base React/Spring Boot với Product CRUD mẫu, Activity Log mẫu
-và UC-01–04 Identity. Đợt 1 của Thuận bổ sung UC-46 quản trị 109 tham số, lịch sử, SQL outbox/Mongo audit và mô phỏng biểu phí ở môi trường phát triển. Pricing thật và các consumer Order/Identity sẽ tích hợp khi đồng đội bàn giao.
+và UC-01–04 Identity. UC-46 cung cấp quản trị 109 tham số, lịch sử thay đổi, SQL outbox/Mongo audit
+và mô phỏng biểu phí trong môi trường phát triển. Mô phỏng production cần Pricing provider thật.
 
-[Bàn giao đợt 1](docs/plans/ROUND1-HANDOFF.md) • [Contract UC-46](docs/plans/UC46-CONTRACT.md) • [Tiến độ phần Thuận](docs/plans/PROGRESS.md).
+[API quản trị tham số](docs/API.md#uc-46-đã-triển-khai--admin) • [Schema và outbox](docs/DATABASE.md).
 
 UC-60 bổ sung `/admin/audit`: Admin lọc/phân trang, xem chi tiết before/after đã che dữ liệu nhạy cảm,
 truy vết event/IP/correlationId; Mongo index và job retention theo AUDIT_KEEP.
-[Bàn giao UC-60](docs/plans/UC60-HANDOFF.md) • [Contract API-157](docs/plans/UC60-CONTRACT.md).
+[API tra cứu audit](docs/API.md#uc-60-đã-triển-khai--admin).
+
+UC-45 bổ sung `/admin/promotions`: tạo/sửa/tạm dừng khuyến mãi, chọn người áp dụng,
+theo dõi lượt dùng và audit. Luồng áp mã vào đơn do UC-44 tích hợp qua module pricing dùng chung.
 
 Đọc [thông tin dự án](docs/PROJECT-INFO.md), [63 Use Case](docs/USE-CASES.md) và
 [quy ước code](docs/CONTRIBUTING.md) trước khi bắt đầu chức năng.
@@ -307,7 +311,6 @@ Launcher có các mode `Dev`, `Server`, `Client`, `Infra`, `Check`, `Docker`, `S
 `Check` xem versions/status/health; `Docker` build và chạy stack; `Sync` chỉ đồng bộ
 hai file env cho IDE. Dừng ứng dụng bằng Ctrl+C hoặc Stop trong IDE, rồi
 `docker compose down` nếu muốn dừng hạ tầng; lệnh này giữ dữ liệu volumes.
-Xem hướng dẫn cụ thể cho cấu hình đã bàn giao trong [HANDOFF.md](HANDOFF.md).
 
 ## Giao diện dùng chung
 
@@ -367,8 +370,7 @@ Compose và `scripts/dev.ps1` đọc `.env` ở thư mục gốc. Chỉnh file n
 
 Các file `.env.example` là mẫu cấu hình. File `.env` chứa cấu hình local và không được commit.
 Password SQL, SMTP và JWT nằm trong `.env` gốc, được đồng bộ sang `server/.env`;
-`client/.env` chỉ chứa URL/port frontend. Account đăng nhập ứng dụng, nếu đã tạo
-bằng smoke test local, nằm riêng trong `.tools/demo-account.env`.
+`client/.env` chỉ chứa URL/port frontend.
 
 Nội dung điều khoản và chính sách dữ liệu nằm trong
 [terms.json](server/src/main/resources/policies/terms.json) và
@@ -618,8 +620,6 @@ Xem [tài liệu API](docs/API.md) để tra contract và giới hạn xác th�
 - [Database và từ điển dữ liệu dự kiến](docs/DATABASE.md)
 - [API hiện tại và danh mục thiết kế](docs/API.md)
 - [Contract lỗi và quy ước mã nghiệp vụ](docs/API-ERRORS.md)
-- [Nguồn đang áp dụng và kế hoạch phần Thuận](docs/plans/README.md)
-- [Bàn giao đợt 1 P00/UC-46](docs/plans/ROUND1-HANDOFF.md)
 - [Tài liệu nguồn BR/UC và SPEC v1.0](docs/sources/README.md)
 - [Checklist tham chiếu đề SBA301](docs/SBA301-CHECKLIST.md)
 

@@ -215,7 +215,8 @@ API đọc lịch sử vẫn trả lỗi khi Mongo không truy cập được.
 worker retry/idempotency theo eventId như SPEC yêu cầu. Cơ chế này đã có cho UC-46 qua
 `common.audit.AuditOutboxService`; UC-60 cung cấp query và retention của cùng collection.
 Các module nhạy cảm tiếp theo gọi producer trong transaction nghiệp vụ của owner;
-xem [contract UC-60](plans/UC60-CONTRACT.md), không tạo thêm kho audit riêng.
+xem [AuditOutboxService](../server/src/main/java/com/fptpost/common/audit/AuditOutboxService.java)
+và [schema audit](DATABASE.md#index-và-retention-uc-60-đã-triển-khai), không tạo thêm kho audit riêng.
 
 Không dùng ActivityLog mẫu làm bằng chứng duy nhất cho trạng thái đơn, ví/ký quỹ hoặc đối soát.
 Chỉ module ledger được ghi bút toán; ghi lịch sử trạng thái và bút toán liên quan trong
