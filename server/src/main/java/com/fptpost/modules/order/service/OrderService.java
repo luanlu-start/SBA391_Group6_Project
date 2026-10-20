@@ -94,6 +94,35 @@ public class OrderService {
         return orderMapper.toResponse(updated);
     }
 
+    @Transactional
+    public OrderResponse cancelOrder(Long id, Long currentUserId, String reason) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new AppException(OrderErrorCode.ORDER_NOT_FOUND));
+
+        if (currentUserId != null && !currentUserId.equals(order.getSenderId())) {
+            throw new AppException(OrderErrorCode.ORDER_ACCESS_DENIED);
+        }
+
+        if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.FINDING_SHIPPER) {
+            throw new AppException(OrderErrorCode.ORDER_CANNOT_BE_CANCELLED);
+        }
+
+        order.setStatus(OrderStatus.CANCELLED);
+
+        if (reason != null && !reason.isBlank()) {
+            String note = order.getDeliveryNote();
+            String cancellationInfo = "[Đã hủy: " + reason.trim() + "]";
+            if (note == null || note.isBlank()) {
+                order.setDeliveryNote(cancellationInfo);
+            } else {
+                order.setDeliveryNote(note + " " + cancellationInfo);
+            }
+        }
+
+        Order cancelled = orderRepository.save(order);
+        return orderMapper.toResponse(cancelled);
+    }
+
     public List<OrderResponse> getOrdersBySenderId(Long senderId) {
         List<Order> orders = orderRepository.findBySenderIdOrderByCreatedAtDesc(senderId);
         return orderMapper.toResponses(orders);

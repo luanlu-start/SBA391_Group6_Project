@@ -1,6 +1,7 @@
 package com.fptpost.modules.order.controller;
 
 import com.fptpost.common.response.ApiResponse;
+import com.fptpost.modules.order.dto.OrderCancelRequest;
 import com.fptpost.modules.order.dto.OrderRequest;
 import com.fptpost.modules.order.dto.OrderResponse;
 import com.fptpost.modules.order.service.OrderService;
@@ -74,6 +75,21 @@ public class OrderController {
         }
         OrderResponse updated = orderService.updateOrder(id, currentUserId, request);
         return ResponseEntity.ok(ApiResponse.success("Order updated successfully", updated));
+    }
+
+    @PostMapping("/{id}/cancel")
+    @Operation(summary = "Hủy đơn hàng (UC-15, API-038)", description = "Cho phép người gửi hủy đơn hàng khi đơn chưa có tài xế nhận hoặc đang chờ xử lý")
+    public ResponseEntity<ApiResponse<OrderResponse>> cancelOrder(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody(required = false) OrderCancelRequest request) {
+        Long currentUserId = null;
+        if (jwt != null && jwt.getSubject() != null) {
+            currentUserId = resolveUserId(jwt);
+        }
+        String reason = request != null ? request.getReason() : null;
+        OrderResponse cancelled = orderService.cancelOrder(id, currentUserId, reason);
+        return ResponseEntity.ok(ApiResponse.success("Hủy đơn hàng thành công", cancelled));
     }
 
     @GetMapping("/my-orders")

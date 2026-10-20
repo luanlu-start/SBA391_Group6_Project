@@ -11,6 +11,10 @@ export const orderApi = {
     return axiosClient.put<unknown, ApiResponse<Order>>(`/orders/${id}`, data);
   },
 
+  cancel: (id: number | string, reason?: string) => {
+    return axiosClient.post<unknown, ApiResponse<Order>>(`/orders/${id}/cancel`, { reason });
+  },
+
   getAll: () => {
     return axiosClient.get<unknown, ApiResponse<Order[]>>('/orders');
   },
