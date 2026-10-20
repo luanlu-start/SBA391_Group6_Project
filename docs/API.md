@@ -24,6 +24,8 @@ và [SPEC](sources/fptpost-spec-v1.0.pdf), mục 6.
 | POST | /api/v1/auth/login | UC-03 đăng nhập email/SĐT, JWT và refresh cookie |
 | POST | /api/v1/auth/refresh | UC-03 xoay vòng refresh cookie và cấp JWT mới |
 | POST | /api/v1/auth/logout | Đăng xuất phiên hiện tại |
+| POST | /api/v1/auth/password/forgot | UC-05 yêu cầu OTP đặt lại mật khẩu; phản hồi chung HTTP 200 |
+| POST | /api/v1/auth/password/reset | UC-05 xác thực OTP, đổi mật khẩu và thu hồi mọi phiên cũ |
 | GET | /api/v1/auth/sessions | UC-04 danh sách phiên đang hoạt động của tài khoản hiện tại |
 | DELETE | /api/v1/auth/sessions/{id} | UC-04 thu hồi một phiên của tài khoản hiện tại |
 | GET | /api/v1/wallet | UC-38 xem thông tin số dư ví, tiền ký quỹ; HTTP 200 |
@@ -37,11 +39,11 @@ và [SPEC](sources/fptpost-spec-v1.0.pdf), mục 6.
 | GET | /api/v1/me | Thông tin người dùng đang đăng nhập |
 
 Product CRUD là ví dụ kỹ thuật, không tương ứng UC-12 hay các API orders.
-UC-01–04 đã có đăng ký, xác thực email, đăng nhập, refresh rotation và quản lý phiên.
+UC-01–05 đã có đăng ký, xác thực email, đăng nhập, refresh rotation và quản lý phiên.
 UC-34 và UC-35 đã được triển khai hoàn chỉnh cho cả Backend, Security và Frontend: nạp tiền vào ví qua cổng VNPay (SCR-42), thanh toán và ký quỹ đơn hàng (SCR-22), quản lý bút toán sổ cái kép (ledger) và xử lý IPN đa mục đích (WALLET_TOPUP / ORDER_ESCROW) bảo đảm tính toàn vẹn (idempotency).
 Product/Activity, Wallet và Order Payment yêu cầu Bearer JWT; các endpoint callback VNPay công khai (return/ipn) được cấu hình trong SecurityConfig.
 
-## API xác thực UC-01–04
+## API xác thực UC-01–05
 
 Luồng giao diện: `/register` → `/verify` → `/login` → `/account`.
 Các endpoint xác thực nằm trong `AuthenticationController`.
@@ -119,6 +121,33 @@ phiên hoạt động; đăng nhập ở trình duyệt thứ 6 thu hồi phiên
 Phiên hết hạn/thu hồi không xuất hiện trong danh sách. Dữ liệu đã hết hạn thêm 7 ngày được
 dọn mỗi giờ; bản ghi token bị thay thế nhưng chưa hết hạn vẫn được giữ để phát hiện dùng lại.
 
+### Quên và đặt lại mật khẩu (UC-05)
+
+Luồng SCR-06/SCR-07: `/login` → `/forgot` → `/reset` → `/login`.
+Hai endpoint công khai dưới `/api/v1/auth/password`; không dùng Bearer hoặc refresh cookie để xác thực.
+
+- `POST /forgot`: `{ "identifier": "sender@example.com" }`. Email được chuẩn hóa chữ thường; SĐT Việt Nam chấp nhận dạng `09…` hoặc `+849…`. OTP luôn gửi tới **email đã đăng ký**, kể cả khi nhập SĐT; chưa tích hợp SMS.
+- HTTP 200 trả cùng thông báo và `data: { "resendAvailableAt": "...UTC..." }` cho tài khoản tồn tại/không tồn tại/bị khóa/đã xóa. Không trả ID tài khoản, challenge ID hoặc địa chỉ nhận email. Lỗi gửi SMTP cũng giữ phản hồi chung; transaction OTP được rollback, ghi log lỗi gửi không chứa thông tin tài khoản/OTP.
+- `POST /reset`: `{ "identifier": "sender@example.com", "otp": "012345", "newPassword": "NewPassword456!" }`. Nhập lại mật khẩu chỉ kiểm tra trên frontend. Thành công HTTP 200, không cấp JWT, xóa refresh cookie của trình duyệt và yêu cầu đăng nhập lại.
+
+OTP có purpose `PASSWORD_RESET`, lưu BCrypt, hiệu lực 5 phút, tối đa 5 lần sai.
+Chỉ OTP mới nhất của đúng tài khoản/purpose/email hiện tại được chấp nhận; gửi lại cách nhau ít nhất 60 giây và vô hiệu mã cũ.
+Giới hạn gửi lại theo identifier áp dụng cả tài khoản không tồn tại; SQL lock theo User ngăn hai instance gửi trùng trong thời gian chờ.
+Giới hạn 10 request/phút/IP dùng chung với auth, tính cả request sai JSON/validation; HTTP 429 có `Retry-After`.
+Bộ đếm IP/identifier hiện nằm trong bộ nhớ từng instance, chưa dùng kho chia sẻ.
+
+Mã sai, hết hạn, đã dùng, hết lượt thử, tài khoản không tồn tại hoặc không được phép đều trả cùng HTTP 400 `AUTH_PASSWORD_RESET_INVALID`.
+Lượt nhập sai vẫn được lưu khi trả lỗi. OTP hợp lệ nhưng mật khẩu không đạt chính sách trả `AUTH_PASSWORD_INVALID` và không tiêu thụ mã.
+Chính sách mật khẩu dùng chung với đăng ký: ít nhất 8 ký tự theo cấu hình, có chữ hoa/thường/số, tối đa 72 byte UTF-8, không trùng email/SĐT.
+Thay mật khẩu, đánh dấu OTP đã dùng và thu hồi mọi phiên của tài khoản nằm trong cùng transaction/khóa User với login/refresh.
+JWT và refresh token cũ mất hiệu lực ngay; phiên tài khoản khác không bị thu hồi.
+Bộ đếm khóa đăng nhập tạm thời được đặt lại, nhưng không mở tài khoản bị quản trị khóa/xóa.
+Tài khoản chờ xác thực có thể khôi phục mật khẩu, vẫn giữ trạng thái chờ xác thực và vai trò hiện tại.
+
+Email bảo mật dùng template `password-changed`, gửi sau khi transaction commit, không chứa mật khẩu/OTP.
+Nếu thông báo bảo mật gửi thất bại, mật khẩu mới vẫn có hiệu lực; hiện ghi log, chưa có outbox/retry.
+Frontend không lưu OTP/mật khẩu vào localStorage/sessionStorage; router state chỉ giữ identifier và thời điểm được gửi lại.
+
 ## API Ví tiền & Ký quỹ (UC-34 & UC-35)
 
 Luồng giao diện:
@@ -186,7 +215,7 @@ Luồng giao diện:
   - Ký quỹ bằng ví: Ghi Nợ (DEBIT) `USER_WALLET_{userId}`, Ghi Có (CREDIT) `ESCROW_ORDER_{orderId}`.
   - Ký quỹ qua VNPay: Ghi Nợ (DEBIT) `VNPAY_CLEARING`, Ghi Có (CREDIT) `ESCROW_ORDER_{orderId}`.
 
-Quên/đổi mật khẩu, Google login và KYC chưa triển khai.
+Đổi mật khẩu (UC-06), Google login và KYC chưa triển khai.
 Cấu hình SMTP/template nằm trong [README](../README.md), schema trong [DATABASE](DATABASE.md),
 mã lỗi và field validation theo [contract lỗi](API-ERRORS.md).
 

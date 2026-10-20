@@ -79,5 +79,5 @@ export default axiosClient;
 
 function isPublicAuthentication(url?: string) {
   return !!url && (url.startsWith('/auth/otp/') || ['/auth/register', '/auth/registration-policies',
-    '/auth/csrf', '/auth/login', '/auth/refresh'].includes(url));
+    '/auth/csrf', '/auth/login', '/auth/refresh', '/auth/password/forgot', '/auth/password/reset'].includes(url));
 }

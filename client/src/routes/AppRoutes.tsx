@@ -7,6 +7,8 @@ import NotFoundPage from '../pages/NotFoundPage';
 import RegisterPage from '../pages/RegisterPage';
 import VerifyOtpPage from '../pages/VerifyOtpPage';
 import LoginPage from '../pages/LoginPage';
+import ForgotPasswordPage from '../pages/ForgotPasswordPage';
+import ResetPasswordPage from '../pages/ResetPasswordPage';
 import AccountPage from '../pages/AccountPage';
 import SecurityPage from '../pages/SecurityPage';
 import LegalPage from '../pages/LegalPage';
@@ -16,6 +18,7 @@ import OrdersPage from '../pages/OrdersPage';
 import CreateOrderPage from '../pages/CreateOrderPage';
 import EditOrderPage from '../pages/EditOrderPage';
 import OrderDetailPage from '../pages/OrderDetailPage';
+import ChatPage from '../pages/ChatPage';
 
 const UiKitPage = import.meta.env.DEV ? lazy(() => import('../pages/UiKitPage')) : null;
 
@@ -32,6 +35,8 @@ export default function AppRoutes() {
     <Routes>
       {UiKitPage && <Route path="/ui-kit/*" element={<Suspense fallback={<p role="status">Đang tải mẫu giao diện…</p>}><UiKitPage /></Suspense>} />}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot" element={<ForgotPasswordPage />} />
+      <Route path="/reset" element={<ResetPasswordPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/" element={<MainLayout />}>
         <Route index element={<HomePage />} />
@@ -48,6 +53,7 @@ export default function AppRoutes() {
         <Route path="me/security" element={<SecurityPage />} />
         <Route path="legal" element={<LegalPage />} />
         <Route path="*" element={<NotFoundPage />} />
+        <Route path="orders/:orderId/chat" element={<ChatPage />} />
       </Route>
     </Routes>
   );

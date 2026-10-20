@@ -12,6 +12,10 @@ import com.fptpost.modules.identity.service.PolicyService;
 import com.fptpost.modules.identity.service.UserService;
 import com.fptpost.modules.identity.service.OtpService;
 import com.fptpost.modules.identity.service.AuthenticationService;
+import com.fptpost.modules.identity.service.PasswordService;
+import com.fptpost.modules.identity.dto.request.ForgotPasswordRequest;
+import com.fptpost.modules.identity.dto.request.ResetPasswordRequest;
+import com.fptpost.modules.identity.dto.response.PasswordResetRequestResponse;
 import com.fptpost.modules.identity.config.AuthenticationCookies;
 import com.fptpost.modules.identity.dto.request.AuthenticationRequest;
 import com.fptpost.modules.identity.dto.response.AuthenticationResponse;
@@ -46,6 +50,24 @@ public class AuthenticationController {
     OtpService otpService;
     AuthenticationService authenticationService;
     AuthenticationCookies cookies;
+    PasswordService passwordService;
+
+    @PostMapping("/password/forgot")
+    @Operation(summary = "UC-05: Yêu cầu OTP đặt lại mật khẩu qua email đã đăng ký")
+    public ResponseEntity<ApiResponse<PasswordResetRequestResponse>> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(ApiResponse.success(
+                "Nếu thông tin khớp với tài khoản, mã đặt lại mật khẩu sẽ được gửi đến email đã đăng ký.",
+                passwordService.forgotPassword(request.getIdentifier())));
+    }
+
+    @PostMapping("/password/reset")
+    @Operation(summary = "UC-05: Đặt lại mật khẩu bằng OTP và thu hồi mọi phiên cũ")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        passwordService.resetPassword(request);
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).header("Set-Cookie", cookies.clear())
+                .body(ApiResponse.success("Đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới.", null));
+    }
 
     @GetMapping("/csrf")
     @Operation(summary = "Lấy CSRF token trước khi đăng nhập/làm mới/đăng xuất")

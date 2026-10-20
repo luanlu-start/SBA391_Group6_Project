@@ -14,6 +14,7 @@ export const apiErrorMessages: Record<string, string> = {
   AUTH_EMAIL_ALREADY_EXISTS: 'Email đã được sử dụng. Bạn có thể đăng nhập hoặc đặt lại mật khẩu.',
   AUTH_PHONE_ALREADY_EXISTS: 'Số điện thoại đã được sử dụng.',
   AUTH_PASSWORD_INVALID: 'Mật khẩu phải có chữ hoa, chữ thường, chữ số; không trùng email/SĐT và tối đa 72 byte.',
+  AUTH_PASSWORD_RESET_INVALID: 'Thông tin xác thực không hợp lệ hoặc mã OTP đã hết hiệu lực. Vui lòng kiểm tra lại hoặc yêu cầu mã mới.',
   AUTH_POLICY_CHANGED: 'Chính sách đã thay đổi. Vui lòng tải lại và đọc phiên bản mới.',
   AUTH_REGISTRATION_BLOCKED: 'Không thể đăng ký với thông tin này.',
   AUTH_OTP_DELIVERY_FAILED: 'Chưa thể gửi email xác thực. Vui lòng thử lại sau.',
@@ -34,6 +35,12 @@ export const apiErrorMessages: Record<string, string> = {
   AUTH_REFRESH_INVALID: 'Phiên đăng nhập hết hiệu lực. Vui lòng đăng nhập lại.',
   AUTH_REFRESH_REUSED: 'Phiên đăng nhập đã bị thu hồi. Vui lòng đăng nhập lại.',
   AUTH_SESSION_NOT_FOUND: 'Phiên không còn hoạt động hoặc không thuộc tài khoản của bạn. Vui lòng tải lại danh sách.',
+
+  CHAT_ROOM_NOT_FOUND: 'Không tìm thấy cuộc trò chuyện.',
+  CHAT_ACCESS_DENIED: 'Bạn không có quyền truy cập cuộc trò chuyện này.',
+  CHAT_ROOM_READ_ONLY: 'Cuộc trò chuyện hiện chỉ cho phép xem lịch sử.',
+  CHAT_ORDER_NOT_ASSIGNED: 'Đơn hàng chưa được gán người giao để mở trò chuyện.',
+
   WALLET_NOT_FOUND: 'Ví điện tử của người dùng không tồn tại hoặc chưa được khởi tạo.',
   WALLET_TOPUP_AMOUNT_INVALID: 'Số tiền nạp không hợp lệ (tối thiểu 20.000đ, tối đa 10.000.000đ).',
   WALLET_MAX_BALANCE_EXCEEDED: 'Tổng số dư ví sau khi nạp vượt hạn mức 20.000.000đ.',
@@ -43,4 +50,5 @@ export const apiErrorMessages: Record<string, string> = {
   ORDER_PAYMENT_FORBIDDEN: 'Bạn không phải là người tạo đơn hàng này.',
   PAYMENT_TRANSACTION_NOT_FOUND: 'Không tìm thấy giao dịch thanh toán.',
   PAYMENT_EXPIRED: 'Liên kết thanh toán đã hết hạn (quá 15 phút). Vui lòng tạo lại.',
+
 };
