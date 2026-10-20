@@ -7,8 +7,20 @@ export const orderApi = {
     return axiosClient.post<unknown, ApiResponse<Order>>('/orders', data);
   },
 
+  update: (id: number | string, data: OrderRequest) => {
+    return axiosClient.put<unknown, ApiResponse<Order>>(`/orders/${id}`, data);
+  },
+
+  cancel: (id: number | string, reason?: string) => {
+    return axiosClient.post<unknown, ApiResponse<Order>>(`/orders/${id}/cancel`, { reason });
+  },
+
   getAll: () => {
     return axiosClient.get<unknown, ApiResponse<Order[]>>('/orders');
+  },
+
+  getMyOrders: () => {
+    return axiosClient.get<unknown, ApiResponse<Order[]>>('/orders/my-orders');
   },
 
   getById: (id: number | string) => {
