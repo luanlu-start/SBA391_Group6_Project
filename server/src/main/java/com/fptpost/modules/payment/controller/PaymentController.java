@@ -29,7 +29,7 @@ import java.util.Optional;
  */
 @Slf4j
 @RestController
-@RequestMapping({"/api/payment", "/api/v1/payment"})
+@RequestMapping({"/api/payment", "/api/v1/payment", "/api/v1/vnpay"})
 @RequiredArgsConstructor
 @Tag(name = "Payment Gateway", description = "Production VNPay Payment Gateway integration APIs")
 public class PaymentController {
@@ -37,8 +37,8 @@ public class PaymentController {
     private final VNPayService vnPayService;
     private final Optional<PaymentDemoSeeder> paymentDemoSeeder;
 
-    @Operation(summary = "Create VNPay Payment URL", description = "Generates a signed redirect URL to VNPay payment portal.")
-    @PostMapping("/create-vnpay-url")
+    @Operation(summary = "Create VNPay Payment URL (Legacy / Direct Order Payment)", description = "Generates a signed redirect URL to VNPay payment portal.")
+    @PostMapping({"/create-vnpay-url", "/wallet/topups"})
     public ResponseEntity<ApiResponse<PaymentCreationResponse>> createPaymentUrl(
             @Valid @RequestBody PaymentCreationRequest request,
             HttpServletRequest httpRequest) {
@@ -47,8 +47,8 @@ public class PaymentController {
         return ResponseEntity.ok(ApiResponse.success("VNPay redirect URL created successfully", response));
     }
 
-    @Operation(summary = "VNPay Browser Return Callback", description = "Synchronous return URL handler called when customer redirects back from VNPay.")
-    @GetMapping("/vnpay-return")
+    @Operation(summary = "VNPay Browser Return Callback (API-085)", description = "Synchronous return URL handler called when customer redirects back from VNPay.")
+    @GetMapping({"/vnpay/return", "/vnpay-return", "/return"})
     public ResponseEntity<ApiResponse<VNPayReturnResponse>> handleVNPayReturn(
             @RequestParam Map<String, String> queryParams) {
         log.info("Received VNPay return callback with {} parameters", queryParams.size());
@@ -56,8 +56,8 @@ public class PaymentController {
         return ResponseEntity.ok(ApiResponse.success("VNPay transaction return processed", response));
     }
 
-    @Operation(summary = "VNPay Asynchronous IPN Webhook", description = "Server-to-server IPN listener called by VNPay to notify payment completion.")
-    @GetMapping(value = "/vnpay-ipn", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "VNPay Asynchronous IPN Webhook (API-086, UC-42)", description = "Server-to-server IPN listener called by VNPay to notify payment completion.")
+    @GetMapping(value = {"/vnpay-ipn", "/vnpay/ipn", "/ipn"}, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<VNPayIpnResponse> handleVNPayIpn(
             @RequestParam Map<String, String> queryParams) {
         log.info("Received VNPay IPN notification with {} parameters", queryParams.size());

@@ -38,10 +38,16 @@ class VNPayServiceTest {
     @Mock
     private OrderRepository orderRepository;
 
+    @Mock
+    private com.fptpost.modules.payment.repository.WalletRepository walletRepository;
+
+    @Mock
+    private com.fptpost.modules.payment.service.LedgerService ledgerService;
+
     private VNPayConfig vnPayConfig;
     private VNPayServiceImpl vnPayService;
 
-    private static final String SECRET_KEY = "HDMKJXGPKGDZUQJDDBEFKXEIXZYWSNCM";
+    private static final String SECRET_KEY = "test-only-vnpay-hmac-key-not-for-real-payments";
     private static final String TMN_CODE = "B91MXQ5Y";
 
     @BeforeEach
@@ -53,7 +59,7 @@ class VNPayServiceTest {
         vnPayConfig.setVnp_ReturnUrl("http://localhost:8080/api/payment/vnpay-return");
         vnPayConfig.setTimeoutMinutes(15);
 
-        vnPayService = new VNPayServiceImpl(vnPayConfig, paymentTransactionRepository, Optional.of(orderRepository));
+        vnPayService = new VNPayServiceImpl(vnPayConfig, paymentTransactionRepository, Optional.of(orderRepository), walletRepository, ledgerService);
     }
 
     @Test

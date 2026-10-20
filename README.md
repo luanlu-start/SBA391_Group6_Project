@@ -3,7 +3,7 @@
 FPTPost là nền tảng giao hàng tiện đường P2P, kết nối người gửi với người giao,
 hỗ trợ KYC, sàn đơn/chào giá, ký quỹ, theo dõi và thanh toán theo đặc tả của nhóm.
 Repository hiện cung cấp base React/Spring Boot với Product CRUD mẫu, Activity Log mẫu
-và UC-01–03 đăng ký, xác thực email, đăng nhập Identity. Các UC còn lại được triển khai theo tài liệu của nhóm.
+và UC-01–05 đăng ký, xác thực email, đăng nhập, quản lý phiên và khôi phục mật khẩu Identity. Các UC còn lại được triển khai theo tài liệu của nhóm.
 
 Đọc [thông tin dự án](docs/PROJECT-INFO.md), [63 Use Case](docs/USE-CASES.md) và
 [quy ước code](docs/CONTRIBUTING.md) trước khi bắt đầu chức năng.
@@ -235,6 +235,29 @@ Frontend được phục vụ qua Nginx và proxy `/api` tới backend.
 
 Địa chỉ sử dụng cổng đã đặt trong `.env` nếu khác mặc định.
 
+Nếu dùng SQL Server đã cài trên Windows, backend trong Docker kết nối qua
+`SQLSERVER_URL=jdbc:sqlserver://host.docker.internal:1433;databaseName=group6_project_db;encrypt=true;trustServerCertificate=true`.
+Đặt `SQLSERVER_USERNAME` và `SQLSERVER_PASSWORD` trong `.env`, tạo database trước khi chạy.
+Để bỏ SQL container khi chạy stack, tạo `compose.override.yaml` riêng cho máy:
+
+```yaml
+services:
+  sqlserver:
+    profiles: [docker-sql]
+  sqlserver-init:
+    profiles: [docker-sql]
+  server:
+    depends_on: !override
+      mongodb:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+```
+
+Docker Compose 2.24.4 trở lên tự đọc file override này cùng `compose.yaml`.
+File override và `.env` không được commit. SSMS dùng `localhost,1433` để xem SQL trên Windows;
+backend chạy trực tiếp ngoài Docker dùng `localhost:1433` thay cho `host.docker.internal:1433`.
+
 ```powershell
 docker compose ps -a
 docker compose logs -f server
@@ -322,7 +345,8 @@ Compose tự đọc `.env` ở thư mục gốc; Spring Boot chạy ngoài Docke
 | `JWT_SECRET` | Compose/backend | Khóa JWT Base64 chứa tối thiểu 32 byte ngẫu nhiên; giữ riêng trong `.env` |
 | `AUTH_COOKIE_SECURE` | Compose/backend | `false` cho localhost HTTP; `true` khi chạy production qua HTTPS |
 | `SQLSERVER_PASSWORD` | Compose/backend | Mật khẩu SQL Server |
-| `SQLSERVER_URL`, `SQLSERVER_USERNAME` | Backend | Kết nối SQL Server |
+| `SQLSERVER_URL`, `SQLSERVER_USERNAME` | Compose/backend | Kết nối SQL Server; Compose mặc định dùng service `sqlserver`, tài khoản `sa` |
+| `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET` | Compose/backend | Thông tin VNPay Sandbox từ tài khoản merchant; đặt riêng trong `.env` để dùng chức năng thanh toán |
 | `MONGODB_URI` | Backend | Kết nối MongoDB |
 | `SERVER_PORT` | Backend | Cổng HTTP, mặc định 8080 |
 | `SPRING_PROFILES_ACTIVE` | Backend | Profile, mặc định `dev` |
@@ -356,6 +380,16 @@ Template nằm trong `server/src/main/resources/templates/mail`: giao diện ở
 Sửa template rồi build/restart backend. Thêm loại email bằng ba file HTML/text/subject
 cùng tên và khai báo trong `EmailTemplateType`; dùng `th:text` để escape dữ liệu người dùng.
 Không commit mật khẩu SMTP hoặc log OTP/nội dung email.
+
+### Quên mật khẩu
+
+Tại `/login`, chọn **Quên mật khẩu?** rồi nhập email hoặc SĐT. Hệ thống gửi OTP đến email đã đăng ký;
+nhập mã và mật khẩu mới tại `/reset`. Mã có hiệu lực 5 phút, tối đa 5 lần nhập sai, gửi lại sau 60 giây.
+Đặt lại thành công sẽ đăng xuất mọi phiên cũ và chuyển về trang đăng nhập.
+Phản hồi gửi mã không tiết lộ tài khoản có tồn tại hay không.
+
+Template OTP và thông báo bảo mật nằm trong `templates/mail`, tên `reset-password` và `password-changed`,
+mỗi template có bản HTML/text/subject. Chi tiết API, lỗi và cách xử lý gửi mail xem [tài liệu API](docs/API.md).
 
 ## Database và seed data
 
@@ -414,6 +448,8 @@ các khác biệt còn lại về response thành công/phân trang được ghi
 | POST | `/api/v1/auth/login` | Đăng nhập bằng email hoặc SĐT |
 | POST | `/api/v1/auth/refresh` | Làm mới JWT và xoay vòng refresh cookie |
 | POST | `/api/v1/auth/logout` | Đăng xuất phiên hiện tại |
+| POST | `/api/v1/auth/password/forgot` | Yêu cầu OTP đặt lại mật khẩu qua email đã đăng ký |
+| POST | `/api/v1/auth/password/reset` | Đặt lại mật khẩu bằng OTP và thu hồi các phiên cũ |
 | GET | `/api/v1/auth/sessions` | Xem các phiên đang hoạt động của tài khoản |
 | DELETE | `/api/v1/auth/sessions/{id}` | Đăng xuất một phiên/thiết bị của tài khoản |
 | GET | `/api/v1/me` | Thông tin người dùng đang đăng nhập |
@@ -577,9 +613,9 @@ Checklist đề gốc cần đối chiếu với các điều chỉnh của gi�
 
 Base có Product CRUD, paging/filter/sort, MapStruct, validation, mã lỗi,
 Swagger, seed demo, nhật ký MongoDB và Docker Compose.
-Identity có UC-01–03: đăng ký, chính sách/consent, OTP email, đăng nhập JWT/refresh rotation và đăng xuất phiên hiện tại;
+Identity có UC-01–05: đăng ký, chính sách/consent, OTP email, đăng nhập JWT/refresh rotation, quản lý phiên và khôi phục mật khẩu;
 service gửi mail/template dùng chung. Lỗi API dùng Problem Details và correlation ID.
-Frontend có trang chủ, Product, đăng ký, xác thực OTP, đăng nhập, tài khoản, điều khoản/chính sách và trang 404.
+Frontend có trang chủ, Product, đăng ký, xác thực OTP, đăng nhập, quên/đặt lại mật khẩu, tài khoản, điều khoản/chính sách và trang 404.
 Trang chủ `/` theo SCR-01: giới thiệu FPost, cách hoạt động, ví dụ phí giao và đăng ký.
 Phí trên trang chủ là các tình huống tham khảo từ biểu phí dự thảo, chưa gọi API ước tính giá.
 Footer dùng chung có liên kết nhanh, chính sách và thông tin liên hệ. Trang `/legal` tải cùng nội dung chính sách với luồng đăng ký.

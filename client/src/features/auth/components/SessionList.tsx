@@ -19,18 +19,18 @@ export default function SessionList({ sessions, disabled, onRevoke }: SessionLis
         <div className="session-device">
           <span className="session-icon"><Icon size={23} aria-hidden="true" /></span>
           <div className="session-device-heading"><h3>{device.name}</h3>
-            {session.current && <Badge tone="success" dot>Thiết bị này</Badge>}
+            {session.current && <Badge tone="success" dot>Phiên hiện tại</Badge>}
           </div>
         </div>
         <dl className="session-details">
           <div><dt>Địa chỉ IP</dt><dd>{session.ip === 'unknown' ? 'Không rõ' : session.ip}</dd></div>
           <div><dt>Đăng nhập lúc</dt><dd><time dateTime={session.createdAt}>{formatSessionTime(session.createdAt)}</time></dd></div>
-          <div><dt>Hết hạn lúc</dt><dd><time dateTime={session.expiresAt}>{formatSessionTime(session.expiresAt)}</time></dd></div>
+          <div><dt>Hiệu lực đến</dt><dd><time dateTime={session.expiresAt}>{formatSessionTime(session.expiresAt)}</time></dd></div>
         </dl>
         <Button className="session-revoke" variant={session.current ? 'secondary' : 'danger'} size="sm"
           disabled={disabled} onClick={() => onRevoke(session)} icon={<LogOut size={16} />}
-          aria-label={session.current ? 'Đăng xuất thiết bị này' : `Đăng xuất ${device.name}`}>
-          Đăng xuất
+          aria-label={session.current ? 'Đăng xuất phiên hiện tại' : `Đăng xuất phiên ${device.name}`}>
+          {session.current ? 'Đăng xuất phiên này' : 'Đăng xuất phiên'}
         </Button>
       </li>;
     })}

@@ -31,7 +31,7 @@ export default function LoginForm() {
   }
 
   return <form className="login-form" onSubmit={handleSubmit(submit)} noValidate aria-busy={isPending}>
-    {error && <ApiErrorNotice message={error.message} correlationId={error.correlationId} />}
+    {error && <ApiErrorNotice error={error} />}
     <Input id="identifier" label="Email hoặc số điện thoại" placeholder="Email hoặc số điện thoại của bạn"
       autoComplete="username" maxLength={254} {...register('identifier')} disabled={isPending} required
       icon={<UserRound size={18} />} error={errors.identifier?.message} />
@@ -41,7 +41,10 @@ export default function LoginForm() {
       endAdornment={<Button variant="ghost" size="sm" disabled={isPending}
         aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} aria-pressed={showPassword}
         onClick={() => setShowPassword(value => !value)} icon={showPassword ? <EyeOff size={18} /> : <Eye size={18} />} />} />
-    <Checkbox id="remember-me" label="Ghi nhớ đăng nhập" {...register('rememberMe')} disabled={isPending} />
+    <div className="auth-options">
+      <Checkbox id="remember-me" label="Ghi nhớ đăng nhập" {...register('rememberMe')} disabled={isPending} />
+      <Link className="auth-text-link" to="/forgot">Quên mật khẩu?</Link>
+    </div>
     {retryAfterSeconds > 0 && <p className="login-cooldown" role="status">
       Có thể thử lại sau {Math.floor(retryAfterSeconds / 60)}:{String(retryAfterSeconds % 60).padStart(2, '0')}.
     </p>}

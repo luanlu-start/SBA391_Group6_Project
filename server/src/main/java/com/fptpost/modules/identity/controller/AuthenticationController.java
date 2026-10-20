@@ -12,6 +12,10 @@ import com.fptpost.modules.identity.service.PolicyService;
 import com.fptpost.modules.identity.service.UserService;
 import com.fptpost.modules.identity.service.OtpService;
 import com.fptpost.modules.identity.service.AuthenticationService;
+import com.fptpost.modules.identity.service.PasswordService;
+import com.fptpost.modules.identity.dto.request.ForgotPasswordRequest;
+import com.fptpost.modules.identity.dto.request.ResetPasswordRequest;
+import com.fptpost.modules.identity.dto.response.PasswordResetRequestResponse;
 import com.fptpost.modules.identity.config.AuthenticationCookies;
 import com.fptpost.modules.identity.dto.request.AuthenticationRequest;
 import com.fptpost.modules.identity.dto.response.AuthenticationResponse;
@@ -46,6 +50,24 @@ public class AuthenticationController {
     OtpService otpService;
     AuthenticationService authenticationService;
     AuthenticationCookies cookies;
+    PasswordService passwordService;
+
+    @PostMapping("/password/forgot")
+    @Operation(summary = "UC-05: Yêu cầu OTP đặt lại mật khẩu qua email đã đăng ký")
+    public ResponseEntity<ApiResponse<PasswordResetRequestResponse>> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(ApiResponse.success(
+                "Nếu thông tin khớp với tài khoản, mã đặt lại mật khẩu sẽ được gửi đến email đã đăng ký.",
+                passwordService.forgotPassword(request.getIdentifier())));
+    }
+
+    @PostMapping("/password/reset")
+    @Operation(summary = "UC-05: Đặt lại mật khẩu bằng OTP và thu hồi mọi phiên cũ")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        passwordService.resetPassword(request);
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).header("Set-Cookie", cookies.clear())
+                .body(ApiResponse.success("Đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới.", null));
+    }
 
     @GetMapping("/csrf")
     @Operation(summary = "Lấy CSRF token trước khi đăng nhập/làm mới/đăng xuất")
@@ -57,18 +79,26 @@ public class AuthenticationController {
     @PostMapping("/login")
     @Operation(summary = "UC-03: Đăng nhập bằng email hoặc SĐT; refresh token qua cookie HttpOnly")
     public ResponseEntity<ApiResponse<AuthenticationResponse>> login(@Valid @RequestBody AuthenticationRequest request,
+            @CookieValue(name = AuthenticationCookies.BROWSER_COOKIE, required = false) String browserCookie,
+            @CookieValue(name = AuthenticationCookies.REFRESH_COOKIE, required = false) String previousRefreshToken,
             HttpServletRequest httpRequest) {
-        var result = authenticationService.authenticate(request, httpRequest.getRemoteAddr(), httpRequest.getHeader("User-Agent"));
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).header("Set-Cookie", cookies.issue(result.getRefreshToken(), result.isRememberMe()))
+        var result = authenticationService.authenticate(request, httpRequest.getRemoteAddr(), httpRequest.getHeader("User-Agent"),
+                cookies.resolveBrowserId(browserCookie), previousRefreshToken);
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).header("Set-Cookie",
+                        cookies.issue(result.getRefreshToken(), result.isRememberMe()), cookies.issueBrowser(result.getBrowserId()))
                 .body(ApiResponse.success("Đăng nhập thành công.", result.getResponse()));
     }
 
     @PostMapping("/refresh")
     @Operation(summary = "UC-03: Làm mới access token và xoay vòng refresh cookie")
     public ResponseEntity<ApiResponse<AuthenticationResponse>> refresh(
-            @CookieValue(name = AuthenticationCookies.REFRESH_COOKIE, required = false) String token, HttpServletRequest request) {
-        var result = authenticationService.refresh(token, request.getRemoteAddr(), request.getHeader("User-Agent"));
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).header("Set-Cookie", cookies.issue(result.getRefreshToken(), result.isRememberMe()))
+            @CookieValue(name = AuthenticationCookies.REFRESH_COOKIE, required = false) String token,
+            @CookieValue(name = AuthenticationCookies.BROWSER_COOKIE, required = false) String browserCookie,
+            HttpServletRequest request) {
+        var result = authenticationService.refresh(token, request.getRemoteAddr(), request.getHeader("User-Agent"),
+                cookies.resolveBrowserId(browserCookie));
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).header("Set-Cookie",
+                        cookies.issue(result.getRefreshToken(), result.isRememberMe()), cookies.issueBrowser(result.getBrowserId()))
                 .body(ApiResponse.success(result.getResponse()));
     }
 
@@ -101,7 +131,7 @@ public class AuthenticationController {
                 UUID.fromString(jwt.getClaimAsString("sid")));
         var response = ResponseEntity.ok().cacheControl(CacheControl.noStore());
         if (current) response.header("Set-Cookie", cookies.clear());
-        return response.body(ApiResponse.success("Đã đăng xuất thiết bị.",
+        return response.body(ApiResponse.success("Đã đăng xuất phiên được chọn.",
                 SessionRevocationResponse.builder().currentSessionRevoked(current).build()));
     }
 

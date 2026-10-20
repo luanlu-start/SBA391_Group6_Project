@@ -18,7 +18,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fptpost.modules.payment.model.Wallet;
+import com.fptpost.modules.payment.model.PaymentPurpose;
+import com.fptpost.modules.payment.repository.WalletRepository;
+import com.fptpost.modules.payment.service.LedgerService;
+
 import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -40,6 +47,8 @@ public class VNPayServiceImpl implements VNPayService {
     private final VNPayConfig vnPayConfig;
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final Optional<OrderRepository> orderRepository;
+    private final WalletRepository walletRepository;
+    private final LedgerService ledgerService;
 
     @Override
     @Transactional
@@ -98,11 +107,13 @@ public class VNPayServiceImpl implements VNPayService {
         PaymentTransaction transaction = PaymentTransaction.builder()
                 .txnRef(txnRef)
                 .orderCode(request.getOrderCode())
+                .purpose(PaymentPurpose.ORDER_ESCROW)
                 .amount(request.getAmount())
                 .orderInfo(orderInfo)
                 .bankCode(request.getBankCode())
                 .status(PaymentStatus.PENDING)
                 .ipAddress(clientIp)
+                .expiresAt(now.plusMinutes(vnPayConfig.getTimeoutMinutes()).toInstant())
                 .build();
         paymentTransactionRepository.save(transaction);
 
@@ -240,8 +251,26 @@ public class VNPayServiceImpl implements VNPayService {
         boolean isSuccess = "00".equals(responseCode) && "00".equals(transactionStatus);
         if (isSuccess) {
             transaction.setStatus(PaymentStatus.SUCCESS);
-            log.info("VNPay Payment SUCCESS for txnRef={}, orderCode={}", txnRef, transaction.getOrderCode());
-            updateShippingOrderIfPresent(transaction.getOrderCode(), OrderStatus.FINDING_SHIPPER);
+            log.info("VNPay Payment SUCCESS for txnRef={}, purpose={}", txnRef, transaction.getPurpose());
+
+            // 1. UC-34: Nạp tiền vào ví qua VNPay
+            if (transaction.getPurpose() == PaymentPurpose.WALLET_TOPUP) {
+                if (transaction.getUserId() != null) {
+                    Wallet wallet = walletRepository.findByUserIdForUpdate(transaction.getUserId()).orElseGet(() ->
+                            walletRepository.save(Wallet.builder().userId(transaction.getUserId()).available(0L).escrowHeld(0L).pendingWithdraw(0L).build())
+                    );
+                    long current = wallet.getAvailable() != null ? wallet.getAvailable() : 0L;
+                    long addAmount = transaction.getAmount().longValue();
+                    wallet.setAvailable(current + addAmount);
+                    walletRepository.save(wallet);
+
+                    ledgerService.recordWalletTopup(transaction.getUserId(), addAmount, txnRef);
+                    log.info("Successfully credited {} VND to wallet of user {} via IPN", addAmount, transaction.getUserId());
+                }
+            } else {
+                // Fallback cho đơn hàng cũ
+                updateShippingOrderIfPresent(transaction.getOrderCode(), OrderStatus.FINDING_SHIPPER);
+            }
         } else {
             transaction.setStatus("24".equals(responseCode) ? PaymentStatus.CANCELLED : PaymentStatus.FAILED);
             log.warn("VNPay Payment FAILED/CANCELLED for txnRef={}, responseCode={}, transactionStatus={}",
