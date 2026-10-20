@@ -1,16 +1,16 @@
 import { useEffect, useState, useId } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { 
-  Wallet as WalletIcon, 
-  Lock, 
-  Coins, 
-  ArrowUpRight, 
-  ShieldCheck, 
-  RefreshCw, 
-  CreditCard, 
-  CheckCircle2, 
-  XCircle 
+import {
+  Wallet as WalletIcon,
+  Lock,
+  Coins,
+  ArrowUpRight,
+  ShieldCheck,
+  RefreshCw,
+  CreditCard,
+  CheckCircle2,
+  XCircle
 } from 'lucide-react';
 import { useAuthentication } from '../auth/useAuthentication';
 import { walletApi } from '../api/walletApi';
@@ -194,15 +194,15 @@ export default function WalletPage() {
 
   return (
     <div className="ui-stack" style={{ maxWidth: 1000, margin: '0 auto' }}>
-      <PageHeader 
-        eyebrow="Tài chính" 
-        title="Ví tiền FPTPost" 
+      <PageHeader
+        eyebrow="Tài chính"
+        title="Ví tiền FPTPost"
         description="Quản lý số dư, tiền ký quỹ đơn hàng và nạp tiền an toàn qua cổng VNPay (UC-34, SCR-42)."
         actions={
-          <Button 
-            variant="secondary" 
-            size="sm" 
-            onClick={loadWallet} 
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={loadWallet}
             disabled={loading}
             icon={<RefreshCw size={15} />}
           >
@@ -221,8 +221,8 @@ export default function WalletPage() {
       {returnResult && (
         <div style={{ marginBottom: 'var(--space-4)' }}>
           {returnResult.success ? (
-            <Alert 
-              tone="success" 
+            <Alert
+              tone="success"
               action={<Button variant="ghost" size="sm" onClick={clearReturnNotice}>Đóng</Button>}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
@@ -236,8 +236,8 @@ export default function WalletPage() {
               </div>
             </Alert>
           ) : (
-            <Alert 
-              tone="danger" 
+            <Alert
+              tone="danger"
               action={<Button variant="ghost" size="sm" onClick={clearReturnNotice}>Đóng</Button>}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
@@ -298,8 +298,8 @@ export default function WalletPage() {
       </div>
 
       {/* Topup Form */}
-      <SectionCard 
-        title="Nạp tiền vào ví qua cổng VNPay" 
+      <SectionCard
+        title="Nạp tiền vào ví qua cổng VNPay"
         description="Nạp số dư tức thì qua thẻ ATM, QR Code hoặc Thẻ quốc tế với độ bảo mật cao."
         actions={<Badge tone="info" dot>VNPay Sandbox Verified</Badge>}
       >
@@ -352,10 +352,10 @@ export default function WalletPage() {
             </div>
           </div>
 
-          <div style={{ 
-            background: 'rgba(255, 255, 255, 0.02)', 
-            border: '1px solid var(--border-subtle)', 
-            borderRadius: 'var(--radius-md)', 
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.02)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
             padding: 'var(--space-4)',
             marginTop: 'var(--space-2)'
           }}>

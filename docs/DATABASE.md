@@ -123,6 +123,11 @@ DDL `update` thêm cột `bit NOT NULL DEFAULT 0`, các phiên cũ mặc định
 Mongo có `activity_logs` phục vụ ví dụ kỹ thuật. ActivityLog mẫu chưa phải audit_logs
 theo SPEC: chưa có actor, kiểm soát truy cập và đồng bộ outbox đảm bảo.
 
+UC-05 dùng lại `otp_codes` với purpose `PASSWORD_RESET`, không thêm bảng hoặc migration.
+OTP đăng ký và đặt lại mật khẩu được kiểm tra riêng. Reset dùng mã mới nhất theo tài khoản/purpose;
+`tries` lưu cả khi trả lỗi, `used_at` chống sử dụng lại. Khi thành công, cập nhật `users.password_hash`,
+đánh dấu OTP đã dùng và thu hồi toàn bộ `sessions` của tài khoản trong cùng transaction có khóa User.
+
 UC-04 dùng `sessions` để liệt kê các phiên đang hoạt động và thu hồi theo tài khoản sở hữu.
 Khi refresh, phiên mới giữ thời điểm đăng nhập `created_at`; phiên cũ lưu `replaced_by`
 để thao tác đăng xuất trên danh sách cũ vẫn thu hồi đúng phiên tiếp nối.
