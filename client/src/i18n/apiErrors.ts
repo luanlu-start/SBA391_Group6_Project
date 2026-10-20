@@ -1,4 +1,11 @@
 export const apiErrorMessages: Record<string, string> = {
+  COURIER_ALREADY_REGISTERED: "Bạn đã có hồ sơ người giao. Vui lòng mở Không gian người giao.",
+  COURIER_KYC_REQUIRED: "Hồ sơ CCCD phải được duyệt trước khi đăng ký làm người giao.",
+  COURIER_DOCUMENT_EXPIRED: "Vui lòng cập nhật hồ sơ xác minh hoặc liên hệ hỗ trợ để tiếp tục.",
+  COURIER_COMMITMENT_CHANGED: "Vui lòng tải lại trang và đọc cam kết trách nhiệm mới.",
+  COURIER_HOURS_INVALID: "Giờ kết thúc phải sau giờ bắt đầu trong cùng ngày và các khung giờ không được trùng nhau.",
+  COURIER_AREAS_INVALID: "Vui lòng nhập các khu vực hoạt động khác nhau.",
+
   PROFILE_IDENTITY_LOCKED: "Không thể đổi họ tên hoặc ngày sinh khi hồ sơ đang chờ duyệt hoặc đã được xác minh.",
   KYC_PROFILE_MISMATCH: "Họ tên và ngày sinh phải khớp hồ sơ cá nhân. Vui lòng cập nhật hồ sơ trước.",
   KYC_INVALID_DOCUMENT: "Vui lòng kiểm tra ngày cấp và ngày hết hạn. CCCD phải còn hiệu lực.",

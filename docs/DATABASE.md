@@ -191,3 +191,9 @@ Cấu hình ngoài Git: `KYC_ENCRYPTION_KEYS` là JSON keyId → Base64 khóa 32
 Thiếu khóa thì API KYC từ chối lưu/đọc, không lưu bản rõ. Khi xoay AES, giữ các khóa
 cũ để đọc hồ sơ; không tự thay hash key vì sẽ mất khả năng tra trùng dữ liệu cũ.
 Sao lưu keyring cùng kế hoạch khôi phục database và private file volume.
+
+`courier_profiles` (PK/FK user_id) lưu phương tiện, hạng NEW, trust_score DECIMAL(5,2),
+số đơn hoàn tất, hạn chế nếu có và thời điểm đăng ký. `courier_areas` và
+`courier_available_hours` lưu khu vực và các khung giờ trong tuần. Đồng ý cam kết
+được ghi vào `consents` loại COURIER_COMMITMENT. Gán role và xoay phiên hiện tại
+chung transaction với tạo hồ sơ; không nhận userId/tier/điểm/role do client gửi.

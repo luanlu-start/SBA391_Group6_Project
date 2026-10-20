@@ -51,6 +51,7 @@ và [SPEC](sources/fptpost-spec-v1.0.pdf), mục 6.
 | GET/POST | /api/v1/me/kyc | UC-08 trạng thái/nộp hồ sơ CCCD, ba ảnh và consent |
 | POST | /api/v1/me/kyc/files/{id}/link | UC-08 liên kết xem ảnh riêng tư sống 5 phút |
 | GET | /api/v1/me/kyc/files/{id} | UC-08 JWT sở hữu + chữ ký, trả ảnh và ghi audit |
+| GET/POST | /api/v1/me/courier-registration | UC-10 điều kiện/hồ sơ và đăng ký người giao |
 
 Product CRUD là ví dụ kỹ thuật, không tương ứng UC-12 hay các API orders.
 UC-01–06 đã có đăng ký, xác thực email, đăng nhập, refresh rotation, quản lý phiên, khôi phục và đổi mật khẩu.
@@ -508,3 +509,23 @@ Chỉ nộp mới khi chưa nộp hoặc lần trước `REJECTED`, tối đa 3 
 khi PENDING/APPROVED; trùng trả 422 và tạo cờ audit. Duyệt/từ chối thuộc UC-09.
 Ảnh riêng tư yêu cầu JWT đúng chủ sở hữu và chữ ký gắn phiên, hết hạn sau 5 phút;
 response `no-store`, mỗi lần đọc ảnh ghi audit. Frontend `/me/kyc`.
+
+## Đăng ký người giao UC-10
+
+GET `/me/courier-registration` trả `profile`, `kycStatus`, `eligible`, `commitmentVersion`.
+POST nhận `vehicleType` (BICYCLE/MOTORBIKE/CAR), `areas` (1–10 chuỗi),
+`availableHours` (1–14 object `{day, start, end}`, day MONDAY–SUNDAY, giờ HH:mm
+theo Việt Nam), `commitmentAccepted: true`, `commitmentVersion`. Khung giờ cùng
+ngày không trùng nhau, bắt đầu trước kết thúc; ca qua đêm tách thành hai ngày.
+
+Cần KYC APPROVED, CCCD còn hiệu lực và đủ 18 tuổi. Khởi tạo hồ sơ Tân binh (`NEW`),
+50 điểm theo PRM-TRUST_INIT, 0 đơn hoàn tất; gán COURIER và giữ các vai trò hiện có.
+Response 201 chứa `{profile, authentication}`; refresh cookie được thay đồng thời.
+Frontend dùng ngay `authentication.accessToken` có quyền mới; token của phiên cũ
+không còn hiệu lực, các thiết bị khác vẫn có thể refresh nhận quyền hiện tại.
+Nộp lại không tạo hồ sơ trùng (409), đăng ký đồng thời được khóa theo tài khoản.
+
+Giao diện `/me/courier-register`, hồ sơ hoạt động `/courier`; lựa chọn Người gửi /
+Người giao đổi menu và trang hiển thị, lưu theo tài khoản trong sessionStorage,
+xóa khi đăng xuất. Đây là lựa chọn giao diện, không thay thế phân quyền backend.
+Sàn đơn/nhận đơn thuộc UC-16–18, cần tích hợp module đó; không tự duyệt KYC UC-09.
