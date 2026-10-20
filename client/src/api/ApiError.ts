@@ -5,14 +5,14 @@ export class ApiError extends Error {
   public readonly fieldErrors: Record<string, string>;
 
   constructor(
-    message: string,
-    public readonly status?: number,
-    public readonly code?: string,
-    public readonly errors: FieldViolation[] = [],
-    public readonly correlationId?: string,
-    cause?: unknown,
-    public readonly retryAfterSeconds?: number,
-    public readonly verification?: OtpChallenge,
+      message: string,
+      public readonly status?: number,
+      public readonly code?: string,
+      public readonly errors: FieldViolation[] = [],
+      public readonly correlationId?: string,
+      cause?: unknown,
+      public readonly retryAfterSeconds?: number,
+      public readonly verification?: OtpChallenge,
   ) {
     super(message, { cause });
     this.name = 'ApiError';

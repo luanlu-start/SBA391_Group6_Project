@@ -11,7 +11,7 @@ import com.fptpost.modules.chat.model.ChatMessage;
 import com.fptpost.modules.chat.model.ChatRoom;
 import com.fptpost.modules.chat.repository.ChatMessageRepository;
 import com.fptpost.modules.chat.security.ChatAccessService;
-import com.fptpost.modules.order.dto.OrderResponse;
+import com.fptpost.modules.order.dto.response.OrderResponse;
 import com.fptpost.modules.order.model.OrderStatus;
 import com.fptpost.modules.order.service.OrderService;
 import jakarta.validation.Valid;
