@@ -6,6 +6,7 @@ import com.fptpost.modules.order.model.Order;
 import com.fptpost.modules.order.model.OrderImage;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
 import org.mapstruct.ReportingPolicy;
 
@@ -26,6 +27,16 @@ public interface OrderMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "images", ignore = true)
     Order toEntity(OrderRequest request);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "orderCode", ignore = true)
+    @Mapping(target = "senderId", ignore = true)
+    @Mapping(target = "courierId", ignore = true)
+    @Mapping(target = "status", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "images", ignore = true)
+    void updateEntityFromDto(OrderRequest request, @MappingTarget Order order);
 
     @Named("mapImagesToUrls")
     default List<String> mapImagesToUrls(List<OrderImage> images) {
