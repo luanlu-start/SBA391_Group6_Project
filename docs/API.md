@@ -48,6 +48,9 @@ và [SPEC](sources/fptpost-spec-v1.0.pdf), mục 6.
 | GET | /api/v1/me/data-requests | UC-07 xem yêu cầu dữ liệu của chính tài khoản |
 | POST | /api/v1/me/data-export | UC-07 tạo hồ sơ yêu cầu xuất dữ liệu |
 | POST | /api/v1/me/delete-request | UC-07 tạo hồ sơ yêu cầu xóa/ẩn danh tài khoản |
+| GET/POST | /api/v1/me/kyc | UC-08 trạng thái/nộp hồ sơ CCCD, ba ảnh và consent |
+| POST | /api/v1/me/kyc/files/{id}/link | UC-08 liên kết xem ảnh riêng tư sống 5 phút |
+| GET | /api/v1/me/kyc/files/{id} | UC-08 JWT sở hữu + chữ ký, trả ảnh và ghi audit |
 
 Product CRUD là ví dụ kỹ thuật, không tương ứng UC-12 hay các API orders.
 UC-01–06 đã có đăng ký, xác thực email, đăng nhập, refresh rotation, quản lý phiên, khôi phục và đổi mật khẩu.
@@ -491,3 +494,17 @@ status, security scheme và ví dụ cho từng endpoint.
 triển khai kiểm tra role/ownership, transaction/idempotency cần thiết, rồi kiểm thử
 cả thành công và lỗi. Chỉ chuyển endpoint sang phần đã có sau khi code được tích hợp.
 Không đánh dấu cả UC hoàn thành chỉ vì đã tạo route hoặc Swagger annotation.
+
+## KYC UC-08
+
+`/me/kyc` nhận multipart: part JSON `request` gồm `idNumber` (12 chữ số),
+`fullName`, `dob`, `issuedDate`, `expiryDate`, `consentAccepted: true`, `policyVersion`;
+ba part ảnh `front`, `back`, `portrait` JPG/PNG/WEBP, tối đa 5 MB mỗi ảnh.
+Họ tên/ngày sinh khớp hồ sơ, đủ 18 tuổi, thẻ còn hiệu lực. Trả trạng thái `PENDING`,
+CCCD che số và metadata ảnh; không trả CCCD rõ, hash hay đường dẫn lưu nội bộ.
+
+Chỉ nộp mới khi chưa nộp hoặc lần trước `REJECTED`, tối đa 3 lần trong 7 ngày.
+`PENDING`/`APPROVED` khóa đổi họ tên/ngày sinh. CCCD được giữ chỗ xuyên tài khoản
+khi PENDING/APPROVED; trùng trả 422 và tạo cờ audit. Duyệt/từ chối thuộc UC-09.
+Ảnh riêng tư yêu cầu JWT đúng chủ sở hữu và chữ ký gắn phiên, hết hạn sau 5 phút;
+response `no-store`, mỗi lần đọc ảnh ghi audit. Frontend `/me/kyc`.

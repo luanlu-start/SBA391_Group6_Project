@@ -177,3 +177,17 @@ ADR-10 trong SPEC v1.0. Các tài liệu nguồn được giữ nguyên.
 
 Việc tiếp theo: chốt chiến lược ID, vẽ ERD đầy đủ từ từ điển, xác định quan hệ/index và
 transaction từng UC trước khi tạo entity.
+
+## Lưu hồ sơ KYC
+
+`kyc_requests`, `kyc_files`, `kyc_identity_claims`, `identity_audit_logs` lưu hồ sơ,
+metadata ảnh, giữ chỗ CCCD và audit. CCCD/ảnh mã hóa AES-256-GCM với nonce riêng
+và key ID; ảnh nằm ở private file storage, ngoài thư mục public. HMAC-SHA256
+có khóa riêng phục vụ tra trùng CCCD; PK giữ chỗ chặn nộp đồng thời, filtered unique
+index SQL Server `uq_kyc_approved_identity` bảo vệ CCCD APPROVED.
+
+Cấu hình ngoài Git: `KYC_ENCRYPTION_KEYS` là JSON keyId → Base64 khóa 32 byte,
+`KYC_ACTIVE_KEY_ID` chọn khóa đang dùng; `KYC_HASH_KEY` là khóa Base64 32 byte riêng.
+Thiếu khóa thì API KYC từ chối lưu/đọc, không lưu bản rõ. Khi xoay AES, giữ các khóa
+cũ để đọc hồ sơ; không tự thay hash key vì sẽ mất khả năng tra trùng dữ liệu cũ.
+Sao lưu keyring cùng kế hoạch khôi phục database và private file volume.

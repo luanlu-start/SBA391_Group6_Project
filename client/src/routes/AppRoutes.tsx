@@ -13,6 +13,7 @@ import AccountPage from '../pages/AccountPage';
 import SecurityPage from '../pages/SecurityPage';
 import ProfilePage from '../pages/ProfilePage';
 import AddressesPage from '../pages/AddressesPage';
+import KycPage from '../pages/KycPage';
 import LegalPage from '../pages/LegalPage';
 import WalletPage from '../pages/WalletPage';
 import VNPayReturnPage from '../pages/VNPayReturnPage';
@@ -53,6 +54,7 @@ export default function AppRoutes() {
         <Route path="me/security" element={<SecurityPage />} />
         <Route path="me/profile" element={<ProfilePage />} />
         <Route path="me/addresses" element={<AddressesPage />} />
+        <Route path="me/kyc" element={<KycPage />} />
         <Route path="legal" element={<LegalPage />} />
         <Route path="*" element={<NotFoundPage />} />
         <Route path="orders/:orderId/chat" element={<ChatPage />} />

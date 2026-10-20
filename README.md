@@ -3,7 +3,7 @@
 FPTPost là nền tảng giao hàng tiện đường P2P, kết nối người gửi với người giao,
 hỗ trợ KYC, sàn đơn/chào giá, ký quỹ, theo dõi và thanh toán theo đặc tả của nhóm.
 Repository hiện cung cấp base React/Spring Boot với Product CRUD mẫu, Activity Log mẫu
-và UC-01–06 đăng ký, xác thực email, đăng nhập, quản lý phiên, khôi phục và đổi mật khẩu Identity. Các UC còn lại được triển khai theo tài liệu của nhóm.
+và UC-01–08 Identity: xác thực, quản lý phiên, mật khẩu, hồ sơ, sổ địa chỉ và nộp hồ sơ KYC. Các UC còn lại được triển khai theo tài liệu của nhóm.
 
 Đọc [thông tin dự án](docs/PROJECT-INFO.md), [63 Use Case](docs/USE-CASES.md) và
 [quy ước code](docs/CONTRIBUTING.md) trước khi bắt đầu chức năng.
