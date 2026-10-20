@@ -9,6 +9,9 @@ export default function Navbar() {
   const { user } = useAuthentication();
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = () => setMenuOpen(false);
+
+  const isSender = user?.roles?.includes('SENDER') || user?.roles?.includes('ADMIN');
+
   return <header className="navbar-container">
     <div className="navbar-content">
       <Link to="/" className="navbar-brand" aria-label={`FPost — ${copy.navigation.home}`} onClick={closeMenu}>
@@ -21,10 +24,12 @@ export default function Navbar() {
         <Link to="/#shipping-prices" className="nav-link" onClick={closeMenu}>{copy.navigation.pricing}</Link>
         {user && (
           <>
-            <NavLink to="/sender/orders" className="nav-link" onClick={closeMenu}>
-              <Package size={16} aria-hidden="true" />
-              Đơn của tôi
-            </NavLink>
+            {isSender && (
+              <NavLink to="/sender/orders" className="nav-link" onClick={closeMenu}>
+                <Package size={16} aria-hidden="true" />
+                Đơn của tôi
+              </NavLink>
+            )}
             <NavLink to="/wallet" className="nav-link" onClick={closeMenu}>
               <Wallet size={16} aria-hidden="true" />
               Ví tiền
