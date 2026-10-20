@@ -1,0 +1,90 @@
+.chat-page {
+  width: 100%;
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
+}
+
+.chat-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.chat-history {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  height: clamp(280px, 48vh, 560px);
+  overflow-y: auto;
+  padding: var(--space-4);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.chat-message {
+  width: fit-content;
+  max-width: 85%;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.chat-message-sender {
+  align-self: flex-start;
+}
+
+.chat-message-courier {
+  align-self: flex-end;
+  background: var(--brand-soft);
+  border-color: var(--brand-border);
+}
+
+.chat-message-author {
+  color: var(--text-accent);
+  font-size: 0.85rem;
+}
+
+.chat-message-content,
+.chat-pending-content {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.chat-message-content {
+  margin: var(--space-2) 0;
+  color: var(--text-primary);
+}
+
+.chat-pending-content {
+  display: block;
+  margin-top: var(--space-2);
+}
+
+.chat-message time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.chat-composer {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.chat-composer-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  .chat-page {
+    padding: var(--space-4) var(--space-3);
+  }
+
+  .chat-message {
+    max-width: 95%;
+  }
+}

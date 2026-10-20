@@ -22,6 +22,8 @@ import com.fptpost.modules.identity.repository.UserProfileRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
+import jakarta.annotation.PostConstruct;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,9 +50,17 @@ public class OtpService {
     EmailService emailService;
     Clock identityClock;
     SecureRandom identityRandom;
+    @NonFinal String dummyOtpHash;
+
+    @PostConstruct
+    void initializeDummyOtp() { dummyOtpHash = passwordEncoder.encode(UUID.randomUUID().toString()); }
 
     @Transactional
     public OtpCode generateAndSendOtp(User user, String fullName) {
+        return generateAndSendOtp(user, fullName, OtpType.REGISTRATION);
+    }
+
+    private OtpCode generateAndSendOtp(User user, String fullName, OtpType type) {
         Instant now = identityClock.instant();
         String code = String.format(Locale.ROOT, "%06d", identityRandom.nextInt(1000000));
 
@@ -58,7 +68,7 @@ public class OtpService {
                 .publicId(UUID.randomUUID())
                 .user(user)
                 .target(user.getEmail())
-                .type(OtpType.REGISTRATION)
+                .type(type)
                 .codeHash(passwordEncoder.encode(code))
                 .createdAt(now)
                 .expiresAt(now.plus(registrationProperties.getOtpTtlMinutes(), ChronoUnit.MINUTES))
@@ -69,7 +79,7 @@ public class OtpService {
         try {
             emailService.sendEmail(EmailRequest.builder()
                     .email(user.getEmail())
-                    .templateType(EmailTemplateType.VERIFY_EMAIL)
+                    .templateType(type == OtpType.PASSWORD_RESET ? EmailTemplateType.RESET_PASSWORD : EmailTemplateType.VERIFY_EMAIL)
                     .variables(Map.of("fullName", fullName, "otp", code,
                             "expirationMinutes", registrationProperties.getOtpTtlMinutes()))
                     .build());
@@ -77,6 +87,56 @@ public class OtpService {
             throw new AppException(IdentityErrorCode.OTP_DELIVERY_FAILED);
         }
         return otp;
+    }
+
+    @Transactional
+    public void requestPasswordReset(String identifier) {
+        Long id = userRepository.findIdByIdentifier(identifier).orElse(null);
+        User user = id == null ? null : userRepository.findByIdForUpdate(id).orElse(null);
+        if (!canResetPassword(user)) {
+            passwordEncoder.matches("000000", dummyOtpHash);
+            return;
+        }
+        Instant now = identityClock.instant();
+        var latest = otpCodeRepository.findFirstByUserIdAndTypeOrderByCreatedAtDescIdDesc(user.getId(), OtpType.PASSWORD_RESET);
+        if (latest.isPresent()) {
+            OtpCode previous = latest.get();
+            // Also enforce the delivery cooldown under the shared SQL lock across instances.
+            if (now.isBefore(previous.getCreatedAt().plusSeconds(registrationProperties.getOtpResendCooldownSeconds()))) return;
+            previous.setExpiresAt(now);
+            otpCodeRepository.saveAndFlush(previous);
+        }
+        String fullName = userProfileRepository.findById(user.getId()).map(profile -> profile.getFullName()).orElse("bạn");
+        generateAndSendOtp(user, fullName, OtpType.PASSWORD_RESET);
+    }
+
+    @Transactional(noRollbackFor = IdentityException.class)
+    public User consumePasswordResetOtp(String identifier, String code) {
+        Long id = userRepository.findIdByIdentifier(identifier).orElse(null);
+        User user = id == null ? null : userRepository.findByIdForUpdate(id).orElse(null);
+        OtpCode otp = user == null ? null : otpCodeRepository
+                .findFirstByUserIdAndTypeOrderByCreatedAtDescIdDesc(user.getId(), OtpType.PASSWORD_RESET).orElse(null);
+        Instant now = identityClock.instant();
+        boolean usable = canResetPassword(user) && otp != null && otp.getUsedAt() == null
+                && otp.getTarget().equals(user.getEmail()) && now.isBefore(otp.getExpiresAt())
+                && otp.getTries() < registrationProperties.getOtpMaxAttempts();
+        boolean correct = passwordEncoder.matches(code, usable ? otp.getCodeHash() : dummyOtpHash);
+        if (!usable || !correct) {
+            if (usable) {
+                otp.setTries(otp.getTries() + 1);
+                otpCodeRepository.saveAndFlush(otp);
+                throw new IdentityException(IdentityErrorCode.PASSWORD_RESET_INVALID);
+            }
+            throw new AppException(IdentityErrorCode.PASSWORD_RESET_INVALID);
+        }
+        otp.setUsedAt(now);
+        otpCodeRepository.saveAndFlush(otp);
+        return user;
+    }
+
+    private boolean canResetPassword(User user) {
+        return user != null && !user.isDeleted() && (user.getStatus() == UserStatus.ACTIVE
+                || user.getStatus() == UserStatus.PENDING_VERIFICATION);
     }
 
     @Transactional(noRollbackFor = IdentityException.class)

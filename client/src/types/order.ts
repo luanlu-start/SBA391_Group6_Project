@@ -24,6 +24,7 @@ export interface Order {
   id: number;
   orderCode: string;
   senderId: number;
+  courierId: number | null;
   pickupAddress: string;
   deliveryAddress: string;
   receiverName: string;

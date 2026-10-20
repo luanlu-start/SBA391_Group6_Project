@@ -41,7 +41,10 @@ export default function LoginForm() {
       endAdornment={<Button variant="ghost" size="sm" disabled={isPending}
         aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} aria-pressed={showPassword}
         onClick={() => setShowPassword(value => !value)} icon={showPassword ? <EyeOff size={18} /> : <Eye size={18} />} />} />
-    <Checkbox id="remember-me" label="Ghi nhớ đăng nhập" {...register('rememberMe')} disabled={isPending} />
+    <div className="auth-options">
+      <Checkbox id="remember-me" label="Ghi nhớ đăng nhập" {...register('rememberMe')} disabled={isPending} />
+      <Link className="auth-text-link" to="/forgot">Quên mật khẩu?</Link>
+    </div>
     {retryAfterSeconds > 0 && <p className="login-cooldown" role="status">
       Có thể thử lại sau {Math.floor(retryAfterSeconds / 60)}:{String(retryAfterSeconds % 60).padStart(2, '0')}.
     </p>}
