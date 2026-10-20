@@ -64,6 +64,36 @@ public class OrderService {
         return createOrder(request.getSenderId(), request);
     }
 
+    @Transactional
+    public OrderResponse updateOrder(Long id, Long currentUserId, OrderRequest request) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new AppException(OrderErrorCode.ORDER_NOT_FOUND));
+
+        if (currentUserId != null && !currentUserId.equals(order.getSenderId())) {
+            throw new AppException(OrderErrorCode.ORDER_ACCESS_DENIED);
+        }
+
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new AppException(OrderErrorCode.ORDER_CANNOT_BE_EDITED);
+        }
+
+        orderMapper.updateEntityFromDto(request, order);
+
+        if (request.getImageUrls() != null) {
+            order.getImages().clear();
+            for (String imageUrl : request.getImageUrls()) {
+                if (imageUrl != null && !imageUrl.isBlank()) {
+                    order.addImage(OrderImage.builder()
+                            .imageUrl(imageUrl.trim())
+                            .build());
+                }
+            }
+        }
+
+        Order updated = orderRepository.save(order);
+        return orderMapper.toResponse(updated);
+    }
+
     public List<OrderResponse> getOrdersBySenderId(Long senderId) {
         List<Order> orders = orderRepository.findBySenderIdOrderByCreatedAtDesc(senderId);
         return orderMapper.toResponses(orders);
