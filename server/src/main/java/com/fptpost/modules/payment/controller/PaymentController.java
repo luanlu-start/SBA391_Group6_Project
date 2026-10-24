@@ -29,7 +29,7 @@ import java.util.Optional;
  */
 @Slf4j
 @RestController
-@RequestMapping({"/api/payment", "/api/v1/payment", "/api/v1/vnpay"})
+@RequestMapping({"/api/v1/payment", "/api/payment", "/api/v1/vnpay"})
 @RequiredArgsConstructor
 @Tag(name = "Payment Gateway", description = "Production VNPay Payment Gateway integration APIs")
 public class PaymentController {
@@ -38,7 +38,7 @@ public class PaymentController {
     private final Optional<PaymentDemoSeeder> paymentDemoSeeder;
 
     @Operation(summary = "Create VNPay Payment URL (Legacy / Direct Order Payment)", description = "Generates a signed redirect URL to VNPay payment portal.")
-    @PostMapping({"/create-vnpay-url", "/wallet/topups"})
+    @PostMapping("/create-vnpay-url")
     public ResponseEntity<ApiResponse<PaymentCreationResponse>> createPaymentUrl(
             @Valid @RequestBody PaymentCreationRequest request,
             HttpServletRequest httpRequest) {
