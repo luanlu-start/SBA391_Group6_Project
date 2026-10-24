@@ -1,15 +1,272 @@
 package com.fptpost.modules.payment.service;
 
-import com.fptpost.modules.payment.model.LedgerTransaction;
+import com.fptpost.modules.payment.model.*;
+import com.fptpost.modules.payment.repository.LedgerTransactionRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Service quản lý bút toán kép sổ cái kế toán (DB-026, DB-027).
- */
-public interface LedgerService {
+import java.util.UUID;
 
-    /**
-     * Ghi nhận bút toán nạp tiền vào ví qua VNPay (UC-34).
-     * Nợ: VNPAY_CLEARING / Có: USER_WALLET_{userId}
-     */
-    LedgerTransaction recordWalletTopup(Long userId, Long amount, String txnRef);
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class LedgerService {
+
+    private final LedgerTransactionRepository ledgerTransactionRepository;
+
+    @Transactional
+    public LedgerTransaction recordWalletTopup(Long userId, Long amount, String txnRef) {
+        String idemKey = "TOPUP_" + txnRef;
+        if (ledgerTransactionRepository.existsByIdempotencyKey(idemKey)) {
+            log.info("Ledger entry already exists for top-up txnRef: {}", txnRef);
+            return ledgerTransactionRepository.findByIdempotencyKey(idemKey).orElse(null);
+        }
+
+        String txnCode = "LTX-TOPUP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        LedgerTransaction txn = LedgerTransaction.builder()
+                .transactionCode(txnCode)
+                .type(LedgerTransactionType.WALLET_TOPUP)
+                .status(LedgerTransactionStatus.COMPLETED)
+                .idempotencyKey(idemKey)
+                .refType("PAYMENT_TRANSACTION")
+                .refId(txnRef)
+                .amount(amount)
+                .createdBy(userId)
+                .description("Nạp tiền vào ví người dùng ID " + userId + " qua VNPay")
+                .build();
+
+        // Ghi Nợ: VNPAY_CLEARING (Tài sản thanh toán trung gian)
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("VNPAY_CLEARING")
+                .accountType("ASSET")
+                .debit(amount)
+                .credit(0L)
+                .build());
+
+        // Ghi Có: USER_WALLET_{userId} (Nghĩa vụ phải trả với khách hàng)
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("USER_WALLET_" + userId)
+                .accountType("LIABILITY")
+                .debit(0L)
+                .credit(amount)
+                .build());
+
+        LedgerTransaction saved = ledgerTransactionRepository.save(txn);
+        log.info("Saved ledger transaction for wallet topup: txnCode={}, amount={}", txnCode, amount);
+        return saved;
+    }
+
+    @Transactional
+    public LedgerTransaction recordOrderEscrowFromWallet(Long orderId, Long senderId, Long amount, String escrowRef) {
+        String idemKey = "ESCROW_WALLET_" + orderId + "_" + escrowRef;
+        if (ledgerTransactionRepository.existsByIdempotencyKey(idemKey)) {
+            return ledgerTransactionRepository.findByIdempotencyKey(idemKey).orElse(null);
+        }
+
+        String txnCode = "LTX-ESCROW-W-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        LedgerTransaction txn = LedgerTransaction.builder()
+                .transactionCode(txnCode)
+                .type(LedgerTransactionType.ORDER_ESCROW_HOLD)
+                .status(LedgerTransactionStatus.COMPLETED)
+                .idempotencyKey(idemKey)
+                .orderId(orderId)
+                .refType("ESCROW")
+                .refId(escrowRef)
+                .amount(amount)
+                .createdBy(senderId)
+                .description("Ký quỹ đơn hàng #" + orderId + " từ ví người gửi ID " + senderId)
+                .build();
+
+        // Ghi Nợ: USER_WALLET_{senderId} (Giảm nghĩa vụ ví người gửi)
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("USER_WALLET_" + senderId)
+                .accountType("LIABILITY")
+                .debit(amount)
+                .credit(0L)
+                .build());
+
+        // Ghi Có: ESCROW_ORDER_{orderId} (Tăng khoản ký quỹ đơn hàng giam giữ)
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("ESCROW_ORDER_" + orderId)
+                .accountType("LIABILITY")
+                .debit(0L)
+                .credit(amount)
+                .build());
+
+        LedgerTransaction saved = ledgerTransactionRepository.save(txn);
+        log.info("Saved ledger transaction for order escrow from wallet: txnCode={}, orderId={}", txnCode, orderId);
+        return saved;
+    }
+
+    @Transactional
+    public LedgerTransaction recordOrderEscrowFromVNPay(Long orderId, Long senderId, Long amount, String txnRef) {
+        String idemKey = "ESCROW_VNPAY_" + txnRef;
+        if (ledgerTransactionRepository.existsByIdempotencyKey(idemKey)) {
+            return ledgerTransactionRepository.findByIdempotencyKey(idemKey).orElse(null);
+        }
+
+        String txnCode = "LTX-ESCROW-VNP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        LedgerTransaction txn = LedgerTransaction.builder()
+                .transactionCode(txnCode)
+                .type(LedgerTransactionType.ORDER_ESCROW_HOLD)
+                .status(LedgerTransactionStatus.COMPLETED)
+                .idempotencyKey(idemKey)
+                .orderId(orderId)
+                .refType("PAYMENT_TRANSACTION")
+                .refId(txnRef)
+                .amount(amount)
+                .createdBy(senderId)
+                .description("Ký quỹ đơn hàng #" + orderId + " trực tiếp qua VNPay")
+                .build();
+
+        // Ghi Nợ: VNPAY_CLEARING (Tài sản thanh toán trung gian VNPay)
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("VNPAY_CLEARING")
+                .accountType("ASSET")
+                .debit(amount)
+                .credit(0L)
+                .build());
+
+        // Ghi Có: ESCROW_ORDER_{orderId} (Tăng khoản ký quỹ đơn hàng giam giữ)
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("ESCROW_ORDER_" + orderId)
+                .accountType("LIABILITY")
+                .debit(0L)
+                .credit(amount)
+                .build());
+
+        LedgerTransaction saved = ledgerTransactionRepository.save(txn);
+        log.info("Saved ledger transaction for order escrow from VNPay: txnCode={}, orderId={}", txnCode, orderId);
+        return saved;
+    }
+
+    @Transactional
+    public LedgerTransaction recordEscrowRelease(Long orderId, Long senderId, Long courierId, Long amount, String escrowRef) {
+        String idemKey = "ESCROW_RELEASE_" + orderId + "_" + escrowRef;
+        if (ledgerTransactionRepository.existsByIdempotencyKey(idemKey)) {
+            log.info("Ledger entry already exists for escrow release orderId: {}, escrowRef: {}", orderId, escrowRef);
+            return ledgerTransactionRepository.findByIdempotencyKey(idemKey).orElse(null);
+        }
+
+        String txnCode = "LTX-ESCROW-REL-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        LedgerTransaction txn = LedgerTransaction.builder()
+                .transactionCode(txnCode)
+                .type(LedgerTransactionType.ESCROW_RELEASE)
+                .status(LedgerTransactionStatus.COMPLETED)
+                .idempotencyKey(idemKey)
+                .orderId(orderId)
+                .refType("ESCROW")
+                .refId(escrowRef)
+                .amount(amount)
+                .createdBy(courierId)
+                .description("Giải ngân tiền ký quỹ đơn hàng #" + orderId + " cho người giao ID " + courierId)
+                .build();
+
+        // Bút toán Nợ (Debit): ESCROW_ORDER_{orderId} (LIABILITY, debit = amount, credit = 0) -> Giảm nghĩa vụ khoản ký quỹ đang giam giữ
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("ESCROW_ORDER_" + orderId)
+                .accountType("LIABILITY")
+                .debit(amount)
+                .credit(0L)
+                .build());
+
+        // Bút toán Có (Credit): USER_WALLET_{courierId} (LIABILITY, debit = 0, credit = amount) -> Tăng nghĩa vụ số dư ví khả dụng của người giao hàng
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("USER_WALLET_" + courierId)
+                .accountType("LIABILITY")
+                .debit(0L)
+                .credit(amount)
+                .build());
+
+        LedgerTransaction saved = ledgerTransactionRepository.save(txn);
+        log.info("Saved ledger transaction for escrow release: txnCode={}, orderId={}, courierId={}", txnCode, orderId, courierId);
+        return saved;
+    }
+
+    @Transactional
+    public LedgerTransaction recordWithdrawalRequest(Long userId, Long amount, String requestCode) {
+        String idemKey = "WDR_" + requestCode;
+        if (ledgerTransactionRepository.existsByIdempotencyKey(idemKey)) {
+            log.info("Ledger entry already exists for withdrawal request: {}", requestCode);
+            return ledgerTransactionRepository.findByIdempotencyKey(idemKey).orElse(null);
+        }
+
+        String txnCode = "LTX-WDR-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        LedgerTransaction txn = LedgerTransaction.builder()
+                .transactionCode(txnCode)
+                .type(LedgerTransactionType.WITHDRAWAL_REQUEST)
+                .status(LedgerTransactionStatus.COMPLETED)
+                .idempotencyKey(idemKey)
+                .refType("WITHDRAWAL_REQUEST")
+                .refId(requestCode)
+                .amount(amount)
+                .createdBy(userId)
+                .description("Yêu cầu rút tiền #" + requestCode + " từ ví người dùng ID " + userId)
+                .build();
+
+        // Ghi Nợ (Debit): USER_WALLET_{userId} (Giảm nghĩa vụ số dư khả dụng của ví)
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("USER_WALLET_" + userId)
+                .accountType("LIABILITY")
+                .debit(amount)
+                .credit(0L)
+                .build());
+
+        // Ghi Có (Credit): CLEARING_WITHDRAWAL (Tăng nghĩa vụ tiền tạm giữ chờ chi trả rút tiền)
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("CLEARING_WITHDRAWAL")
+                .accountType("LIABILITY")
+                .debit(0L)
+                .credit(amount)
+                .build());
+
+        LedgerTransaction saved = ledgerTransactionRepository.save(txn);
+        log.info("Saved ledger transaction for withdrawal request: txnCode={}, requestCode={}, amount={}", txnCode, requestCode, amount);
+        return saved;
+    }
+
+    @Transactional
+    public LedgerTransaction recordWithdrawalCancellation(Long userId, Long amount, String requestCode) {
+        String idemKey = "CANCEL_WDR_" + requestCode;
+        if (ledgerTransactionRepository.existsByIdempotencyKey(idemKey)) {
+            log.info("Ledger entry already exists for withdrawal cancellation: {}", requestCode);
+            return ledgerTransactionRepository.findByIdempotencyKey(idemKey).orElse(null);
+        }
+
+        String txnCode = "LTX-WDR-CAN-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        LedgerTransaction txn = LedgerTransaction.builder()
+                .transactionCode(txnCode)
+                .type(LedgerTransactionType.WITHDRAWAL_CANCEL)
+                .status(LedgerTransactionStatus.COMPLETED)
+                .idempotencyKey(idemKey)
+                .refType("WITHDRAWAL_REQUEST")
+                .refId(requestCode)
+                .amount(amount)
+                .createdBy(userId)
+                .description("Hủy yêu cầu rút tiền #" + requestCode + ", hoàn trả về số dư khả dụng ví ID " + userId)
+                .build();
+
+        // Ghi Nợ (Debit): CLEARING_WITHDRAWAL (Giảm nghĩa vụ tiền tạm giữ chờ chi trả)
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("CLEARING_WITHDRAWAL")
+                .accountType("LIABILITY")
+                .debit(amount)
+                .credit(0L)
+                .build());
+
+        // Ghi Có (Credit): USER_WALLET_{userId} (Hoàn trả lại số dư khả dụng cho ví người dùng)
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("USER_WALLET_" + userId)
+                .accountType("LIABILITY")
+                .debit(0L)
+                .credit(amount)
+                .build());
+
+        LedgerTransaction saved = ledgerTransactionRepository.save(txn);
+        log.info("Saved ledger transaction for withdrawal cancellation: txnCode={}, requestCode={}, amount={}", txnCode, requestCode, amount);
+        return saved;
+    }
 }
+

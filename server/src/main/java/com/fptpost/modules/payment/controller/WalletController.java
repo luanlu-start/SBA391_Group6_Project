@@ -3,11 +3,10 @@ package com.fptpost.modules.payment.controller;
 import com.fptpost.common.exception.AppException;
 import com.fptpost.common.exception.GlobalErrorCode;
 import com.fptpost.common.response.ApiResponse;
+import com.fptpost.common.response.PageResponse;
 import com.fptpost.modules.identity.model.User;
 import com.fptpost.modules.identity.repository.UserRepository;
-import com.fptpost.modules.payment.dto.PaymentCreationResponse;
-import com.fptpost.modules.payment.dto.WalletResponse;
-import com.fptpost.modules.payment.dto.WalletTopupRequest;
+import com.fptpost.modules.payment.dto.*;
 import com.fptpost.modules.payment.service.WalletService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,27 +19,56 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.UUID;
 
 /**
- * Controller quản lý Ví điện tử và Nạp tiền qua VNPay (UC-34 & UC-38).
+ * Controller quản lý Ví điện tử, Nạp tiền VNPay và Lịch sử giao dịch (UC-34 & UC-38).
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/wallet")
+@RequestMapping({"/api/v1/wallet", "/api/wallet"})
 @RequiredArgsConstructor
-@Tag(name = "Wallet", description = "Quản lý ví điện tử và nạp tiền FPTPost")
+@Tag(name = "Wallet", description = "Quản lý ví điện tử, nạp tiền và lịch sử giao dịch FPTPost")
 public class WalletController {
+
+    private static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private final WalletService walletService;
     private final UserRepository userRepository;
 
-    @Operation(summary = "Xem thông tin và số dư ví (UC-38)", description = "Lấy số dư khả dụng, tiền ký quỹ và tiền chờ rút của tài khoản hiện tại.")
+    @Operation(summary = "Xem thông tin và số dư ví (UC-38, API-088)", description = "Lấy số dư khả dụng, tiền ký quỹ và tiền chờ rút của tài khoản hiện tại.")
     @GetMapping
     public ResponseEntity<ApiResponse<WalletResponse>> getWallet(@AuthenticationPrincipal Jwt jwt) {
         Long userId = resolveUserId(jwt);
         WalletResponse response = walletService.getWallet(userId);
         return ResponseEntity.ok(ApiResponse.success("Lấy thông tin ví thành công", response));
+    }
+
+    @Operation(summary = "Lấy lịch sử giao dịch ví (UC-38, API-089)", description = "Lấy danh sách phân trang và lọc biến động số dư theo loại giao dịch, thời gian.")
+    @GetMapping("/transactions")
+    public ResponseEntity<ApiResponse<PageResponse<WalletTransactionResponse>>> getTransactions(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @ModelAttribute WalletTransactionFilterRequest request) {
+        Long userId = resolveUserId(jwt);
+        PageResponse<WalletTransactionResponse> response = walletService.getTransactionHistory(userId, request);
+        return ResponseEntity.ok(ApiResponse.success("Lấy lịch sử giao dịch thành công", response));
+    }
+
+    @Operation(summary = "Xem sao kê ví theo tháng (UC-38, API-090)", description = "Xem bảng sao kê tổng hợp dòng tiền vào/ra và danh sách giao dịch trong tháng.")
+    @GetMapping("/statement")
+    public ResponseEntity<ApiResponse<WalletStatementResponse>> getStatement(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(name = "month", required = false) Integer month,
+            @RequestParam(name = "year", required = false) Integer year) {
+        Long userId = resolveUserId(jwt);
+        ZonedDateTime now = ZonedDateTime.now(VIETNAM_ZONE);
+        int targetMonth = (month != null) ? month : now.getMonthValue();
+        int targetYear = (year != null) ? year : now.getYear();
+
+        WalletStatementResponse response = walletService.getMonthlyStatement(userId, targetMonth, targetYear);
+        return ResponseEntity.ok(ApiResponse.success("Lấy sao kê ví thành công", response));
     }
 
     @Operation(summary = "Nạp tiền vào ví qua VNPay (UC-34, API-084)", description = "Khởi tạo giao dịch và sinh URL thanh toán VNPay có chữ ký số để nạp tiền vào ví.")

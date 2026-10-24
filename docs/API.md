@@ -28,20 +28,27 @@ và [SPEC](sources/fptpost-spec-v1.0.pdf), mục 6.
 | POST | /api/v1/auth/password/reset | UC-05 xác thực OTP, đổi mật khẩu và thu hồi mọi phiên cũ |
 | GET | /api/v1/auth/sessions | UC-04 danh sách phiên đang hoạt động của tài khoản hiện tại |
 | DELETE | /api/v1/auth/sessions/{id} | UC-04 thu hồi một phiên của tài khoản hiện tại |
-| GET | /api/v1/wallet | UC-38 xem thông tin số dư ví, tiền ký quỹ; HTTP 200 |
+| GET | /api/v1/wallet | UC-38 (API-088) xem thông tin số dư ví, tiền ký quỹ; HTTP 200 |
+| GET | /api/v1/wallet/transactions | UC-38 (API-089) lịch sử biến động số dư và giao dịch ví; HTTP 200 |
+| GET | /api/v1/wallet/statement | UC-38 (API-090) bảng sao kê biến động tài khoản ví theo tháng; HTTP 200 |
+| POST | /api/v1/wallet/withdrawals | UC-40 (API-097) tạo yêu cầu rút tiền về tài khoản ngân hàng; HTTP 201 |
+| GET | /api/v1/wallet/withdrawals | UC-40 (API-098) danh sách phân trang các yêu cầu rút tiền của tôi; HTTP 200 |
+| POST | /api/v1/wallet/withdrawals/{id}/cancel | UC-40 (API-099) hủy yêu cầu rút tiền đang chờ duyệt; HTTP 200 |
 | POST | /api/v1/wallet/topups | UC-34 (API-084) nạp tiền ví qua VNPay, sinh paymentUrl; HTTP 200 |
 | GET | /api/v1/payment/vnpay-return | UC-34 (API-085) nhận return từ VNPay, hiển thị biên lai giao dịch |
 | GET/POST | /api/v1/payment/vnpay-ipn | UC-42 (API-086) webhook IPN từ VNPay, ghi nhận số dư và sổ cái kép |
 | POST | /api/v1/orders/{id}/payment | UC-35 (API-087) thanh toán & ký quỹ đơn hàng qua Ví hoặc VNPay |
+| GET | /api/v1/orders/{id}/escrow | UC-36 (API-092) xem thông tin ký quỹ đơn hàng (Sender, Courier, Admin) |
+| POST | /api/v1/admin/escrow/{orderId}/release | UC-36 (API-093) Admin giải ngân tiền ký quỹ thủ công cho người giao hàng |
 | GET | /api/v1/orders | Danh sách đơn hàng |
 | GET | /api/v1/orders/{id} | Chi tiết đơn hàng |
 | POST | /api/v1/orders | Tạo đơn hàng mới; HTTP 201 |
 | GET | /api/v1/me | Thông tin người dùng đang đăng nhập |
 
 Product CRUD là ví dụ kỹ thuật, không tương ứng UC-12 hay các API orders.
-UC-01–05 đã có đăng ký, xác thực email, đăng nhập, refresh rotation và quản lý phiên.
-UC-34 và UC-35 đã được triển khai hoàn chỉnh cho cả Backend, Security và Frontend: nạp tiền vào ví qua cổng VNPay (SCR-42), thanh toán và ký quỹ đơn hàng (SCR-22), quản lý bút toán sổ cái kép (ledger) và xử lý IPN đa mục đích (WALLET_TOPUP / ORDER_ESCROW) bảo đảm tính toàn vẹn (idempotency).
-Product/Activity, Wallet và Order Payment yêu cầu Bearer JWT; các endpoint callback VNPay công khai (return/ipn) được cấu hình trong SecurityConfig.
+UC-01–05 đã có đăng ký, xác thực email, đăng nhập, refresh rotation, quản lý phiên và đặt lại mật khẩu.
+UC-34, UC-35 và UC-36 đã được triển khai hoàn chỉnh cho cả Backend, Security và Frontend: nạp tiền vào ví qua cổng VNPay (SCR-42), thanh toán và ký quỹ đơn hàng (SCR-22), giải ngân tiền ký quỹ cho shipper (UC-36), quản lý bút toán sổ cái kép (ledger) và xử lý IPN đa mục đích (WALLET_TOPUP / ORDER_ESCROW) bảo đảm tính toàn vẹn (idempotency).
+Product/Activity, Wallet, Escrow và Order Payment yêu cầu Bearer JWT; các endpoint callback VNPay công khai (return/ipn) được cấu hình trong SecurityConfig. Endpoint giải ngân admin yêu cầu role ADMIN.
 
 ## API xác thực UC-01–05
 
@@ -164,6 +171,8 @@ Luồng giao diện:
 | API-086 | GET/POST | `/api/v1/payment/vnpay-ipn` | Webhook IPN | Nhận IPN từ VNPay, xử lý cộng tiền/ký quỹ & sổ cái kép (UC-42) |
 | API-087 | POST | `/api/v1/orders/{id}/payment` | SENDER | Thanh toán & ký quỹ đơn hàng qua Ví hoặc VNPay (UC-35) |
 | API-088 | GET | `/api/v1/wallet` | Đăng nhập | Xem thông tin số dư ví và tiền ký quỹ (UC-38) |
+| API-092 | GET | `/api/v1/orders/{id}/escrow` | Đăng nhập (Sender/Courier/Admin) | Xem thông tin ký quỹ đơn hàng (UC-36) |
+| API-093 | POST | `/api/v1/admin/escrow/{orderId}/release` | ADMIN | Admin giải ngân tiền ký quỹ thủ công cho shipper (UC-36) |
 
 ### Request & Response Payload
 
@@ -214,6 +223,19 @@ Luồng giao diện:
   - Nạp ví: Ghi Nợ (DEBIT) tài khoản trung gian `VNPAY_CLEARING`, Ghi Có (CREDIT) tài khoản ví `USER_WALLET_{userId}`.
   - Ký quỹ bằng ví: Ghi Nợ (DEBIT) `USER_WALLET_{userId}`, Ghi Có (CREDIT) `ESCROW_ORDER_{orderId}`.
   - Ký quỹ qua VNPay: Ghi Nợ (DEBIT) `VNPAY_CLEARING`, Ghi Có (CREDIT) `ESCROW_ORDER_{orderId}`.
+  - Giải ngân ký quỹ (UC-36): Ghi Nợ (DEBIT) `ESCROW_ORDER_{orderId}` (giảm nghĩa vụ giam giữ), Ghi Có (CREDIT) `USER_WALLET_{courierId}` (tăng số dư khả dụng người giao). Idempotency key: `ESCROW_RELEASE_{orderId}_{escrowRef}`.
+
+#### 4. Xem thông tin ký quỹ & Giải ngân cho người giao (UC-36, API-092 & API-093)
+- **Xem thông tin ký quỹ (API-092)**:
+  - `GET /api/v1/orders/{id}/escrow`
+  - Quyền: Đăng nhập. Người xem phải là Người gửi (`senderId`), Người giao (`courierId`), hoặc `ADMIN`. Trả `ESCROW_ACCESS_DENIED` (HTTP 403) nếu không có quyền.
+  - Dữ liệu trả về: `id`, `orderId`, `orderCode`, `senderId`, `courierId`, `amount`, `status` (`HELD`, `RELEASED`, `REFUNDED`), `paymentMethod` (`WALLET`, `VNPAY`), `releaseAt`, `frozen`, `createdAt`, `updatedAt`.
+- **Admin giải ngân tiền ký quỹ thủ công (API-093)**:
+  - `POST /api/v1/admin/escrow/{orderId}/release`
+  - Quyền: Bắt buộc role `ADMIN`.
+  - Tiền điều kiện: Đơn hàng đã có người giao (`courierId != null`), khoản ký quỹ ở trạng thái `HELD`, không bị phong tỏa (`frozen == false`).
+  - Xử lý: Giảm `escrowHeld` của sender (nếu ký quỹ từ ví), cộng `available` của shipper (tự động khởi tạo ví nếu chưa có), cập nhật `escrow.status = RELEASED` và `releaseAt = now()`, ghi nhận bút toán kép Sổ cái (Ledger).
+
 
 Đổi mật khẩu (UC-06), Google login và KYC chưa triển khai.
 Cấu hình SMTP/template nằm trong [README](../README.md), schema trong [DATABASE](DATABASE.md),
