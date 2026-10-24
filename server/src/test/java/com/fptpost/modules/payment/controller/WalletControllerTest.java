@@ -3,10 +3,12 @@ package com.fptpost.modules.payment.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fptpost.modules.identity.model.User;
 import com.fptpost.modules.identity.repository.UserRepository;
-import com.fptpost.modules.payment.dto.PaymentCreationResponse;
-import com.fptpost.modules.payment.dto.WalletResponse;
-import com.fptpost.modules.payment.dto.WalletTopupRequest;
+import com.fptpost.common.response.PageResponse;
+import com.fptpost.modules.payment.dto.*;
+import com.fptpost.modules.payment.model.LedgerTransactionStatus;
+import com.fptpost.modules.payment.model.LedgerTransactionType;
 import com.fptpost.modules.payment.service.WalletService;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -173,4 +175,71 @@ class WalletControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.code").value("00"));
     }
+
+    @Test
+    @DisplayName("GET /api/v1/wallet/transactions should return 200 with paged transactions (UC-38, API-089)")
+    void testGetTransactions_Success() throws Exception {
+        User user = User.builder().id(userId).publicId(userPublicId).build();
+        when(userRepository.findByPublicId(userPublicId)).thenReturn(Optional.of(user));
+
+        WalletTransactionResponse tx1 = WalletTransactionResponse.builder()
+                .transactionCode("LTX-TOPUP-001")
+                .type(LedgerTransactionType.WALLET_TOPUP)
+                .amount(200_000L)
+                .status(LedgerTransactionStatus.COMPLETED)
+                .balanceDirection("IN")
+                .description("Nạp tiền ví")
+                .createdAt(Instant.now())
+                .build();
+
+        PageResponse<WalletTransactionResponse> pageResponse = new PageResponse<>(
+                List.of(tx1), 0, 10, 1L, 1, true, true);
+
+        when(walletService.getTransactionHistory(eq(userId), any(WalletTransactionFilterRequest.class)))
+                .thenReturn(pageResponse);
+
+        mockMvc.perform(get("/api/v1/wallet/transactions")
+                        .header("Authorization", "Bearer valid-token")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.content[0].transactionCode").value("LTX-TOPUP-001"))
+                .andExpect(jsonPath("$.data.content[0].amount").value(200000))
+                .andExpect(jsonPath("$.data.content[0].balanceDirection").value("IN"));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/wallet/statement should return 200 with statement summary (UC-38, API-090)")
+    void testGetStatement_Success() throws Exception {
+        User user = User.builder().id(userId).publicId(userPublicId).build();
+        when(userRepository.findByPublicId(userPublicId)).thenReturn(Optional.of(user));
+
+        WalletStatementResponse statementResponse = WalletStatementResponse.builder()
+                .userId(userId)
+                .period("10/2026")
+                .startingBalance(500_000L)
+                .endingBalance(800_000L)
+                .totalInflow(500_000L)
+                .totalOutflow(200_000L)
+                .netChange(300_000L)
+                .transactionCount(2)
+                .transactions(List.of())
+                .build();
+
+        when(walletService.getMonthlyStatement(eq(userId), eq(10), eq(2026)))
+                .thenReturn(statementResponse);
+
+        mockMvc.perform(get("/api/v1/wallet/statement")
+                        .header("Authorization", "Bearer valid-token")
+                        .param("month", "10")
+                        .param("year", "2026"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.period").value("10/2026"))
+                .andExpect(jsonPath("$.data.startingBalance").value(500000))
+                .andExpect(jsonPath("$.data.totalInflow").value(500000))
+                .andExpect(jsonPath("$.data.endingBalance").value(800000));
+    }
 }
+
