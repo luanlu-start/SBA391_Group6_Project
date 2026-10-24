@@ -1,0 +1,79 @@
+{
+  "navigation": { "home": "Trang chủ", "how": "Cách hoạt động", "pricing": "Phí giao hàng", "courier": "Trở thành người giao", "uiKit": "Giao diện mẫu", "login": "Đăng nhập", "register": "Đăng ký", "account": "Tài khoản", "menu": "Mở điều hướng", "closeMenu": "Đóng điều hướng" },
+  "hero": {
+    "eyebrow": "GIAO HÀNG TIỆN ĐƯỜNG",
+    "title": "Một món hàng.",
+    "accent": "Một hành trình kết nối.",
+    "description": "Bạn cần gửi hàng. Ai đó đang đi cùng hướng. FPost kết nối hai hành trình để món hàng đến nơi thuận tiện hơn.",
+    "primary": "Bắt đầu với FPost",
+    "account": "Vào tài khoản của tôi",
+    "secondary": "Khám phá cách hoạt động",
+    "note": "Dành cho người gửi và người giao hàng tiện đường.",
+    "visualLabel": "Minh họa kết nối một điểm gửi hàng với một điểm nhận hàng",
+    "visualCaption": "Cùng hướng đi. Thêm kết nối.",
+    "pickup": "Điểm gửi",
+    "destination": "Điểm nhận",
+    "route": "Kết nối người giao tiện đường",
+    "illustration": "Minh họa hành trình"
+  },
+  "benefits": [
+    { "title": "Chọn người giao phù hợp", "description": "Xem hồ sơ, uy tín và chào giá trước khi lựa chọn." },
+    { "title": "Thanh toán qua ký quỹ", "description": "Tiền được giữ đến khi việc giao hàng được xác nhận." },
+    { "title": "Theo dõi từng chặng", "description": "Cập nhật lấy hàng, hành trình và xác nhận giao hàng." }
+  ],
+  "how": {
+    "eyebrow": "TỪ ĐIỂM GỬI ĐẾN ĐIỂM NHẬN",
+    "title": "Gửi hàng qua ba bước.",
+    "description": "Bạn chủ động chọn cách gửi. FPost kết nối và ghi nhận hành trình.",
+    "steps": [
+      { "title": "Tạo đơn của bạn", "description": "Chọn điểm lấy, điểm giao và mô tả món hàng. Xem phí gợi ý trước khi đăng đơn." },
+      { "title": "Kết nối người giao", "description": "Chọn người giao phù hợp từ sàn đơn, so sánh chào giá và thanh toán ký quỹ." },
+      { "title": "Nhận hàng, hoàn tất", "description": "Theo dõi hành trình, xác nhận giao hàng bằng OTP hoặc QR và đánh giá trải nghiệm." }
+    ]
+  },
+  "pricing": {
+    "eyebrow": "GIÁ THAM KHẢO",
+    "title": "Biết phí trước khi gửi.",
+    "description": "Phí giao phụ thuộc vào quãng đường, khối lượng, kích thước và mức khẩn cấp. Bạn có thể xem giá gợi ý rồi trao đổi chào giá với người giao.",
+    "factors": ["Quãng đường thực tế", "Khối lượng và kích thước", "Mức khẩn cấp"],
+    "exampleLabel": "Chọn tình huống tham khảo",
+    "distance": "Quãng đường", "weight": "Khối lượng", "size": "Cạnh dài nhất", "urgency": "Mức khẩn cấp",
+    "priceLabel": "Phí giao tham khảo", "unit": "đ", "standard": "Thường",
+    "note": "Ví dụ theo biểu phí dự thảo, chưa bao gồm bảo hiểm và khuyến mãi. Giá của đơn thực tế sẽ được tính khi tạo đơn.",
+    "examples": [
+      { "id": "T02", "label": "2 km · 2 kg", "distanceKm": 2, "weightKg": 2, "longestSideCm": 30, "feeVnd": 10000 },
+      { "id": "T03", "label": "3 km · 2,5 kg", "distanceKm": 3, "weightKg": 2.5, "longestSideCm": 30, "feeVnd": 18500 },
+      { "id": "T04", "label": "5 km · 5 kg", "distanceKm": 5, "weightKg": 5, "longestSideCm": 50, "feeVnd": 30500 }
+    ]
+  },
+  "courier": {
+    "eyebrow": "DÀNH CHO NGƯỜI GIAO",
+    "title": "Chuyến đi quen thuộc.\nMột cơ hội mới.",
+    "description": "Nhận giao món hàng cùng hướng với hành trình của bạn. Tạo tài khoản, xác minh danh tính và đăng ký làm người giao để bắt đầu.",
+    "action": "Tạo tài khoản FPost", "accountAction": "Xem tài khoản của tôi",
+    "points": ["Chọn đơn phù hợp với lộ trình", "Trao đổi trực tiếp theo từng đơn", "Xem thu nhập và lịch sử giao hàng"]
+  },
+  "footer": {
+    "tagline": "Kết nối những hành trình.",
+    "description": "FPost kết nối người có hàng cần gửi với người giao hàng tiện đường. Cùng chia sẻ hành trình, gửi hàng thuận tiện và theo dõi từng chặng.",
+    "quickLinks": "Liên kết nhanh",
+    "policies": "Điều khoản & chính sách",
+    "terms": "Điều khoản sử dụng",
+    "privacy": "Chính sách dữ liệu cá nhân",
+    "contactTitle": "Liên hệ",
+    "rights": "Bảo lưu mọi quyền.",
+    "contact": {
+      "email": "fpost1.mail@gmail.com",
+      "phone": "0962150432",
+      "phoneDisplay": "0962 150 432",
+      "address": "Đại học FPT Cần Thơ, 600 Nguyễn Văn Cừ nối dài, phường An Bình, TP. Cần Thơ",
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=FPT+University+600+Nguyen+Van+Cu+Can+Tho"
+    },
+    "legalTitle": "Điều khoản và chính sách",
+    "legalDescription": "Nội dung và phiên bản chính sách áp dụng trong luồng đăng ký tài khoản FPost.",
+    "loadingPolicies": "Đang tải điều khoản và chính sách…",
+    "retry": "Thử lại",
+    "version": "Phiên bản",
+    "policyNavigation": "Danh mục chính sách"
+  }
+}
