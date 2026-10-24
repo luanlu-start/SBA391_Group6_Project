@@ -19,7 +19,6 @@ import java.util.List;
 @AllArgsConstructor
 public class OrderRequest {
 
-    @NotNull(message = "Sender ID is required")
     private Long senderId;
 
     @NotBlank(message = "Pickup address is required")

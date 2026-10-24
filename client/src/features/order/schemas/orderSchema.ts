@@ -1,11 +1,6 @@
 import { z } from 'zod';
 
 export const orderSchema = z.object({
-  senderId: z
-    .string()
-    .trim()
-    .min(1, 'Vui lòng nhập ID người gửi.')
-    .regex(/^[1-9]\d*$/, 'ID người gửi phải là số nguyên dương.'),
   pickupAddress: z
     .string()
     .trim()
