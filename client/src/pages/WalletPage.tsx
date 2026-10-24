@@ -18,6 +18,10 @@ import {
   Calendar,
   History,
   FileSpreadsheet,
+  Banknote,
+  Send,
+  AlertCircle,
+  Clock,
 } from 'lucide-react';
 import { useAuthentication } from '../auth/useAuthentication';
 import { walletApi } from '../api/walletApi';
@@ -28,6 +32,8 @@ import type {
   VNPayReturnResponse,
   WalletTransactionResponse,
   WalletStatementResponse,
+  WithdrawalResponse,
+  WithdrawalStatus,
   LedgerTransactionType,
 } from '../types/payment';
 import PageHeader from '../components/ui/PageHeader';
@@ -60,16 +66,49 @@ const BANK_OPTIONS = [
   { code: 'NCB', label: 'Ngân hàng NCB', sub: 'Thẻ ATM demo' },
 ];
 
+const POPULAR_BANKS = [
+  'Vietcombank',
+  'Vietinbank',
+  'BIDV',
+  'Agribank',
+  'Techcombank',
+  'MB Bank',
+  'ACB',
+  'VPBank',
+  'TPBank',
+  'Sacombank',
+  'HDBank',
+  'VIB',
+  'SHB',
+  'MSB',
+  'OCB',
+  'SeABank',
+  'Nam A Bank',
+  'Kienlongbank',
+  'Bac A Bank',
+  'NCB',
+];
+
 const TX_TYPE_LABELS: Record<LedgerTransactionType, { label: string; tone: 'success' | 'warning' | 'info' | 'neutral' }> = {
   WALLET_TOPUP: { label: 'Nạp tiền ví', tone: 'success' },
   ORDER_ESCROW_HOLD: { label: 'Ký quỹ đơn hàng', tone: 'warning' },
   ESCROW_RELEASE: { label: 'Nhận giải ngân', tone: 'success' },
   ESCROW_REFUND: { label: 'Hoàn tiền ký quỹ', tone: 'info' },
+  WITHDRAWAL_REQUEST: { label: 'Yêu cầu rút tiền', tone: 'warning' },
+  WITHDRAWAL_CANCEL: { label: 'Hoàn trả rút tiền', tone: 'info' },
+};
+
+const WDR_STATUS_CONFIG: Record<WithdrawalStatus, { label: string; tone: 'warning' | 'success' | 'danger' | 'neutral' }> = {
+  PENDING_REVIEW: { label: 'Chờ duyệt', tone: 'warning' },
+  APPROVED: { label: 'Đã duyệt & chi trả', tone: 'success' },
+  REJECTED: { label: 'Bị từ chối', tone: 'danger' },
+  CANCELLED: { label: 'Đã hủy', tone: 'neutral' },
 };
 
 const MIN_TOPUP = 20_000;
 const MAX_TOPUP = 10_000_000;
 const MAX_BALANCE = 20_000_000;
+const MIN_WITHDRAWAL = 50_000;
 
 function formatDateTime(isoString?: string) {
   if (!isoString) return '—';
@@ -124,7 +163,29 @@ export default function WalletPage() {
   const [statementMonth, setStatementMonth] = useState<number>(currentDate.getMonth() + 1);
   const [statementYear, setStatementYear] = useState<number>(currentDate.getFullYear());
 
+  // Withdrawal Request state (UC-40)
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState<number>(50_000);
+  const [withdrawAmountInput, setWithdrawAmountInput] = useState<string>('50000');
+  const [withdrawBank, setWithdrawBank] = useState<string>('Vietcombank');
+  const [withdrawAccount, setWithdrawAccount] = useState<string>('');
+  const [withdrawHolder, setWithdrawHolder] = useState<string>('');
+  const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
+  const [withdrawSuccess, setWithdrawSuccess] = useState<string | null>(null);
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
+
+  // Withdrawal tracking list state (UC-40)
+  const [withdrawals, setWithdrawals] = useState<WithdrawalResponse[]>([]);
+  const [wdrLoading, setWdrLoading] = useState(false);
+  const [wdrPage, setWdrPage] = useState(0);
+  const [wdrTotalPages, setWdrTotalPages] = useState(0);
+  const [wdrTotalElements, setWdrTotalElements] = useState(0);
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
+
   const amountInputId = useId();
+  const withdrawAmountInputId = useId();
+  const withdrawAccountInputId = useId();
+  const withdrawHolderInputId = useId();
 
   // Load wallet data
   const loadWallet = async () => {
@@ -176,10 +237,27 @@ export default function WalletPage() {
     }
   };
 
+  // Load Withdrawal Requests (UC-40)
+  const loadWithdrawals = async (page = 0) => {
+    try {
+      setWdrLoading(true);
+      const res = await walletApi.getMyWithdrawals(page, 10);
+      setWithdrawals(res.data.content);
+      setWdrPage(res.data.page);
+      setWdrTotalPages(res.data.totalPages);
+      setWdrTotalElements(res.data.totalElements);
+    } catch (err) {
+      console.error('Failed to load withdrawal requests', err);
+    } finally {
+      setWdrLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       loadWallet();
       loadTransactions(0);
+      loadWithdrawals(0);
     }
   }, [user]);
 
@@ -198,7 +276,6 @@ export default function WalletPage() {
           });
           const res = await walletApi.verifyVNPayReturn(params);
           setReturnResult(res.data);
-          // Refresh wallet balance and transactions after return
           loadWallet();
           loadTransactions(0);
         } catch (err) {
@@ -308,14 +385,121 @@ export default function WalletPage() {
     loadStatement(statementMonth, statementYear);
   };
 
+  // Withdrawal Handlers (UC-40)
+  const handleOpenWithdrawModal = () => {
+    setWithdrawError(null);
+    if (wallet) {
+      const defaultAmt = Math.min(wallet.available, 100_000);
+      setWithdrawAmount(defaultAmt);
+      setWithdrawAmountInput(defaultAmt.toString());
+    }
+    setIsWithdrawModalOpen(true);
+  };
+
+  const handleWithdrawAmountChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, '');
+    const num = Number(raw);
+    setWithdrawAmountInput(raw);
+    setWithdrawAmount(num);
+  };
+
+  const handleSetMaxWithdraw = () => {
+    if (wallet) {
+      setWithdrawAmount(wallet.available);
+      setWithdrawAmountInput(wallet.available.toString());
+    }
+  };
+
+  const validateWithdrawal = () => {
+    if (withdrawAmount < MIN_WITHDRAWAL) {
+      return `Số tiền rút tối thiểu là ${MIN_WITHDRAWAL.toLocaleString('vi-VN')} đ`;
+    }
+    if (wallet && withdrawAmount > wallet.available) {
+      return `Số tiền rút vượt quá số dư khả dụng hiện tại (${wallet.available.toLocaleString('vi-VN')} đ)`;
+    }
+    if (!withdrawBank.trim()) {
+      return 'Vui lòng chọn ngân hàng thụ hưởng';
+    }
+    if (!withdrawAccount.trim()) {
+      return 'Vui lòng nhập số tài khoản ngân hàng';
+    }
+    if (!withdrawHolder.trim()) {
+      return 'Vui lòng nhập họ và tên chủ tài khoản thụ hưởng';
+    }
+    return null;
+  };
+
+  const withdrawValidationError = validateWithdrawal();
+
+  const handleCreateWithdrawal = async (e: FormEvent) => {
+    e.preventDefault();
+    if (withdrawValidationError) return;
+
+    try {
+      setWithdrawSubmitting(true);
+      setWithdrawError(null);
+
+      const res = await walletApi.createWithdrawal({
+        amount: withdrawAmount,
+        bankName: withdrawBank.trim(),
+        accountNumber: withdrawAccount.trim(),
+        accountHolderName: withdrawHolder.trim().toUpperCase(),
+      });
+
+      setIsWithdrawModalOpen(false);
+      setWithdrawSuccess(`Yêu cầu rút tiền ${res.data.amount.toLocaleString('vi-VN')} đ (Mã: ${res.data.requestCode}) đã được tạo thành công và đang chờ ban quản trị phê duyệt.`);
+
+      // Refresh wallet balances, transactions, and withdrawal list
+      loadWallet();
+      loadTransactions(0);
+      loadWithdrawals(0);
+    } catch (err) {
+      const apiErr = getApiError(err);
+      setWithdrawError(apiErr.message || 'Không thể tạo yêu cầu rút tiền. Vui lòng kiểm tra lại số dư.');
+    } finally {
+      setWithdrawSubmitting(false);
+    }
+  };
+
+  const handleCancelWithdrawal = async (id: number) => {
+    if (!window.confirm('Bạn có chắc chắn muốn hủy yêu cầu rút tiền này? Số tiền sẽ được hoàn trả ngay lập tức về số dư khả dụng của ví.')) {
+      return;
+    }
+
+    try {
+      setCancellingId(id);
+      const res = await walletApi.cancelWithdrawal(id);
+      setWithdrawSuccess(`Đã hủy thành công yêu cầu rút tiền ${res.data.requestCode}. Số tiền ${res.data.amount.toLocaleString('vi-VN')} đ đã được hoàn về ví.`);
+
+      // Refresh data
+      loadWallet();
+      loadTransactions(0);
+      loadWithdrawals(wdrPage);
+    } catch (err) {
+      const apiErr = getApiError(err);
+      setError(apiErr);
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
   return (
     <div className="ui-stack" style={{ maxWidth: 1050, margin: '0 auto' }}>
       <PageHeader
         eyebrow="Tài chính & Ví"
         title="Ví tiền & Lịch sử giao dịch"
-        description="Quản lý số dư, nạp tiền VNPay, tra cứu biến động số dư và sao kê định kỳ (UC-34, UC-38)."
+        description="Quản lý số dư, nạp tiền VNPay, rút tiền về ngân hàng và tra cứu biến động số dư (UC-34, UC-38, UC-40)."
         actions={
-          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+          <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleOpenWithdrawModal}
+              disabled={!wallet || wallet.available < MIN_WITHDRAWAL}
+              icon={<Banknote size={15} />}
+            >
+              Rút tiền về ngân hàng
+            </Button>
             <Button
               variant="secondary"
               size="sm"
@@ -330,8 +514,9 @@ export default function WalletPage() {
               onClick={() => {
                 loadWallet();
                 loadTransactions(txPage);
+                loadWithdrawals(wdrPage);
               }}
-              disabled={loading || txLoading}
+              disabled={loading || txLoading || wdrLoading}
               icon={<RefreshCw size={15} />}
             >
               Làm mới
@@ -341,6 +526,18 @@ export default function WalletPage() {
       />
 
       {error && <ApiErrorNotice error={error} />}
+
+      {withdrawSuccess && (
+        <Alert
+          tone="success"
+          action={<Button variant="ghost" size="sm" onClick={() => setWithdrawSuccess(null)}>Đóng</Button>}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+            <CheckCircle2 size={18} color="var(--accent-emerald)" />
+            <span>{withdrawSuccess}</span>
+          </div>
+        </Alert>
+      )}
 
       {/* Return Notification from VNPay */}
       {verifyingReturn && (
@@ -383,7 +580,7 @@ export default function WalletPage() {
         </div>
       )}
 
-      {/* 3 Dashboard Cards */}
+      {/* 4 Dashboard Cards */}
       <div className="wallet-dashboard">
         <div className="wallet-stat-card primary">
           <div className="card-glow" />
@@ -395,7 +592,7 @@ export default function WalletPage() {
             {wallet ? wallet.available.toLocaleString('vi-VN') : '0'} <span style={{ fontSize: '1.1rem', fontWeight: 500 }}>đ</span>
           </div>
           <div className="wallet-stat-subtext">
-            Sẵn sàng dùng để thanh toán cước phí & ký quỹ
+            Sẵn sàng chi tiêu, ký quỹ hoặc rút tiền
           </div>
         </div>
 
@@ -409,6 +606,19 @@ export default function WalletPage() {
           </div>
           <div className="wallet-stat-subtext">
             Tạm giữ bảo đảm cho các đơn hàng đang vận chuyển
+          </div>
+        </div>
+
+        <div className="wallet-stat-card">
+          <div className="wallet-stat-header">
+            <span>Đang chờ rút (Pending)</span>
+            <Clock size={20} />
+          </div>
+          <div className="wallet-stat-value">
+            {wallet ? wallet.pendingWithdraw.toLocaleString('vi-VN') : '0'} <span style={{ fontSize: '1.1rem', fontWeight: 500 }}>đ</span>
+          </div>
+          <div className="wallet-stat-subtext">
+            Đang trong quy trình xét duyệt chi trả ngân hàng
           </div>
         </div>
 
@@ -510,6 +720,127 @@ export default function WalletPage() {
         </form>
       </SectionCard>
 
+      {/* Withdrawal Tracking List (UC-40) */}
+      <SectionCard
+        title="Yêu cầu rút tiền về ngân hàng (UC-40)"
+        description="Theo dõi danh sách các yêu cầu rút tiền của bạn và trạng thái xét duyệt chi trả từ ban quản trị."
+        actions={
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleOpenWithdrawModal}
+            disabled={!wallet || wallet.available < MIN_WITHDRAWAL}
+            icon={<Banknote size={15} />}
+          >
+            Tạo yêu cầu rút
+          </Button>
+        }
+      >
+        {wdrLoading ? (
+          <div style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--text-muted)' }}>
+            <RefreshCw className="spin" size={24} style={{ margin: '0 auto var(--space-2)' }} />
+            <p>Đang tải danh sách yêu cầu rút tiền…</p>
+          </div>
+        ) : withdrawals.length === 0 ? (
+          <EmptyState
+            title="Chưa có yêu cầu rút tiền nào"
+            description="Bạn chưa tạo yêu cầu rút tiền nào từ ví về tài khoản ngân hàng."
+            icon={<Banknote size={32} />}
+            action={
+              wallet && wallet.available >= MIN_WITHDRAWAL ? (
+                <Button variant="primary" size="sm" onClick={handleOpenWithdrawModal} style={{ marginTop: 'var(--space-3)' }}>
+                  Rút tiền ngay
+                </Button>
+              ) : undefined
+            }
+          />
+        ) : (
+          <div className="ui-stack">
+            <div className="tx-table-container">
+              <table className="tx-table">
+                <thead>
+                  <tr>
+                    <th>Mã yêu cầu</th>
+                    <th>Thời gian tạo</th>
+                    <th>Số tiền rút</th>
+                    <th>Ngân hàng thụ hưởng</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {withdrawals.map((wdr) => {
+                    const statusConfig = WDR_STATUS_CONFIG[wdr.status] || { label: wdr.status, tone: 'neutral' };
+                    const isPending = wdr.status === 'PENDING_REVIEW';
+
+                    return (
+                      <tr key={wdr.id}>
+                        <td>
+                          <span className="tx-code">{wdr.requestCode}</span>
+                        </td>
+                        <td>
+                          <span className="tx-date">{formatDateTime(wdr.createdAt)}</span>
+                        </td>
+                        <td>
+                          <span className="tx-amount outflow">
+                            -{wdr.amount.toLocaleString('vi-VN')} đ
+                          </span>
+                        </td>
+                        <td>
+                          <div>
+                            <strong>{wdr.bankName}</strong> · {wdr.accountNumber}
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                              Chủ TK: {wdr.accountHolderName}
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <Badge tone={statusConfig.tone} dot={isPending}>
+                            {statusConfig.label}
+                          </Badge>
+                          {wdr.rejectionReason && (
+                            <div style={{ fontSize: '0.75rem', color: 'var(--accent-rose)', marginTop: '2px' }}>
+                              Lý do: {wdr.rejectionReason}
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          {isPending ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="btn-cancel-wdr"
+                              disabled={cancellingId === wdr.id}
+                              onClick={() => handleCancelWithdrawal(wdr.id)}
+                              icon={<XCircle size={14} />}
+                            >
+                              {cancellingId === wdr.id ? 'Đang hủy…' : 'Hủy yêu cầu'}
+                            </Button>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {wdrTotalPages > 1 && (
+              <Pagination
+                page={wdrPage}
+                size={10}
+                totalElements={wdrTotalElements}
+                totalPages={wdrTotalPages}
+                onPageChange={(p) => loadWithdrawals(p)}
+                disabled={wdrLoading}
+              />
+            )}
+          </div>
+        )}
+      </SectionCard>
+
       {/* Transaction History Section (UC-38) */}
       <SectionCard
         title="Lịch sử biến động số dư (UC-38)"
@@ -540,6 +871,8 @@ export default function WalletPage() {
               <option value="ORDER_ESCROW_HOLD">Ký quỹ đơn hàng</option>
               <option value="ESCROW_RELEASE">Nhận giải ngân</option>
               <option value="ESCROW_REFUND">Hoàn tiền ký quỹ</option>
+              <option value="WITHDRAWAL_REQUEST">Yêu cầu rút tiền</option>
+              <option value="WITHDRAWAL_CANCEL">Hoàn trả rút tiền</option>
             </select>
           </div>
 
@@ -675,6 +1008,144 @@ export default function WalletPage() {
           </div>
         )}
       </SectionCard>
+
+      {/* Withdrawal Request Modal (UC-40, API-097) */}
+      <Modal
+        isOpen={isWithdrawModalOpen}
+        onClose={() => setIsWithdrawModalOpen(false)}
+        title="Rút tiền từ ví về tài khoản ngân hàng (UC-40)"
+        description="Tiền sẽ được chuyển từ số dư khả dụng sang tạm giữ để chờ xét duyệt và chi trả."
+        size="md"
+      >
+        <form onSubmit={handleCreateWithdrawal} className="ui-stack">
+          {withdrawError && (
+            <Alert tone="danger">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                <AlertCircle size={18} />
+                <span>{withdrawError}</span>
+              </div>
+            </Alert>
+          )}
+
+          <div style={{
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
+            padding: 'var(--space-3) var(--space-4)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Số dư khả dụng hiện tại:</span>
+            <span style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--accent-emerald)' }}>
+              {wallet ? wallet.available.toLocaleString('vi-VN') : '0'} đ
+            </span>
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--space-1)' }}>
+              {wallet && wallet.available > 0 && (
+                <button
+                  type="button"
+                  className="withdrawal-quick-max-btn"
+                  onClick={handleSetMaxWithdraw}
+                >
+                  Rút toàn bộ ({wallet.available.toLocaleString('vi-VN')} đ)
+                </button>
+              )}
+            </div>
+            <Input
+              id={withdrawAmountInputId}
+              label="Số tiền muốn rút (VNĐ):"
+              type="text"
+              inputMode="numeric"
+              value={withdrawAmountInput}
+              onChange={handleWithdrawAmountChange}
+              hint={`Tối thiểu ${MIN_WITHDRAWAL.toLocaleString('vi-VN')} đ`}
+              placeholder="VD: 100000"
+              error={withdrawValidationError?.includes('Số tiền') ? withdrawValidationError : undefined}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="wdr-bank-select" className="ui-label" style={{ marginBottom: 'var(--space-1)' }}>
+              Ngân hàng thụ hưởng:
+            </label>
+            <select
+              id="wdr-bank-select"
+              className="ui-control ui-select"
+              value={withdrawBank}
+              onChange={(e) => setWithdrawBank(e.target.value)}
+            >
+              {POPULAR_BANKS.map((b) => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+          </div>
+
+          <Input
+            id={withdrawAccountInputId}
+            label="Số tài khoản ngân hàng:"
+            type="text"
+            value={withdrawAccount}
+            onChange={(e) => setWithdrawAccount(e.target.value)}
+            placeholder="VD: 0123456789"
+            required
+            error={withdrawValidationError?.includes('tài khoản') ? withdrawValidationError : undefined}
+          />
+
+          <Input
+            id={withdrawHolderInputId}
+            label="Họ và tên chủ tài khoản thụ hưởng:"
+            hint="Vui lòng nhập họ tên in hoa không dấu hoặc có dấu đúng với thẻ ngân hàng"
+            type="text"
+            value={withdrawHolder}
+            onChange={(e) => setWithdrawHolder(e.target.value.toUpperCase())}
+            placeholder="VD: NGUYEN VAN A"
+            required
+            error={withdrawValidationError?.includes('chủ tài khoản') ? withdrawValidationError : undefined}
+          />
+
+          {/* Breakdown Card */}
+          <div className="withdrawal-summary-card">
+            <div className="withdrawal-summary-row">
+              <span style={{ color: 'var(--text-muted)' }}>Số tiền yêu cầu rút:</span>
+              <span>{withdrawAmount > 0 ? `${withdrawAmount.toLocaleString('vi-VN')} đ` : '0 đ'}</span>
+            </div>
+            <div className="withdrawal-summary-row">
+              <span style={{ color: 'var(--text-muted)' }}>Phí xử lý giao dịch:</span>
+              <span style={{ color: 'var(--accent-emerald)', fontWeight: 600 }}>0 đ (Miễn phí)</span>
+            </div>
+            <div className="withdrawal-summary-row total">
+              <span>Thực nhận về tài khoản:</span>
+              <span>{withdrawAmount > 0 ? `${withdrawAmount.toLocaleString('vi-VN')} đ` : '0 đ'}</span>
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+              ⚡ Thời gian xử lý: Sau khi gửi yêu cầu, ban quản trị sẽ đối soát và chi trả trong vòng 1 - 24 giờ làm việc.
+            </div>
+          </div>
+
+          <div className="ui-form-actions" style={{ marginTop: 'var(--space-4)' }}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsWithdrawModalOpen(false)}
+            >
+              Đóng
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={withdrawSubmitting}
+              loadingText="Đang tạo yêu cầu…"
+              disabled={!!withdrawValidationError || withdrawSubmitting}
+              icon={<Send size={15} />}
+            >
+              Xác nhận rút {withdrawAmount > 0 ? `${withdrawAmount.toLocaleString('vi-VN')} đ` : ''}
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Monthly Statement Modal (UC-38, API-090) */}
       <Modal

@@ -8,6 +8,8 @@ import type {
   WalletTransactionFilterRequest,
   WalletTransactionResponse,
   WalletStatementResponse,
+  WithdrawalCreationRequest,
+  WithdrawalResponse,
 } from '../types/payment';
 
 export const walletApi = {
@@ -32,5 +34,20 @@ export const walletApi = {
       params: { month, year },
     });
   },
+
+  createWithdrawal: (data: WithdrawalCreationRequest) => {
+    return axiosClient.post<unknown, ApiResponse<WithdrawalResponse>>('/wallet/withdrawals', data);
+  },
+
+  getMyWithdrawals: (page = 0, size = 10) => {
+    return axiosClient.get<unknown, ApiResponse<PageResponse<WithdrawalResponse>>>('/wallet/withdrawals', {
+      params: { page, size },
+    });
+  },
+
+  cancelWithdrawal: (id: number) => {
+    return axiosClient.post<unknown, ApiResponse<WithdrawalResponse>>(`/wallet/withdrawals/${id}/cancel`);
+  },
 };
+
 
