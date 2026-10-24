@@ -13,6 +13,7 @@ import AccountPage from '../pages/AccountPage';
 import SecurityPage from '../pages/SecurityPage';
 import LegalPage from '../pages/LegalPage';
 import WalletPage from '../pages/WalletPage';
+import OrderPaymentPage from '../pages/OrderPaymentPage';
 import VNPayReturnPage from '../pages/VNPayReturnPage';
 import OrdersPage from '../pages/OrdersPage';
 import CreateOrderPage from '../pages/CreateOrderPage';
@@ -41,6 +42,8 @@ export default function AppRoutes() {
         <Route index element={<HomePage />} />
         <Route path="products" element={<ProductsPage />} />
         <Route path="wallet" element={<WalletPage />} />
+        <Route path="orders/payment" element={<OrderPaymentPage />} />
+        <Route path="orders/:id/payment" element={<OrderPaymentPage />} />
         <Route path="payment/vnpay-return" element={<VNPayReturnPage />} />
         <Route path="vnpay-return" element={<VNPayReturnPage />} />
         <Route path="sender/orders" element={<OrdersPage />} />

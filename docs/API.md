@@ -39,7 +39,7 @@ và [SPEC](sources/fptpost-spec-v1.0.pdf), mục 6.
 | GET | /api/v1/me | Thông tin người dùng đang đăng nhập |
 
 Product CRUD là ví dụ kỹ thuật, không tương ứng UC-12 hay các API orders.
-UC-01–05 đã có đăng ký, xác thực email, đăng nhập, refresh rotation và quản lý phiên.
+UC-01–05 đã có đăng ký, xác thực email, đăng nhập, refresh rotation, quản lý phiên và đặt lại mật khẩu.
 UC-34 và UC-35 đã được triển khai hoàn chỉnh cho cả Backend, Security và Frontend: nạp tiền vào ví qua cổng VNPay (SCR-42), thanh toán và ký quỹ đơn hàng (SCR-22), quản lý bút toán sổ cái kép (ledger) và xử lý IPN đa mục đích (WALLET_TOPUP / ORDER_ESCROW) bảo đảm tính toàn vẹn (idempotency).
 Product/Activity, Wallet và Order Payment yêu cầu Bearer JWT; các endpoint callback VNPay công khai (return/ipn) được cấu hình trong SecurityConfig.
 
@@ -214,6 +214,7 @@ Luồng giao diện:
   - Nạp ví: Ghi Nợ (DEBIT) tài khoản trung gian `VNPAY_CLEARING`, Ghi Có (CREDIT) tài khoản ví `USER_WALLET_{userId}`.
   - Ký quỹ bằng ví: Ghi Nợ (DEBIT) `USER_WALLET_{userId}`, Ghi Có (CREDIT) `ESCROW_ORDER_{orderId}`.
   - Ký quỹ qua VNPay: Ghi Nợ (DEBIT) `VNPAY_CLEARING`, Ghi Có (CREDIT) `ESCROW_ORDER_{orderId}`.
+
 
 Đổi mật khẩu (UC-06), Google login và KYC chưa triển khai.
 Cấu hình SMTP/template nằm trong [README](../README.md), schema trong [DATABASE](DATABASE.md),
