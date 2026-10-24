@@ -1,21 +1,23 @@
 package com.fptpost.modules.payment.service;
 
 import com.fptpost.common.exception.AppException;
+import com.fptpost.common.response.PageResponse;
 import com.fptpost.modules.payment.config.VNPayConfig;
-import com.fptpost.modules.payment.dto.PaymentCreationResponse;
-import com.fptpost.modules.payment.dto.WalletResponse;
-import com.fptpost.modules.payment.dto.WalletTopupRequest;
+import com.fptpost.modules.payment.dto.*;
 import com.fptpost.modules.payment.exception.PaymentErrorCode;
-import com.fptpost.modules.payment.model.PaymentPurpose;
-import com.fptpost.modules.payment.model.PaymentStatus;
-import com.fptpost.modules.payment.model.PaymentTransaction;
-import com.fptpost.modules.payment.model.Wallet;
+import com.fptpost.modules.payment.model.*;
+import com.fptpost.modules.payment.repository.LedgerEntryRepository;
+import com.fptpost.modules.payment.repository.LedgerTransactionRepository;
 import com.fptpost.modules.payment.repository.PaymentTransactionRepository;
 import com.fptpost.modules.payment.repository.WalletRepository;
 import com.fptpost.modules.payment.util.VNPayUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,8 +26,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -41,6 +42,8 @@ public class WalletService {
 
     private final WalletRepository walletRepository;
     private final PaymentTransactionRepository paymentTransactionRepository;
+    private final LedgerTransactionRepository ledgerTransactionRepository;
+    private final LedgerEntryRepository ledgerEntryRepository;
     private final VNPayConfig vnPayConfig;
 
     @Transactional
@@ -163,4 +166,142 @@ public class WalletService {
                 .txnRef(txnRef)
                 .build();
     }
+
+    /**
+     * Lấy danh sách phân trang lịch sử biến động số dư ví (UC-38, API-089).
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<WalletTransactionResponse> getTransactionHistory(Long userId, WalletTransactionFilterRequest request) {
+        if (request == null) {
+            request = new WalletTransactionFilterRequest();
+        }
+
+        int page = Math.max(0, request.getPage());
+        int size = request.getSize() > 0 && request.getSize() <= 100 ? request.getSize() : 10;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id")));
+
+        String accountCode = "USER_WALLET_" + userId;
+        Page<LedgerTransaction> pageResult = ledgerTransactionRepository.findTransactions(
+                userId,
+                accountCode,
+                request.getType(),
+                request.getFromDate(),
+                request.getToDate(),
+                pageable
+        );
+
+        List<WalletTransactionResponse> dtoList = pageResult.getContent().stream()
+                .map(txn -> mapToTransactionResponse(txn, userId))
+                .toList();
+
+        return new PageResponse<>(
+                dtoList,
+                pageResult.getNumber(),
+                pageResult.getSize(),
+                pageResult.getTotalElements(),
+                pageResult.getTotalPages(),
+                pageResult.isFirst(),
+                pageResult.isLast()
+        );
+    }
+
+    /**
+     * Bảng sao kê biến động tài khoản ví theo tháng/năm (UC-38, API-090).
+     */
+    @Transactional(readOnly = true)
+    public WalletStatementResponse getMonthlyStatement(Long userId, int month, int year) {
+        if (month < 1 || month > 12 || year < 2020 || year > 2100) {
+            log.warn("Invalid statement period requested: month={}, year={}", month, year);
+            throw new AppException(PaymentErrorCode.WALLET_STATEMENT_PERIOD_INVALID);
+        }
+
+        getOrCreateWallet(userId);
+        String period = String.format("%02d/%d", month, year);
+        String accountCode = "USER_WALLET_" + userId;
+
+        ZonedDateTime startOfMonth = ZonedDateTime.of(year, month, 1, 0, 0, 0, 0, VIETNAM_ZONE);
+        ZonedDateTime endOfMonth = startOfMonth.plusMonths(1).minusNanos(1);
+        Instant startInstant = startOfMonth.toInstant();
+        Instant endInstant = endOfMonth.toInstant();
+
+        Long rawStarting = ledgerEntryRepository.calculateBalanceBefore(accountCode, startInstant);
+        long startingBalance = rawStarting != null ? Math.max(0L, rawStarting) : 0L;
+
+        List<LedgerTransaction> txns = ledgerTransactionRepository.findTransactionsInRange(
+                userId, accountCode, startInstant, endInstant);
+
+        long totalInflow = 0L;
+        long totalOutflow = 0L;
+        List<WalletTransactionResponse> transactionResponses = new ArrayList<>();
+
+        for (LedgerTransaction txn : txns) {
+            WalletTransactionResponse resp = mapToTransactionResponse(txn, userId);
+            if ("IN".equalsIgnoreCase(resp.getBalanceDirection())) {
+                totalInflow += resp.getAmount();
+            } else {
+                totalOutflow += resp.getAmount();
+            }
+            transactionResponses.add(resp);
+        }
+
+        long endingBalance = startingBalance + totalInflow - totalOutflow;
+        long netChange = totalInflow - totalOutflow;
+
+        return WalletStatementResponse.builder()
+                .userId(userId)
+                .period(period)
+                .startingBalance(startingBalance)
+                .endingBalance(endingBalance)
+                .totalInflow(totalInflow)
+                .totalOutflow(totalOutflow)
+                .netChange(netChange)
+                .transactionCount(transactionResponses.size())
+                .transactions(transactionResponses)
+                .build();
+    }
+
+    private WalletTransactionResponse mapToTransactionResponse(LedgerTransaction txn, Long userId) {
+        String userAccount = "USER_WALLET_" + userId;
+        Optional<LedgerEntry> userEntryOpt = txn.getEntries() != null
+                ? txn.getEntries().stream().filter(e -> userAccount.equals(e.getAccountCode())).findFirst()
+                : Optional.empty();
+
+        String direction;
+        long amount;
+
+        if (userEntryOpt.isPresent()) {
+            LedgerEntry entry = userEntryOpt.get();
+            if (entry.getCredit() != null && entry.getCredit() > 0) {
+                direction = "IN";
+                amount = entry.getCredit();
+            } else if (entry.getDebit() != null && entry.getDebit() > 0) {
+                direction = "OUT";
+                amount = entry.getDebit();
+            } else {
+                direction = "IN";
+                amount = txn.getAmount() != null ? txn.getAmount() : 0L;
+            }
+        } else {
+            if (txn.getType() == LedgerTransactionType.WALLET_TOPUP || txn.getType() == LedgerTransactionType.ESCROW_RELEASE) {
+                direction = "IN";
+            } else {
+                direction = "OUT";
+            }
+            amount = txn.getAmount() != null ? txn.getAmount() : 0L;
+        }
+
+        return WalletTransactionResponse.builder()
+                .transactionCode(txn.getTransactionCode())
+                .type(txn.getType())
+                .amount(amount)
+                .status(txn.getStatus())
+                .balanceDirection(direction)
+                .description(txn.getDescription())
+                .orderId(txn.getOrderId())
+                .refType(txn.getRefType())
+                .refId(txn.getRefId())
+                .createdAt(txn.getCreatedAt())
+                .build();
+    }
 }
+
