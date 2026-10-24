@@ -343,3 +343,161 @@
   text-align: right;
   font-feature-settings: "tnum";
 }
+
+/* ==========================================================================
+   UC-38: Lịch sử biến động số dư ví & Sao kê tháng
+   ========================================================================== */
+
+.tx-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: flex-end;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.tx-filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 150px;
+  flex: 1 1 auto;
+}
+
+.tx-filter-item label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.tx-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tx-table-container {
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+}
+
+.tx-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  text-align: left;
+}
+
+.tx-table th {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-weight: 600;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.tx-table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+}
+
+.tx-table tbody tr {
+  transition: background var(--transition-fast);
+}
+
+.tx-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.tx-code {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
+
+.tx-amount {
+  font-weight: 700;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  font-feature-settings: "tnum";
+}
+
+.tx-amount.inflow {
+  color: #10b981;
+}
+
+.tx-amount.outflow {
+  color: #f43f5e;
+}
+
+.tx-date {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Statement Modal */
+.statement-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.statement-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+}
+
+.statement-card-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.statement-card-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-feature-settings: "tnum";
+  color: var(--text-primary);
+}
+
+.statement-card-value.inflow {
+  color: #10b981;
+}
+
+.statement-card-value.outflow {
+  color: #f43f5e;
+}
+
+.statement-selector-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
