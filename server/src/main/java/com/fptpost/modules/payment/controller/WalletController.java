@@ -27,7 +27,7 @@ import java.util.UUID;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/wallet")
+@RequestMapping({"/api/v1/wallet", "/api/wallet"})
 @RequiredArgsConstructor
 @Tag(name = "Wallet", description = "Quản lý ví điện tử và nạp tiền FPTPost")
 public class WalletController {

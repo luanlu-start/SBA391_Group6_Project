@@ -5,18 +5,22 @@ import Button from './ui/Button';
 import '../styles/api-error.css';
 
 interface Props {
-  error: Pick<ApiError, 'message' | 'status' | 'correlationId'>;
+  error?: Partial<Pick<ApiError, 'message' | 'status' | 'correlationId'>>;
   message?: string;
+  correlationId?: string;
 }
 
-export default function ApiErrorNotice({ error, message }: Props) {
-  const showSupportDetails = error.status !== undefined && error.status >= 500 && error.status < 600;
+export default function ApiErrorNotice({ error, message, correlationId }: Props) {
+  const displayMessage = message ?? error?.message ?? 'Đã xảy ra lỗi.';
+  const effectiveCorrelationId = correlationId ?? error?.correlationId;
+  const status = error?.status;
+  const showSupportDetails = (status !== undefined && status >= 500 && status < 600) || !!effectiveCorrelationId;
 
   return (
     <Alert tone="danger">
-      <p>{message ?? error.message}</p>
-      {showSupportDetails && error.correlationId &&
-        <ErrorSupportDetails key={error.correlationId} correlationId={error.correlationId} />}
+      <p>{displayMessage}</p>
+      {showSupportDetails && effectiveCorrelationId &&
+        <ErrorSupportDetails key={effectiveCorrelationId} correlationId={effectiveCorrelationId} />}
     </Alert>
   );
 }
