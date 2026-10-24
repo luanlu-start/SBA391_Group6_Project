@@ -45,7 +45,7 @@ public class WithdrawalController {
         log.info("User {} creating withdrawal request for {} VND to bank {}", userId, request.getAmount(), request.getBankName());
         WithdrawalResponse response = withdrawalService.createWithdrawalRequest(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Tạo yêu cầu rút tiền thành công", response));
+                .body(ApiResponse.created("Tạo yêu cầu rút tiền thành công", response));
     }
 
     @Operation(summary = "Xem danh sách yêu cầu rút tiền của tôi (UC-40, API-098)",
