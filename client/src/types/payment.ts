@@ -1,6 +1,3 @@
-export type EscrowPaymentMethod = 'WALLET' | 'VNPAY';
-export type EscrowStatus = 'HELD' | 'RELEASED' | 'REFUNDED';
-
 export interface WalletResponse {
   id: number;
   userId: number;
@@ -24,23 +21,6 @@ export interface PaymentCreationResponse {
   txnRef: string;
 }
 
-export interface OrderPaymentRequest {
-  paymentMethod: EscrowPaymentMethod;
-  bankCode?: string;
-  language?: string;
-}
-
-export interface OrderPaymentResponse {
-  orderId: number;
-  orderCode: string;
-  paymentMethod: EscrowPaymentMethod;
-  amount: number;
-  status: 'SUCCESS' | 'PENDING_PAYMENT';
-  paymentUrl?: string;
-  txnRef?: string;
-  message: string;
-}
-
 export interface VNPayReturnResponse {
   orderCode: string;
   amount?: number;
@@ -57,4 +37,3 @@ export interface VNPayReturnResponse {
   success: boolean;
   message: string;
 }
-
