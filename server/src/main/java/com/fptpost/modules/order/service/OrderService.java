@@ -35,12 +35,15 @@ public class OrderService {
     private final OrderMapper orderMapper;
 
     @Transactional
-    public OrderResponse createOrder(OrderRequest request) {
+    public OrderResponse createOrder(Long senderId, OrderRequest request) {
         String orderCode = generateUniqueOrderCode();
 
         Order order = orderMapper.toEntity(request);
         order.setOrderCode(orderCode);
         order.setStatus(OrderStatus.PENDING);
+        if (senderId != null) {
+            order.setSenderId(senderId);
+        }
 
         if (request.getImageUrls() != null) {
             for (String imageUrl : request.getImageUrls()) {
@@ -54,6 +57,16 @@ public class OrderService {
 
         Order saved = orderRepository.save(order);
         return orderMapper.toResponse(saved);
+    }
+
+    @Transactional
+    public OrderResponse createOrder(OrderRequest request) {
+        return createOrder(request.getSenderId(), request);
+    }
+
+    public List<OrderResponse> getOrdersBySenderId(Long senderId) {
+        List<Order> orders = orderRepository.findBySenderIdOrderByCreatedAtDesc(senderId);
+        return orderMapper.toResponses(orders);
     }
 
     public OrderResponse getOrderById(Long id) {
