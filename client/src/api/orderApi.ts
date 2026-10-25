@@ -11,6 +11,10 @@ export const orderApi = {
     return axiosClient.get<unknown, ApiResponse<Order[]>>('/orders');
   },
 
+  getMyOrders: () => {
+    return axiosClient.get<unknown, ApiResponse<Order[]>>('/orders/my-orders');
+  },
+
   getById: (id: number | string) => {
     return axiosClient.get<unknown, ApiResponse<Order>>(`/orders/${id}`);
   },

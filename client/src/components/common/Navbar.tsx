@@ -20,8 +20,18 @@ export default function Navbar() {
         <Link to="/#how-it-works" className="nav-link" onClick={closeMenu}>{copy.navigation.how}</Link>
         <Link to="/#shipping-prices" className="nav-link" onClick={closeMenu}>{copy.navigation.pricing}</Link>
         <Link to="/#become-courier" className="nav-link" onClick={closeMenu}>{copy.navigation.courier}</Link>
-        {user && (<NavLink to="/sender/orders" className="nav-link" onClick={closeMenu} ><Package size={16} aria-hidden="true" />Đơn hàng</NavLink>)}
-        {user && <NavLink to="/wallet" className="nav-link" onClick={closeMenu}><Wallet size={16} aria-hidden="true" />Ví tiền</NavLink>}
+        {user && (
+          <>
+            <NavLink to="/sender/orders" className="nav-link" onClick={closeMenu}>
+              <Package size={16} aria-hidden="true" />
+              Đơn của tôi
+            </NavLink>
+            <NavLink to="/wallet" className="nav-link" onClick={closeMenu}>
+              <Wallet size={16} aria-hidden="true" />
+              Ví tiền
+            </NavLink>
+          </>
+        )}
       </nav>
       <div className="navbar-actions ui-row">
         {import.meta.env.DEV && <Link to="/ui-kit" className="nav-link navbar-dev-link" onClick={closeMenu}><PanelsTopLeft size={15} aria-hidden="true" />{copy.navigation.uiKit}</Link>}
