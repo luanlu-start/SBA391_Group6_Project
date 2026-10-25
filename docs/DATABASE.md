@@ -115,11 +115,6 @@ Giữ nguyên mã phân hệ và cách viết phạm vi UC trong nguồn.
 
 ## Schema hiện tại và code first
 
-UC-07 mở rộng `user_profiles` với `dob`, `bio`, `emergency_contact`, `avatar_storage_key`, `avatar_content_type`;
-thêm `addresses`, `contact_changes`, `account_data_requests`. Họ tên/DOB dùng đối chiếu KYC, email/SĐT không cập nhật qua hồ sơ thông thường.
-Địa chỉ dùng tọa độ DECIMAL(10,7), đổi mặc định dưới khóa User. OTP đổi liên hệ dùng purpose EMAIL_CHANGE/PHONE_CHANGE và lưu hash trong `otp_codes`.
-Ảnh đại diện nằm ngoài thư mục public; Docker giữ tệp bằng volume `identity-private-data`.
-
 SQL có `products` phục vụ ví dụ và các bảng Identity cho UC-01–03:
 `users`, `roles`, `user_roles`, `user_profiles`, `consents`, `otp_codes`, `blacklist`.
 UC-03 thêm `sessions` lưu hash refresh token/phiên và bộ đếm khóa đăng nhập trong User.
@@ -177,23 +172,3 @@ ADR-10 trong SPEC v1.0. Các tài liệu nguồn được giữ nguyên.
 
 Việc tiếp theo: chốt chiến lược ID, vẽ ERD đầy đủ từ từ điển, xác định quan hệ/index và
 transaction từng UC trước khi tạo entity.
-
-## Lưu hồ sơ KYC
-
-`kyc_requests`, `kyc_files`, `kyc_identity_claims`, `identity_audit_logs` lưu hồ sơ,
-metadata ảnh, giữ chỗ CCCD và audit. CCCD/ảnh mã hóa AES-256-GCM với nonce riêng
-và key ID; ảnh nằm ở private file storage, ngoài thư mục public. HMAC-SHA256
-có khóa riêng phục vụ tra trùng CCCD; PK giữ chỗ chặn nộp đồng thời, filtered unique
-index SQL Server `uq_kyc_approved_identity` bảo vệ CCCD APPROVED.
-
-Cấu hình ngoài Git: `KYC_ENCRYPTION_KEYS` là JSON keyId → Base64 khóa 32 byte,
-`KYC_ACTIVE_KEY_ID` chọn khóa đang dùng; `KYC_HASH_KEY` là khóa Base64 32 byte riêng.
-Thiếu khóa thì API KYC từ chối lưu/đọc, không lưu bản rõ. Khi xoay AES, giữ các khóa
-cũ để đọc hồ sơ; không tự thay hash key vì sẽ mất khả năng tra trùng dữ liệu cũ.
-Sao lưu keyring cùng kế hoạch khôi phục database và private file volume.
-
-`courier_profiles` (PK/FK user_id) lưu phương tiện, hạng NEW, trust_score DECIMAL(5,2),
-số đơn hoàn tất, hạn chế nếu có và thời điểm đăng ký. `courier_areas` và
-`courier_available_hours` lưu khu vực và các khung giờ trong tuần. Đồng ý cam kết
-được ghi vào `consents` loại COURIER_COMMITMENT. Gán role và xoay phiên hiện tại
-chung transaction với tạo hồ sơ; không nhận userId/tier/điểm/role do client gửi.
