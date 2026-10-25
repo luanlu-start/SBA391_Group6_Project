@@ -1,7 +1,6 @@
 export type OrderStatus =
     | 'PENDING'
     | 'FINDING_SHIPPER'
-    | 'AWAITING_PAYMENT'
     | 'SHIPPER_ASSIGNED'
     | 'IN_DELIVERY'
     | 'COMPLETED'
@@ -15,14 +14,49 @@ export interface OrderStatusConfig {
 export const ORDER_STATUS_MAP: Record<OrderStatus, OrderStatusConfig> = {
     PENDING: { label: 'Chờ xử lý', tone: 'warning' },
     FINDING_SHIPPER: { label: 'Đang tìm tài xế', tone: 'info' },
-    AWAITING_PAYMENT: { label: 'Chờ ký quỹ', tone: 'warning' },
     SHIPPER_ASSIGNED: { label: 'Đã có tài xế', tone: 'info' },
     IN_DELIVERY: { label: 'Đang giao hàng', tone: 'warning' },
     COMPLETED: { label: 'Giao thành công', tone: 'success' },
     CANCELLED: { label: 'Đã hủy', tone: 'danger' },
 };
 
+export interface Order {
+    id: number;
+    orderCode: string;
+    senderId: number;
+    courierId: number | null;
+    pickupAddress: string;
+    deliveryAddress: string;
+    receiverName: string;
+    receiverPhone: string;
+    productName: string;
+    productDescription?: string | null;
+    quantity: number;
+    weightKg: number;
+    declaredValue?: number | null;
+    deliveryNote?: string | null;
+    status: OrderStatus;
+    createdAt: string;
+    updatedAt?: string | null;
+    imageUrls?: string[] | null;
+}
 
+export interface OrderRequest {
+    senderId?: number;
+    pickupAddress: string;
+    deliveryAddress: string;
+    receiverName: string;
+    receiverPhone: string;
+    productName: string;
+    productDescription?: string;
+    quantity: number;
+    weightKg: number;
+    declaredValue?: number;
+    deliveryNote?: string;
+    imageUrls?: string[];
+}
+
+//An
 
 export interface MarketPlaceOrder {
     id: number;
@@ -99,42 +133,4 @@ export interface MarketOrderAcceptResponse {
     status: OrderStatus;
     acceptedAt: string;
     message: string;
-}
-
-export interface Order {
-    id: number;
-    orderCode: string;
-    senderId: number;
-    pickupAddress: string;
-    deliveryAddress: string;
-    receiverName: string;
-    receiverPhone: string;
-    productName: string;
-    productDescription?: string | null;
-    quantity: number;
-    weightKg: number;
-    declaredValue?: number | null;
-    priceSuggested?: number | null;
-    priceAgreed?: number | null;
-    distanceKm?: number | null;
-    deliveryNote?: string | null;
-    status: OrderStatus;
-    createdAt: string;
-    updatedAt?: string | null;
-    imageUrls?: string[] | null;
-}
-
-export interface OrderRequest {
-    senderId: number;
-    pickupAddress: string;
-    deliveryAddress: string;
-    receiverName: string;
-    receiverPhone: string;
-    productName: string;
-    productDescription?: string;
-    quantity: number;
-    weightKg: number;
-    declaredValue?: number;
-    deliveryNote?: string;
-    imageUrls?: string[];
 }
