@@ -400,11 +400,6 @@ và đáp ứng cùng quy tắc với đăng ký. Đổi thành công sẽ đăn
 
 ## Database và seed data
 
-UC-07 có hồ sơ tại `/me/profile`, sổ địa chỉ có bản đồ tại `/me/addresses` và chọn địa chỉ đã lưu trong form tạo đơn.
-Ảnh đại diện JPG/PNG/WEBP tối đa 5 MB lưu trong volume `identity-private-data`; API ảnh yêu cầu đăng nhập.
-Đổi email/SĐT phải nhập mật khẩu hiện tại và xác nhận OTP; đổi SĐT xác nhận qua email hiện tại, chưa xác minh bằng SMS.
-Yêu cầu xuất dữ liệu/xóa tài khoản được lưu để Admin xử lý. Chi tiết xem [API hồ sơ](docs/API.md).
-
 | Dữ liệu | Database |
 | --- | --- |
 | Product | SQL Server, bảng `products` |
