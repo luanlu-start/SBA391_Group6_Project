@@ -1,9 +1,9 @@
 package com.fptpost.modules.order.controller;
 
 import com.fptpost.common.response.ApiResponse;
-import com.fptpost.modules.order.dto.OrderRequest;
-import com.fptpost.modules.order.dto.OrderResponse;
+import com.fptpost.modules.order.dto.request.OrderRequest;
 import com.fptpost.modules.order.dto.response.MarketplaceOrderResponse;
+import com.fptpost.modules.order.dto.response.OrderResponse;
 import com.fptpost.modules.order.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
