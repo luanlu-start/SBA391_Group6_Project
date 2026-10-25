@@ -24,7 +24,7 @@ export default function Navbar() {
         <Link to="/#how-it-works" className="nav-link" onClick={closeMenu}>{copy.navigation.how}</Link>
         <Link to="/#shipping-prices" className="nav-link" onClick={closeMenu}>{copy.navigation.pricing}</Link>
         {!canSwitch && <Link to={user ? '/me/courier-register' : '/#become-courier'} className="nav-link" onClick={closeMenu}>{copy.navigation.courier}</Link>}
-        {user && (mode === 'SENDER' ? <NavLink to="/sender/orders" className="nav-link" onClick={closeMenu}><Package size={16} aria-hidden="true" />Đơn hàng</NavLink>
+        {user && (mode === 'SENDER' ? <NavLink to="/sender/orders" className="nav-link" onClick={closeMenu}><Package size={16} aria-hidden="true" />Đơn của tôi</NavLink>
           : <NavLink to="/courier" className="nav-link" onClick={closeMenu}>Người giao</NavLink>)}
         {user && <NavLink to="/wallet" className="nav-link" onClick={closeMenu}><Wallet size={16} aria-hidden="true" />Ví tiền</NavLink>}
       </nav>
