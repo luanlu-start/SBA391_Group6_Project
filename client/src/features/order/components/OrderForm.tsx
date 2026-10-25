@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import type { ChangeEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,6 +15,9 @@ import Input from '../../../components/ui/Input';
 import Textarea from '../../../components/ui/Textarea';
 import Button from '../../../components/ui/Button';
 import ApiErrorNotice from '../../../components/ApiErrorNotice';
+import Select from '../../../components/ui/Select';
+import { profileService } from '../../../services/profileService';
+import type { SavedAddress } from '../../../types/profile';
 
 interface OrderFormProps {
   onSuccess: (order: Order) => void;
@@ -28,16 +32,29 @@ export default function OrderForm({ onSuccess, onCancel }: OrderFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { user } = useAuthentication();
+  const location = useLocation();
+  const initialPickup = (location.state as { pickupAddress?: SavedAddress } | null)?.pickupAddress;
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [addressLoadError, setAddressLoadError] = useState<ApiError>();
+  const userId = user?.id;
+  useEffect(() => {
+    if (!userId) return;
+    let active = true;
+    void profileService.addresses().then(({ data }) => { if (active) setSavedAddresses(data); })
+      .catch(cause => { if (active) setAddressLoadError(getApiError(cause)); });
+    return () => { active = false; };
+  }, [userId]);
 
   const {
     register,
     handleSubmit,
     setError,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<OrderFormValues>({
     resolver: zodResolver(orderSchema),
     defaultValues: {
-      pickupAddress: '',
+      pickupAddress: initialPickup?.addressText ?? '',
       deliveryAddress: '',
       receiverName: '',
       receiverPhone: '',
@@ -130,6 +147,7 @@ export default function OrderForm({ onSuccess, onCancel }: OrderFormProps) {
       {apiError && (
         <ApiErrorNotice error={apiError} />
       )}
+      {addressLoadError && <ApiErrorNotice error={addressLoadError} />}
 
       {/* Thông tin người gửi & Điểm lấy hàng */}
       <fieldset className="ui-form-section" disabled={isSubmitting}>
@@ -149,12 +167,15 @@ export default function OrderForm({ onSuccess, onCancel }: OrderFormProps) {
             }}>
               <UserCheck size={20} style={{ color: 'var(--color-primary-600, #2563eb)', flexShrink: 0 }} />
               <div>
-                <strong>Người gửi:</strong> {user.fullName || 'Người dùng'} 
+                <strong>Người gửi:</strong> {user.fullName || 'Người dùng'}
                 {user.phone ? ` • SĐT: ${user.phone}` : ''}
                 {user.email ? ` • Email: ${user.email}` : ''}
               </div>
             </div>
           )}
+          {savedAddresses.length > 0 && <Select label="Chọn điểm lấy từ sổ địa chỉ" fieldClassName="ui-span-full" defaultValue={initialPickup?.id ?? ''}
+            onChange={event => { const selected = savedAddresses.find(item => item.id === event.target.value); if (selected) setValue('pickupAddress', selected.addressText, { shouldValidate: true }); }}>
+            <option value="">Chọn địa chỉ đã lưu</option>{savedAddresses.map(item => <option key={item.id} value={item.id}>{item.label} — {item.addressText} ({item.lat}, {item.lng})</option>)}</Select>}
           <Input
             label="Địa chỉ lấy hàng"
             placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"
@@ -198,6 +219,9 @@ export default function OrderForm({ onSuccess, onCancel }: OrderFormProps) {
             {...register('deliveryAddress')}
             error={errors.deliveryAddress?.message}
           />
+          {savedAddresses.length > 0 && <Select label="Chọn điểm giao từ sổ địa chỉ" fieldClassName="ui-span-full" defaultValue=""
+            onChange={event => { const selected = savedAddresses.find(item => item.id === event.target.value); if (selected) setValue('deliveryAddress', selected.addressText, { shouldValidate: true }); }}>
+            <option value="">Chọn địa chỉ đã lưu</option>{savedAddresses.map(item => <option key={item.id} value={item.id}>{item.label} — {item.addressText} ({item.lat}, {item.lng})</option>)}</Select>}
         </div>
       </fieldset>
 

@@ -55,3 +55,9 @@ export function clearAuthentication() {
 
   listeners.forEach(listener => listener());
 }
+
+export function updateAuthenticatedUser(user: UserResponse) {
+  if (state.user?.id !== user.id) return;
+  state = { ...state, user };
+  listeners.forEach(listener => listener());
+}
