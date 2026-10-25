@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   MapPin,
   User,
+  Phone,
   Package,
   Calendar,
   Truck,
@@ -149,7 +150,22 @@ export default function OrderDetailPage() {
                   <span>Người nhận:</span>
                 </dt>
                 <dd>
-                  <strong>{order.receiverName}</strong> ({order.receiverPhone})
+                  <strong>{order.receiverName}</strong>
+                </dd>
+              </div>
+
+              <div>
+                <dt className="ui-row" style={{ gap: '6px' }}>
+                  <Phone size={16} />
+                  <span>Số điện thoại người nhận:</span>
+                </dt>
+                <dd>
+                  <a
+                    href={`tel:${order.receiverPhone}`}
+                    style={{ color: 'var(--primary)', fontWeight: 500 }}
+                  >
+                    {order.receiverPhone}
+                  </a>
                 </dd>
               </div>
 

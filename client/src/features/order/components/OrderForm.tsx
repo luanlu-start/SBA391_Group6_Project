@@ -2,14 +2,14 @@ import { useState, useRef } from 'react';
 import type { ChangeEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Upload, Trash2, Loader2 } from 'lucide-react';
+import { Upload, Trash2, Loader2, UserCheck } from 'lucide-react';
 import { orderApi } from '../../../api/orderApi';
 import { getApiError } from '../../../api/ApiError';
 import type { ApiError } from '../../../api/ApiError';
 import type { Order, OrderRequest } from '../../../types/order';
 import { orderSchema } from '../schemas/orderSchema';
 import type { OrderFormValues } from '../schemas/orderSchema';
-import { getSessionState } from '../../../auth/authSession';
+import { useAuthentication } from '../../../auth/useAuthentication';
 import Input from '../../../components/ui/Input';
 import Textarea from '../../../components/ui/Textarea';
 import Button from '../../../components/ui/Button';
@@ -27,8 +27,7 @@ export default function OrderForm({ onSuccess, onCancel }: OrderFormProps) {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const currentUser = getSessionState().user;
-  const defaultSenderId = currentUser?.id ? String(currentUser.id) : '1';
+  const { user } = useAuthentication();
 
   const {
     register,
@@ -38,7 +37,6 @@ export default function OrderForm({ onSuccess, onCancel }: OrderFormProps) {
   } = useForm<OrderFormValues>({
     resolver: zodResolver(orderSchema),
     defaultValues: {
-      senderId: defaultSenderId,
       pickupAddress: '',
       deliveryAddress: '',
       receiverName: '',
@@ -99,7 +97,6 @@ export default function OrderForm({ onSuccess, onCancel }: OrderFormProps) {
     setApiError(null);
     try {
       const payload: OrderRequest = {
-        senderId: Number(values.senderId),
         pickupAddress: values.pickupAddress.trim(),
         deliveryAddress: values.deliveryAddress.trim(),
         receiverName: values.receiverName.trim(),
@@ -137,19 +134,27 @@ export default function OrderForm({ onSuccess, onCancel }: OrderFormProps) {
       {/* Thông tin người gửi & Điểm lấy hàng */}
       <fieldset className="ui-form-section" disabled={isSubmitting}>
         <legend>1. Người gửi & Điểm nhận</legend>
-        <p className="ui-form-description">Cung cấp ID người gửi và địa chỉ lấy hàng ban đầu.</p>
+        <p className="ui-form-description">Thông tin người gửi được tự động xác nhận theo tài khoản đăng nhập của bạn.</p>
         <div className="ui-form-grid">
-          <Input
-            label="ID người gửi"
-            type="number"
-            min="1"
-            placeholder="1"
-            required
-            hint="Mặc định sử dụng ID tài khoản của bạn hoặc ID khách hàng gửi đơn."
-            {...register('senderId')}
-            error={errors.senderId?.message}
-          />
-          <div /> {/* Giữ grid cân đối */}
+          {user && (
+            <div className="ui-span-full" style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              padding: '0.85rem 1rem',
+              borderRadius: 'var(--radius-md, 8px)',
+              background: 'var(--color-bg-subtle, #f8fafc)',
+              border: '1px solid var(--color-border-subtle, #e2e8f0)',
+              fontSize: '0.925rem'
+            }}>
+              <UserCheck size={20} style={{ color: 'var(--color-primary-600, #2563eb)', flexShrink: 0 }} />
+              <div>
+                <strong>Người gửi:</strong> {user.fullName || 'Người dùng'} 
+                {user.phone ? ` • SĐT: ${user.phone}` : ''}
+                {user.email ? ` • Email: ${user.email}` : ''}
+              </div>
+            </div>
+          )}
           <Input
             label="Địa chỉ lấy hàng"
             placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"
