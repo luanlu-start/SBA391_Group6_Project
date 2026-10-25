@@ -3,7 +3,7 @@
 FPTPost là nền tảng giao hàng tiện đường P2P, kết nối người gửi với người giao,
 hỗ trợ KYC, sàn đơn/chào giá, ký quỹ, theo dõi và thanh toán theo đặc tả của nhóm.
 Repository hiện cung cấp base React/Spring Boot với Product CRUD mẫu, Activity Log mẫu
-và UC-01–08 Identity: xác thực, quản lý phiên, mật khẩu, hồ sơ, sổ địa chỉ và nộp hồ sơ KYC. Các UC còn lại được triển khai theo tài liệu của nhóm.
+và UC-01–06 đăng ký, xác thực email, đăng nhập, quản lý phiên, khôi phục và đổi mật khẩu Identity. Các UC còn lại được triển khai theo tài liệu của nhóm.
 
 Đọc [thông tin dự án](docs/PROJECT-INFO.md), [63 Use Case](docs/USE-CASES.md) và
 [quy ước code](docs/CONTRIBUTING.md) trước khi bắt đầu chức năng.
@@ -399,11 +399,6 @@ và đáp ứng cùng quy tắc với đăng ký. Đổi thành công sẽ đăn
 đã cấp và chuyển về trang đăng nhập. Thông báo bảo mật dùng chung template `password-changed` với UC-05.
 
 ## Database và seed data
-
-UC-07 có hồ sơ tại `/me/profile`, sổ địa chỉ có bản đồ tại `/me/addresses` và chọn địa chỉ đã lưu trong form tạo đơn.
-Ảnh đại diện JPG/PNG/WEBP tối đa 5 MB lưu trong volume `identity-private-data`; API ảnh yêu cầu đăng nhập.
-Đổi email/SĐT phải nhập mật khẩu hiện tại và xác nhận OTP; đổi SĐT xác nhận qua email hiện tại, chưa xác minh bằng SMS.
-Yêu cầu xuất dữ liệu/xóa tài khoản được lưu để Admin xử lý. Chi tiết xem [API hồ sơ](docs/API.md).
 
 | Dữ liệu | Database |
 | --- | --- |

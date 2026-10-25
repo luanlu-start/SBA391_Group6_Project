@@ -38,19 +38,6 @@ và [SPEC](sources/fptpost-spec-v1.0.pdf), mục 6.
 | GET | /api/v1/orders/{id} | Chi tiết đơn hàng |
 | POST | /api/v1/orders | Tạo đơn hàng mới; HTTP 201 |
 | GET | /api/v1/me | Thông tin người dùng đang đăng nhập |
-| PUT | /api/v1/me/profile | UC-07 cập nhật họ tên, ngày sinh, giới thiệu, liên hệ khẩn cấp |
-| POST/GET | /api/v1/me/avatar | UC-07 tải/xem ảnh đại diện của chính tài khoản |
-| GET/POST | /api/v1/me/addresses | UC-07 danh sách/thêm địa chỉ |
-| PUT/DELETE | /api/v1/me/addresses/{id} | UC-07 sửa/xóa địa chỉ thuộc tài khoản |
-| PATCH | /api/v1/me/contact | UC-07 yêu cầu OTP đổi email/SĐT, cần mật khẩu hiện tại |
-| POST | /api/v1/me/contact/verify | UC-07 xác nhận OTP; đổi liên hệ và thu hồi phiên |
-| POST | /api/v1/me/contact/{id}/resend | UC-07 gửi lại OTP sau thời gian chờ |
-| GET | /api/v1/me/data-requests | UC-07 xem yêu cầu dữ liệu của chính tài khoản |
-| POST | /api/v1/me/data-export | UC-07 tạo hồ sơ yêu cầu xuất dữ liệu |
-| POST | /api/v1/me/delete-request | UC-07 tạo hồ sơ yêu cầu xóa/ẩn danh tài khoản |
-| GET/POST | /api/v1/me/kyc | UC-08 trạng thái/nộp hồ sơ CCCD, ba ảnh và consent |
-| POST | /api/v1/me/kyc/files/{id}/link | UC-08 liên kết xem ảnh riêng tư sống 5 phút |
-| GET | /api/v1/me/kyc/files/{id} | UC-08 JWT sở hữu + chữ ký, trả ảnh và ghi audit |
 
 Product CRUD là ví dụ kỹ thuật, không tương ứng UC-12 hay các API orders.
 UC-01–06 đã có đăng ký, xác thực email, đăng nhập, refresh rotation, quản lý phiên, khôi phục và đổi mật khẩu.
@@ -174,31 +161,6 @@ Tài khoản được lấy từ JWT, không nhận ID/email để chọn tài k
 - HTTP 200 không cấp JWT, xóa refresh cookie; frontend xóa trạng thái xác thực và về `/login` với thông báo thành công.
 - Email bảo mật dùng chung sự kiện `PasswordChangedEvent` và template `password-changed` với UC-05, gửi sau commit. Lỗi gửi thông báo không hoàn tác mật khẩu; hiện ghi log, chưa có retry/outbox.
 - Giới hạn IP của auth áp dụng cả request sai JSON/validation; HTTP 429 có `Retry-After`. Không yêu cầu OTP cho UC-06 vì đã xác nhận bằng mật khẩu hiện tại.
-
-## Hồ sơ và sổ địa chỉ (UC-07)
-
-SCR-10 `/me/profile`, SCR-11 `/me/addresses`; các API yêu cầu Bearer JWT và chỉ thao tác tài khoản đang đăng nhập.
-`GET /me` bổ sung `dob`, `bio`, `emergencyContact`, `fptBadge`, `avatarAvailable`.
-`PUT /me/profile` nhận `{fullName, dob, bio, emergencyContact}`; ngày sinh có thể bỏ trống trước khi nộp KYC,
-nếu nhập phải đủ 18 tuổi. API không cho sửa email, quyền hoặc trạng thái qua DTO hồ sơ.
-
-Ảnh đại diện gửi multipart trường `file`; JPG/PNG/WEBP tối đa 5 MB, đọc định dạng/nội dung thực bằng ImageIO,
-giới hạn 20 megapixel. Lưu tên ngẫu nhiên trong `private-data`, chỉ xem qua `GET /me/avatar` có JWT, không dùng `/uploads` công khai.
-Tệp mới được xóa nếu SQL rollback; ảnh cũ được xóa sau khi commit.
-
-Địa chỉ nhận `{label, addressText, lat, lng, isDefault}`; tọa độ DECIMAL(10,7), vĩ độ -90..90, kinh độ -180..180.
-Khóa User khi sửa mặc định để chỉ một địa chỉ mặc định cho tài khoản; xóa địa chỉ mặc định sẽ chọn địa chỉ còn lại đầu tiên.
-ID ngoài quyền sở hữu trả 404. Form tạo đơn có chọn địa chỉ lấy/giao đã lưu; API đơn hiện tại vẫn nhận địa chỉ dạng văn bản.
-
-`PATCH /me/contact` nhận `{type: EMAIL|PHONE, value, currentPassword}` và trả challenge như OTP đăng ký.
-OTP EMAIL_CHANGE gửi tới email mới; OTP PHONE_CHANGE gửi tới email hiện tại để xác nhận thao tác.
-Xác nhận đổi SĐT qua email **không** đánh dấu `phone_verified_at`; dự án chưa tích hợp SMS.
-`POST /me/contact/verify` nhận `{challengeId, otp}`. Chỉ challenge mới nhất, đúng chủ tài khoản, chưa hết 5 phút và chưa quá 5 lần sai được áp dụng;
-gửi lại sau 60 giây. Thông tin liên hệ chỉ đổi trong transaction xác nhận thành công, sau đó thu hồi mọi phiên và yêu cầu đăng nhập lại.
-Huy hiệu FPT chỉ cấp sau xác thực email thuộc miền cấu hình `app.profile.fpt-email-domains`; tên miền giả như `evilfpt.edu.vn` không hợp lệ.
-
-Hai API yêu cầu dữ liệu nhận `{reason?}`; lưu `account_data_requests` ở trạng thái PENDING, trả lại yêu cầu đang chờ nếu gửi lặp.
-Yêu cầu xóa có hạn xử lý 30 ngày. Đây là hồ sơ để Admin xử lý tại UC-57; API chưa xóa tài khoản hoặc xuất tệp dữ liệu ngay.
 
 ## API Ví tiền & Ký quỹ (UC-34 & UC-35)
 
@@ -494,17 +456,3 @@ status, security scheme và ví dụ cho từng endpoint.
 triển khai kiểm tra role/ownership, transaction/idempotency cần thiết, rồi kiểm thử
 cả thành công và lỗi. Chỉ chuyển endpoint sang phần đã có sau khi code được tích hợp.
 Không đánh dấu cả UC hoàn thành chỉ vì đã tạo route hoặc Swagger annotation.
-
-## KYC UC-08
-
-`/me/kyc` nhận multipart: part JSON `request` gồm `idNumber` (12 chữ số),
-`fullName`, `dob`, `issuedDate`, `expiryDate`, `consentAccepted: true`, `policyVersion`;
-ba part ảnh `front`, `back`, `portrait` JPG/PNG/WEBP, tối đa 5 MB mỗi ảnh.
-Họ tên/ngày sinh khớp hồ sơ, đủ 18 tuổi, thẻ còn hiệu lực. Trả trạng thái `PENDING`,
-CCCD che số và metadata ảnh; không trả CCCD rõ, hash hay đường dẫn lưu nội bộ.
-
-Chỉ nộp mới khi chưa nộp hoặc lần trước `REJECTED`, tối đa 3 lần trong 7 ngày.
-`PENDING`/`APPROVED` khóa đổi họ tên/ngày sinh. CCCD được giữ chỗ xuyên tài khoản
-khi PENDING/APPROVED; trùng trả 422 và tạo cờ audit. Duyệt/từ chối thuộc UC-09.
-Ảnh riêng tư yêu cầu JWT đúng chủ sở hữu và chữ ký gắn phiên, hết hạn sau 5 phút;
-response `no-store`, mỗi lần đọc ảnh ghi audit. Frontend `/me/kyc`.
