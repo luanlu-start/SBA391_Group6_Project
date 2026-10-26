@@ -36,6 +36,9 @@ public class UserDemoSeeder implements CommandLineRunner {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.fptpost.modules.identity.repository.CourierProfileRepository courierProfileRepository;
+
     public static final String DEFAULT_PASSWORD = "password123";
     public static final String SIMPLE_PASSWORD = "12345678";
 
@@ -102,6 +105,19 @@ public class UserDemoSeeder implements CommandLineRunner {
                     .build();
 
             userProfileRepository.save(profile);
+        }
+
+        if (courierProfileRepository != null && "COURIER".equalsIgnoreCase(roleCode) && !courierProfileRepository.existsByUserId(user.getId())) {
+            com.fptpost.modules.identity.model.CourierProfile courierProfile = com.fptpost.modules.identity.model.CourierProfile.builder()
+                    .user(user)
+                    .tier(com.fptpost.modules.identity.enums.CourierTier.SILVER)
+                    .trustScore(java.math.BigDecimal.valueOf(80))
+                    .completedOrders(25)
+                    .vehicleType(com.fptpost.modules.identity.enums.VehicleType.MOTORBIKE)
+                    .areas(java.util.List.of("Hòa Lạc", "Thạch Thất", "Cầu Giấy"))
+                    .commitmentVersion("1.0").registeredAt(now)
+                    .build();
+            courierProfileRepository.save(courierProfile);
         }
 
         log.info("Created demo user: {} | Phone: {} | Role: {} | Password: {}", email, phone, roleCode, SIMPLE_PASSWORD);

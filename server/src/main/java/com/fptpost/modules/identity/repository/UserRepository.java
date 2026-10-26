@@ -15,6 +15,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByPhone(String phone);
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"roles"})
     Optional<User> findByPublicId(UUID publicId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

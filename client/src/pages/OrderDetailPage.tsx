@@ -8,6 +8,7 @@ import {
   Package,
   Calendar,
   Truck,
+  DollarSign,
   Image as ImageIcon,
   Pencil,
   XCircle,
@@ -28,7 +29,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import ApiErrorNotice from '../components/ApiErrorNotice';
 import type { EscrowResponse } from '../types/payment';
 import { getSessionState } from '../auth/authSession';
-import { ShieldCheck, CheckCircle, AlertTriangle, DollarSign } from 'lucide-react';
+import { ShieldCheck, CheckCircle, AlertTriangle } from 'lucide-react';
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -253,22 +254,7 @@ export default function OrderDetailPage() {
                   <Phone size={16} />
                   <span>Số điện thoại người nhận:</span>
                 </dt>
-                <dd>
-                  <a
-                    href={`tel:${order.receiverPhone}`}
-                    style={{ color: 'var(--primary)', fontWeight: 500 }}
-                  >
-                    {order.receiverPhone}
-                  </a>
-                </dd>
-              </div>
-
-              <div>
-                <dt className="ui-row" style={{ gap: '6px' }}>
-                  <User size={16} />
-                  <span>Người gửi ID:</span>
-                </dt>
-                <dd>#{order.senderId}</dd>
+                <dd>{order.receiverPhone}</dd>
               </div>
             </div>
           </SectionCard>
@@ -366,7 +352,26 @@ export default function OrderDetailPage() {
         </div>
 
         {/* Right Column: Order Summary & Meta */}
-        <div className="ui-stack">
+        <div className="ui-stack" style={{ gap: '20px' }}>
+          {/* Card Quản lý chào giá */}
+          {(order.status === 'PENDING' || order.status === 'FINDING_SHIPPER') && (
+            <SectionCard title="Chào giá từ bưu tá">
+              <div className="ui-stack" style={{ gap: '12px' }}>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
+                  Đơn hàng đang mở trên sàn. Bưu tá có thể gửi chào giá hoặc nhận đơn theo giá niêm yết.
+                </p>
+                <Button
+                  variant="primary"
+                  icon={<DollarSign size={16} />}
+                  onClick={() => navigate(`/sender/orders/${order.id}/offers`)}
+                  style={{ width: '100%' }}
+                >
+                  Xem danh sách chào giá
+                </Button>
+              </div>
+            </SectionCard>
+          )}
+
           <SectionCard title="Trạng thái đơn hàng">
             <div className="ui-stack" style={{ gap: '16px' }}>
               <div className="ui-row" style={{ justifyContent: 'space-between' }}>
@@ -416,11 +421,11 @@ export default function OrderDetailPage() {
             </div>
           </SectionCard>
 
-          {/* Thông tin Ký quỹ & Giải ngân (UC-36) */}
+          {/* Thông tin Ký quỹ & Giải ngân */}
           {escrow && (
             <SectionCard
               title="Ký quỹ an toàn (Escrow)"
-              description="Thông tin bảo đảm tài chính và giải ngân bưu tá (UC-36)"
+              description="Thông tin bảo đảm tài chính và giải ngân bưu tá"
             >
               <div className="ui-stack" style={{ gap: '16px' }}>
                 <div className="ui-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
@@ -539,7 +544,7 @@ export default function OrderDetailPage() {
                       disabled={releasing || !order.courierId}
                       style={{ width: '100%' }}
                     >
-                      {releasing ? 'Đang giải ngân…' : 'Giải ngân cho người giao (API-093)'}
+                      {releasing ? 'Đang giải ngân…' : 'Giải ngân cho người giao'}
                     </Button>
                     {!order.courierId && (
                       <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', textAlign: 'center' }}>

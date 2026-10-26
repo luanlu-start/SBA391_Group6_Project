@@ -488,7 +488,7 @@ export default function WalletPage() {
       <PageHeader
         eyebrow="Tài chính & Ví"
         title="Ví tiền & Lịch sử giao dịch"
-        description="Quản lý số dư, nạp tiền VNPay, rút tiền về ngân hàng và tra cứu biến động số dư (UC-34, UC-38, UC-40)."
+        description="Quản lý số dư, nạp tiền VNPay, rút tiền về ngân hàng và tra cứu biến động số dư."
         actions={
           <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
             <Button
@@ -631,14 +631,14 @@ export default function WalletPage() {
             {wallet ? wallet.totalBalance.toLocaleString('vi-VN') : '0'} <span style={{ fontSize: '1.1rem', fontWeight: 500 }}>đ</span>
           </div>
           <div className="wallet-stat-subtext">
-            Hạn mức tối đa: {MAX_BALANCE.toLocaleString('vi-VN')} đ (BR-R-050)
+            Hạn mức tối đa: {MAX_BALANCE.toLocaleString('vi-VN')} đ
           </div>
         </div>
       </div>
 
       {/* Topup Form */}
       <SectionCard
-        title="Nạp tiền vào ví qua cổng VNPay (UC-34)"
+        title="Nạp tiền vào ví qua cổng VNPay"
         description="Nạp số dư tức thì qua thẻ ATM, QR Code hoặc Thẻ quốc tế với độ bảo mật cao."
         actions={<Badge tone="info" dot>VNPay Sandbox Verified</Badge>}
       >
@@ -722,7 +722,7 @@ export default function WalletPage() {
 
       {/* Withdrawal Tracking List (UC-40) */}
       <SectionCard
-        title="Yêu cầu rút tiền về ngân hàng (UC-40)"
+        title="Yêu cầu rút tiền về ngân hàng"
         description="Theo dõi danh sách các yêu cầu rút tiền của bạn và trạng thái xét duyệt chi trả từ ban quản trị."
         actions={
           <Button
@@ -843,7 +843,7 @@ export default function WalletPage() {
 
       {/* Transaction History Section (UC-38) */}
       <SectionCard
-        title="Lịch sử biến động số dư (UC-38)"
+        title="Lịch sử biến động số dư"
         description="Theo dõi toàn bộ dòng tiền nạp, ký quỹ đơn hàng và giải ngân vào ví cá nhân theo chuẩn sổ cái kép."
         actions={
           <Button
@@ -1013,7 +1013,7 @@ export default function WalletPage() {
       <Modal
         isOpen={isWithdrawModalOpen}
         onClose={() => setIsWithdrawModalOpen(false)}
-        title="Rút tiền từ ví về tài khoản ngân hàng (UC-40)"
+        title="Rút tiền từ ví về tài khoản ngân hàng"
         description="Tiền sẽ được chuyển từ số dư khả dụng sang tạm giữ để chờ xét duyệt và chi trả."
         size="md"
       >
@@ -1151,7 +1151,7 @@ export default function WalletPage() {
       <Modal
         isOpen={isStatementOpen}
         onClose={() => setIsStatementOpen(false)}
-        title="Bảng sao kê biến động tài khoản ví (UC-38)"
+        title="Bảng sao kê biến động tài khoản ví"
         description="Tổng hợp dòng tiền vào/ra và các giao dịch phát sinh trong kỳ kế toán theo tháng."
         size="lg"
       >
