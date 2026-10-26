@@ -1,5 +1,6 @@
 package com.fptpost;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fptpost.common.exception.AppException;
 import com.fptpost.modules.order.dto.OrderRequest;
 import com.fptpost.modules.order.dto.OrderResponse;
@@ -9,6 +10,7 @@ import com.fptpost.modules.order.model.OrderStatus;
 import com.fptpost.modules.order.model.Order;
 import com.fptpost.modules.order.repository.OrderRepository;
 import com.fptpost.modules.order.service.OrderService;
+import com.fptpost.modules.order.service.PricingCalculatorService;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 
@@ -25,7 +27,8 @@ class OrderServiceTest {
 
     private final OrderRepository repository = mock(OrderRepository.class);
     private final OrderMapper mapper = Mappers.getMapper(OrderMapper.class);
-    private final OrderService service = new OrderService(repository, mapper);
+    private final PricingCalculatorService pricingCalculatorService = new PricingCalculatorService(new ObjectMapper());
+    private final OrderService service = new OrderService(repository, mapper, pricingCalculatorService);
 
     @Test
     void createOrder_shouldGenerateOrderCodeAndSaveSuccessfully() {
@@ -55,6 +58,7 @@ class OrderServiceTest {
         assertThat(response.getOrderCode()).isNotBlank().startsWith("FP");
         assertThat(response.getStatus()).isEqualTo(OrderStatus.PENDING);
         assertThat(response.getImageUrls()).containsExactly("https://example.com/img1.jpg");
+        assertThat(response.getPriceSuggested()).isNotNull();
         verify(repository).save(any(Order.class));
     }
 

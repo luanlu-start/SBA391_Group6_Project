@@ -4,7 +4,10 @@ import com.fptpost.common.response.ApiResponse;
 import com.fptpost.modules.order.dto.OrderCancelRequest;
 import com.fptpost.modules.order.dto.OrderRequest;
 import com.fptpost.modules.order.dto.OrderResponse;
+import com.fptpost.modules.order.dto.PricingEstimateRequest;
+import com.fptpost.modules.order.dto.PricingEstimateResponse;
 import com.fptpost.modules.order.service.OrderService;
+import com.fptpost.modules.order.service.PricingCalculatorService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -38,7 +41,17 @@ public class OrderController {
 
     private final OrderService orderService;
     private final OrderPaymentService orderPaymentService;
+    private final PricingCalculatorService pricingCalculatorService;
     private final UserRepository userRepository;
+
+    @PostMapping("/pricing/estimate")
+    @Operation(summary = "Ước tính giá và cước phí đơn hàng (UC-11, API-029)",
+               description = "Tính toán khoảng cách theo tọa độ OSRM (fallback Haversine) và áp dụng biểu phí FPTPost")
+    public ResponseEntity<ApiResponse<PricingEstimateResponse>> estimatePrice(
+            @Valid @RequestBody PricingEstimateRequest request) {
+        PricingEstimateResponse response = pricingCalculatorService.estimatePrice(request);
+        return ResponseEntity.ok(ApiResponse.success("Ước tính cước phí thành công", response));
+    }
 
     @PostMapping(value = "/upload-images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('SENDER')")

@@ -42,9 +42,21 @@ public class Order {
     @Column(name = "pickup_address", nullable = false, length = 500, columnDefinition = "nvarchar(500)")
     private String pickupAddress;
 
+    @Column(name = "pickup_latitude", precision = 10, scale = 7)
+    private BigDecimal pickupLatitude;
+
+    @Column(name = "pickup_longitude", precision = 10, scale = 7)
+    private BigDecimal pickupLongitude;
+
     @Nationalized
     @Column(name = "delivery_address", nullable = false, length = 500, columnDefinition = "nvarchar(500)")
     private String deliveryAddress;
+
+    @Column(name = "delivery_latitude", precision = 10, scale = 7)
+    private BigDecimal deliveryLatitude;
+
+    @Column(name = "delivery_longitude", precision = 10, scale = 7)
+    private BigDecimal deliveryLongitude;
 
     @Nationalized
     @Column(name = "receiver_name", nullable = false, length = 100, columnDefinition = "nvarchar(100)")
@@ -76,9 +88,12 @@ public class Order {
     @Column(name = "price_agreed", precision = 15, scale = 2)
     private BigDecimal priceAgreed;
 
-
     @Column(name = "distance_km", precision = 10, scale = 2)
     private BigDecimal distanceKm;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "urgency", length = 30)
+    private DeliveryUrgency urgency;
 
     @Nationalized
     @Column(name = "delivery_note", length = 500, columnDefinition = "nvarchar(500)")
@@ -119,6 +134,9 @@ public class Order {
         }
         if (this.status == null) {
             this.status = OrderStatus.PENDING;
+        }
+        if (this.urgency == null) {
+            this.urgency = DeliveryUrgency.STANDARD;
         }
     }
 

@@ -3,8 +3,11 @@ package com.fptpost.modules.order.service;
 import com.fptpost.common.exception.AppException;
 import com.fptpost.modules.order.dto.OrderRequest;
 import com.fptpost.modules.order.dto.OrderResponse;
+import com.fptpost.modules.order.dto.PricingEstimateRequest;
+import com.fptpost.modules.order.dto.PricingEstimateResponse;
 import com.fptpost.modules.order.exception.OrderErrorCode;
 import com.fptpost.modules.order.mapper.OrderMapper;
+import com.fptpost.modules.order.model.DeliveryUrgency;
 import com.fptpost.modules.order.model.OrderStatus;
 import com.fptpost.modules.order.model.Order;
 import com.fptpost.modules.order.model.OrderImage;
@@ -33,6 +36,7 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
+    private final PricingCalculatorService pricingCalculatorService;
 
     @Transactional
     public OrderResponse createOrder(Long senderId, OrderRequest request) {
@@ -44,6 +48,12 @@ public class OrderService {
         if (senderId != null) {
             order.setSenderId(senderId);
         }
+
+        if (order.getUrgency() == null) {
+            order.setUrgency(request.getUrgency() != null ? request.getUrgency() : DeliveryUrgency.STANDARD);
+        }
+
+        ensurePricingAndDistance(order);
 
         if (request.getImageUrls() != null) {
             for (String imageUrl : request.getImageUrls()) {
@@ -79,6 +89,12 @@ public class OrderService {
 
         orderMapper.updateEntityFromDto(request, order);
 
+        if (order.getUrgency() == null) {
+            order.setUrgency(request.getUrgency() != null ? request.getUrgency() : DeliveryUrgency.STANDARD);
+        }
+
+        ensurePricingAndDistance(order);
+
         if (request.getImageUrls() != null) {
             order.getImages().clear();
             for (String imageUrl : request.getImageUrls()) {
@@ -92,6 +108,29 @@ public class OrderService {
 
         Order updated = orderRepository.save(order);
         return orderMapper.toResponse(updated);
+    }
+
+    private void ensurePricingAndDistance(Order order) {
+        if (order.getPriceSuggested() == null || order.getDistanceKm() == null) {
+            PricingEstimateRequest estimateReq = PricingEstimateRequest.builder()
+                    .pickupLat(order.getPickupLatitude())
+                    .pickupLng(order.getPickupLongitude())
+                    .deliveryLat(order.getDeliveryLatitude())
+                    .deliveryLng(order.getDeliveryLongitude())
+                    .distanceKm(order.getDistanceKm())
+                    .weightKg(order.getWeightKg())
+                    .declaredValue(order.getDeclaredValue())
+                    .urgency(order.getUrgency())
+                    .build();
+
+            PricingEstimateResponse estimate = pricingCalculatorService.estimatePrice(estimateReq);
+            if (order.getDistanceKm() == null) {
+                order.setDistanceKm(estimate.getDistanceKm());
+            }
+            if (order.getPriceSuggested() == null) {
+                order.setPriceSuggested(estimate.getTotalEstimatedPrice());
+            }
+        }
     }
 
     @Transactional

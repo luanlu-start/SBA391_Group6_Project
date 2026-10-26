@@ -6,11 +6,15 @@ export const orderSchema = z.object({
     .trim()
     .min(5, 'Địa chỉ lấy hàng cần ít nhất 5 ký tự.')
     .max(500, 'Địa chỉ lấy hàng không được vượt quá 500 ký tự.'),
+  pickupLatitude: z.number().nullable().optional(),
+  pickupLongitude: z.number().nullable().optional(),
   deliveryAddress: z
     .string()
     .trim()
     .min(5, 'Địa chỉ giao hàng cần ít nhất 5 ký tự.')
     .max(500, 'Địa chỉ giao hàng không được vượt quá 500 ký tự.'),
+  deliveryLatitude: z.number().nullable().optional(),
+  deliveryLongitude: z.number().nullable().optional(),
   receiverName: z
     .string()
     .trim()
@@ -48,6 +52,7 @@ export const orderSchema = z.object({
     .trim()
     .regex(/^(\d+(\.\d{1,2})?)?$/, 'Giá trị khai báo phải là số không âm (tối đa 2 chữ số thập phân).')
     .optional(),
+  urgency: z.enum(['STANDARD', 'SAME_DAY', 'EXPRESS_2H']),
   deliveryNote: z
     .string()
     .max(500, 'Ghi chú giao hàng không được vượt quá 500 ký tự.')

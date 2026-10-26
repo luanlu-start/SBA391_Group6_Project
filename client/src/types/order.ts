@@ -46,13 +46,25 @@ export const ORDER_STATUS_MAP: Record<OrderStatus, OrderStatusConfig> = {
   EXPIRED: { label: 'Hết hạn', tone: 'danger' },
 };
 
+export type DeliveryUrgency = 'STANDARD' | 'SAME_DAY' | 'EXPRESS_2H';
+
+export const DELIVERY_URGENCY_MAP: Record<DeliveryUrgency, { label: string; multiplier: number; desc: string }> = {
+  STANDARD: { label: 'Tiêu chuẩn', multiplier: 1.0, desc: 'Giao hàng tiêu chuẩn (x1.0)' },
+  SAME_DAY: { label: 'Giao trong ngày', multiplier: 1.2, desc: 'Ưu tiên giao trong ngày (x1.2)' },
+  EXPRESS_2H: { label: 'Hỏa tốc 2 giờ', multiplier: 1.5, desc: 'Giao siêu tốc trong 2 giờ (x1.5)' },
+};
+
 export interface Order {
   id: number;
   orderCode: string;
   senderId: number;
   courierId?: number | null;
   pickupAddress: string;
+  pickupLatitude?: number | null;
+  pickupLongitude?: number | null;
   deliveryAddress: string;
+  deliveryLatitude?: number | null;
+  deliveryLongitude?: number | null;
   receiverName: string;
   receiverPhone: string;
   productName: string;
@@ -60,6 +72,10 @@ export interface Order {
   quantity: number;
   weightKg: number;
   declaredValue?: number | null;
+  priceSuggested?: number | null;
+  priceAgreed?: number | null;
+  distanceKm?: number | null;
+  urgency?: DeliveryUrgency | null;
   deliveryNote?: string | null;
   status: OrderStatus;
   createdAt: string;
@@ -72,7 +88,11 @@ export type OrderResponse = Order;
 export interface OrderRequest {
   senderId?: number;
   pickupAddress: string;
+  pickupLatitude?: number;
+  pickupLongitude?: number;
   deliveryAddress: string;
+  deliveryLatitude?: number;
+  deliveryLongitude?: number;
   receiverName: string;
   receiverPhone: string;
   productName: string;
@@ -80,6 +100,32 @@ export interface OrderRequest {
   quantity: number;
   weightKg: number;
   declaredValue?: number;
+  priceSuggested?: number;
+  distanceKm?: number;
+  urgency?: DeliveryUrgency;
   deliveryNote?: string;
   imageUrls?: string[];
+}
+
+export interface PricingEstimateRequest {
+  pickupLat?: number;
+  pickupLng?: number;
+  deliveryLat?: number;
+  deliveryLng?: number;
+  distanceKm?: number;
+  weightKg?: number;
+  declaredValue?: number;
+  urgency?: DeliveryUrgency;
+}
+
+export interface PricingEstimateResponse {
+  distanceKm: number;
+  baseDistanceFee: number;
+  weightSurcharge: number;
+  insuranceFee: number;
+  urgency: DeliveryUrgency;
+  urgencyMultiplier: number;
+  subtotalBeforeUrgency: number;
+  totalEstimatedPrice: number;
+  calculationMethod: string;
 }
