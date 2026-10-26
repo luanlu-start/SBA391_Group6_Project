@@ -58,6 +58,7 @@ abstract class IdentityFeatureHttpTest {
     @Autowired KycFileRepository kycFiles;
     @Autowired KycIdentityClaimRepository kycClaims;
     @Autowired IdentityAuditLogRepository auditLogs;
+    @Autowired CourierProfileRepository couriers;
     @Autowired PasswordEncoder encoder;
     @Autowired JwtDecoder decoder;
     @Autowired PlatformTransactionManager transactions;
@@ -89,7 +90,7 @@ abstract class IdentityFeatureHttpTest {
         when(mailSender.createMimeMessage()).thenAnswer(invocation -> new MimeMessage(Session.getInstance(new Properties())));
         doAnswer(invocation -> { MimeMessage message = invocation.getArgument(0); message.saveChanges(); delivered.add(message); return null; })
                 .when(mailSender).send(any(MimeMessage.class));
-        auditLogs.deleteAll(); kycClaims.deleteAll(); kycFiles.deleteAll(); kycRequests.deleteAll(); consents.deleteAll();
+        couriers.deleteAll(); auditLogs.deleteAll(); kycClaims.deleteAll(); kycFiles.deleteAll(); kycRequests.deleteAll(); consents.deleteAll();
         contacts.deleteAll(); addresses.deleteAll(); dataRequests.deleteAll(); sessions.deleteAll(); otps.deleteAll(); profiles.deleteAll(); users.deleteAll();
         user = createUser("member" + number + "@example.com", "+849" + String.format(Locale.ROOT, "%08d", number));
         token = access(login(user.getEmail(), "OldPassword123!", 200));

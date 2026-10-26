@@ -127,9 +127,23 @@ public class AuthenticationService {
         }
         if (old.getRevokedAt() != null) throw invalidRefresh();
         requireActive(user);
+        return rotateSession(user, old, ip, userAgent, browserId);
+    }
+
+    @Transactional
+    public AuthenticationResult renewAfterRoleChange(UUID owner, UUID sessionId, String ip, String userAgent) {
+        User user = userRepository.findByPublicIdForUpdate(owner).orElseThrow(this::invalidRefresh);
+        requireActive(user);
+        AuthSession old = sessionRepository.findByPublicIdAndUserId(sessionId, user.getId()).orElseThrow(this::invalidRefresh);
+        if (old.getRevokedAt() != null || old.getReplacedBy() != null || !identityClock.instant().isBefore(old.getExpiresAt())) throw invalidRefresh();
+        return rotateSession(user, old, ip, userAgent, UUID.randomUUID());
+    }
+
+    private AuthenticationResult rotateSession(User user, AuthSession old, String ip, String userAgent, UUID browserId) {
+        Instant now = identityClock.instant();
         old.setRevokedAt(now);
         UUID effectiveBrowserId = old.getBrowserId() == null ? browserId : old.getBrowserId();
-        revokeBrowserSessions(userId, effectiveBrowserId, null, now);
+        revokeBrowserSessions(user.getId(), effectiveBrowserId, null, now);
         AuthenticationResult result = createSession(user, ip, userAgent, old.isRememberMe(), effectiveBrowserId);
         String nextHash = hash(result.getRefreshToken());
         AuthSession next = sessionRepository.findByTokenHash(nextHash).orElseThrow();

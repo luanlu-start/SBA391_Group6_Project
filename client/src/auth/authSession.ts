@@ -2,6 +2,7 @@ import type {
   AuthenticationResponse,
   UserResponse,
 } from '../types/identity';
+import { clearAccountMode } from './accountModeStore';
 
 interface SessionState {
   user: UserResponse | null;
@@ -45,6 +46,7 @@ export function setAuthentication(response: AuthenticationResponse) {
 }
 
 export function clearAuthentication() {
+  clearAccountMode();
   accessToken = null;
   accessTokenExpiresAt = null;
 
