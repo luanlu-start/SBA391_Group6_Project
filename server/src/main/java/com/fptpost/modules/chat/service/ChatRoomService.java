@@ -7,7 +7,7 @@ import com.fptpost.modules.chat.mapper.ChatMapper;
 import com.fptpost.modules.chat.model.ChatRoom;
 import com.fptpost.modules.chat.repository.ChatRoomRepository;
 import com.fptpost.modules.chat.security.ChatAccessService;
-import com.fptpost.modules.order.dto.response.OrderResponse;
+import com.fptpost.modules.order.dto.OrderResponse;
 import com.fptpost.modules.order.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;

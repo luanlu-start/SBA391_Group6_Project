@@ -226,7 +226,7 @@ export default function CourierOrderDetailPage(): React.ReactElement {
         );
     }
 
-    const statusConfig = ORDER_STATUS_MAP[order.status] ?? {
+    const statusConfig = (order.status && ORDER_STATUS_MAP[order.status]) ?? {
         label: order.status,
         tone: 'neutral',
     };
@@ -242,7 +242,7 @@ export default function CourierOrderDetailPage(): React.ReactElement {
         <div className="ui-stack" style={{ gap: '20px' }}>
             <PageHeader
                 title={`Kiện hàng: ${order.productName}`}
-                eyebrow={`Mã vận đơn: ${order.orderCode} (SCR-30)`}
+                eyebrow={`Mã vận đơn: ${order.orderCode}`}
                 description={`Đơn được đăng từ ${order.pickupAddress} tới ${order.deliveryAddress}`}
                 actions={
                     <div className="ui-row" style={{ gap: '12px' }}>
@@ -262,14 +262,14 @@ export default function CourierOrderDetailPage(): React.ReactElement {
 
             {offerActionError && <ApiErrorNotice error={offerActionError} />}
 
-            {/* Thông báo thành công nhận đơn (UC-17) */}
+            {/* Thông báo thành công nhận đơn */}
             {acceptResult && (
                 <div
                     style={{
-                        backgroundColor: 'var(--emerald-50, #ecfdf5)',
-                        border: '1px solid var(--emerald-500, #10b981)',
-                        padding: '16px',
-                        borderRadius: '8px',
+                        backgroundColor: 'var(--success-bg, #15332d)',
+                        border: '1px solid var(--accent-emerald, #6cdeb4)',
+                        padding: '16px 20px',
+                        borderRadius: '10px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
@@ -277,12 +277,12 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                     }}
                 >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <CheckCircle2 size={28} style={{ color: 'var(--emerald-600, #059669)', flexShrink: 0 }} />
+                        <CheckCircle2 size={28} style={{ color: 'var(--accent-emerald, #6cdeb4)', flexShrink: 0 }} />
                         <div>
-                            <h3 style={{ margin: 0, fontSize: '1rem', color: '#065f46' }}>
+                            <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-primary)' }}>
                                 Nhận đơn thành công!
                             </h3>
-                            <p style={{ margin: '4px 0 0', fontSize: '0.875rem', color: '#047857' }}>
+                            <p style={{ margin: '4px 0 0', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
                                 Đơn hàng <strong>{acceptResult.orderCode}</strong> đã được chuyển sang trạng thái <strong>Chờ ký quỹ</strong>. Người gửi sẽ có 15 phút để hoàn tất ký quỹ cước phí.
                             </p>
                         </div>
@@ -372,8 +372,9 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                                                 marginLeft: '8px',
                                                 fontSize: '0.8rem',
                                                 padding: '2px 8px',
-                                                backgroundColor: 'var(--amber-100, #fef3c7)',
-                                                color: '#b45309',
+                                                backgroundColor: 'rgba(245, 203, 118, 0.15)',
+                                                color: 'var(--accent-amber, #f5cb76)',
+                                                border: '1px solid rgba(245, 203, 118, 0.3)',
                                                 borderRadius: '4px',
                                                 fontWeight: 600,
                                             }}
@@ -409,7 +410,7 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                                     gap: '12px',
                                 }}
                             >
-                                {order.imageUrls.map((url, idx) => (
+                                {order.imageUrls.map((url: string, idx: number) => (
                                     <a
                                         key={idx}
                                         href={url}
@@ -439,9 +440,9 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                 <div className="ui-stack" style={{ gap: '20px' }}>
                     <SectionCard title="Cước phí & Nhận đơn">
                         <div className="ui-stack" style={{ gap: '16px' }}>
-                            <div style={{ textAlign: 'center', padding: '16px', backgroundColor: 'var(--bg-tertiary, #f8fafc)', borderRadius: '8px' }}>
+                            <div style={{ textAlign: 'center', padding: '16px', backgroundColor: 'var(--bg-secondary, #181e27)', border: '1px solid var(--border-subtle, #333d4c)', borderRadius: '8px' }}>
                                 <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Giá cước niêm yết (hệ thống & người gửi)</span>
-                                <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--primary, #0284c7)', marginTop: '4px' }}>
+                                <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--primary, #f37021)', marginTop: '4px' }}>
                                     {numberFormat.format(suggestedPrice)} <small style={{ fontSize: '1rem' }}>đ</small>
                                 </div>
                                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
@@ -466,18 +467,18 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                                 </div>
                             </div>
 
-                            {/* Card Hiển thị Chào giá hiện tại của bưu tá (UC-18 / UC-19) */}
+                            {/* Card Hiển thị Chào giá hiện tại của bưu tá */}
                             {activeOffer && (
                                 <div
                                     style={{
-                                        border: '1px solid var(--primary, #2563eb)',
-                                        borderRadius: '8px',
-                                        padding: '14px',
-                                        backgroundColor: 'var(--primary-subtle, #eff6ff)',
+                                        border: '1px solid rgba(243, 112, 33, 0.4)',
+                                        borderRadius: '10px',
+                                        padding: '16px',
+                                        backgroundColor: 'rgba(243, 112, 33, 0.08)',
                                     }}
                                 >
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                        <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1e3a8a' }}>
+                                        <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
                                             Chào giá của bạn cho đơn này
                                         </span>
                                         <Badge dot tone={OFFER_STATUS_MAP[activeOffer.status]?.tone || 'neutral'}>
@@ -490,7 +491,7 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                                     </div>
 
                                     {activeOffer.message && (
-                                        <div style={{ fontSize: '0.8rem', fontStyle: 'italic', color: '#3b82f6', marginTop: '4px' }}>
+                                        <div style={{ fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-secondary)', marginTop: '4px' }}>
                                             &ldquo;{activeOffer.message}&rdquo;
                                         </div>
                                     )}
@@ -499,22 +500,22 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                                     {activeOffer.status === 'COUNTERED' && activeOffer.createdBySender && (
                                         <div
                                             style={{
-                                                marginTop: '10px',
-                                                padding: '10px',
-                                                backgroundColor: '#fff',
-                                                borderRadius: '6px',
-                                                border: '1px solid #fed7aa',
+                                                marginTop: '12px',
+                                                padding: '12px',
+                                                backgroundColor: 'var(--bg-tertiary, #242d39)',
+                                                borderRadius: '8px',
+                                                border: '1px solid var(--border-subtle, #333d4c)',
                                             }}
                                         >
-                                            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#c2410c' }}>
+                                            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary, #f37021)' }}>
                                                 Người gửi phản đề xuất mức giá: {numberFormat.format(activeOffer.price)} đ
                                             </div>
                                             {activeOffer.message && (
-                                                <div style={{ fontSize: '0.8rem', color: '#7c2d12', marginTop: '2px' }}>
+                                                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
                                                     Lời nhắn: &ldquo;{activeOffer.message}&rdquo;
                                                 </div>
                                             )}
-                                            <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                                            <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
                                                 {activeOffer.roundNo < 3 && (
                                                     <Button
                                                         variant="secondary"
@@ -532,7 +533,7 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                                         </div>
                                     )}
 
-                                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
                                         <Button
                                             variant="ghost"
                                             size="sm"
@@ -540,37 +541,37 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                                             onClick={() => handleWithdrawOffer(activeOffer.id)}
                                             disabled={submittingOffer}
                                         >
-                                            Rút chào giá (API-045)
+                                            Rút chào giá
                                         </Button>
                                     </div>
                                 </div>
                             )}
 
-                            {/* Quy tắc bưu tá cần nắm */}
-                            <div style={{ borderTop: '1px solid var(--border-subtle, #e2e8f0)', paddingTop: '12px' }}>
+                            {/* Lưu ý bưu tá */}
+                            <div style={{ borderTop: '1px solid var(--border-subtle, #333d4c)', paddingTop: '12px' }}>
                                 <h4 style={{ fontSize: '0.9rem', marginBottom: '8px', color: 'var(--text-secondary)' }}>
-                                    Quy tắc bưu tá (BR):
+                                    Lưu ý dành cho bưu tá:
                                 </h4>
                                 <ul style={{ fontSize: '0.8rem', color: 'var(--text-muted)', paddingLeft: '16px', margin: 0, lineHeight: 1.6 }}>
-                                    <li><strong>BR-R-008:</strong> Không tự nhận/chào giá đơn của chính mình.</li>
-                                    <li><strong>BR-R-024:</strong> Đơn {'>'} 1.000.000đ yêu cầu từ hạng Bạc trở lên.</li>
-                                    <li><strong>BR-R-029:</strong> Biên giá chào từ 70% đến 150% giá gợi ý.</li>
-                                    <li><strong>BR-R-030:</strong> Mỗi bưu tá chỉ có 1 chào giá hiệu lực cho 1 đơn.</li>
+                                    <li>Không nhận hoặc gửi chào giá cho đơn hàng do chính bạn tạo.</li>
+                                    <li>Đơn hàng có giá trị khai báo trên 1.000.000đ yêu cầu bưu tá từ hạng Bạc trở lên.</li>
+                                    <li>Biên giá chào hợp lệ từ 70% đến 150% so với giá gợi ý của hệ thống.</li>
+                                    <li>Mỗi bưu tá chỉ gửi tối đa 1 chào giá có hiệu lực cho mỗi đơn hàng.</li>
                                 </ul>
                             </div>
 
-                            {/* Nút hành động chính (UC-17 & UC-18) */}
+                            {/* Nút hành động chính */}
                             {order.isAvailable && !acceptResult && (
                                 <>
                                     {!user ? (
                                         <div
                                             style={{
-                                                backgroundColor: 'var(--blue-50, #eff6ff)',
-                                                border: '1px solid var(--blue-200, #bfdbfe)',
+                                                backgroundColor: 'var(--bg-tertiary, #242d39)',
+                                                border: '1px solid var(--border-subtle, #333d4c)',
                                                 padding: '12px',
-                                                borderRadius: '6px',
+                                                borderRadius: '8px',
                                                 fontSize: '0.85rem',
-                                                color: '#1e3a8a',
+                                                color: 'var(--text-secondary)',
                                                 textAlign: 'center',
                                             }}
                                         >
@@ -584,15 +585,15 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                                     ) : !isCourier ? (
                                         <div
                                             style={{
-                                                backgroundColor: 'var(--amber-50, #fffbeb)',
-                                                border: '1px solid var(--amber-300, #fcd34d)',
+                                                backgroundColor: 'rgba(245, 203, 118, 0.1)',
+                                                border: '1px solid rgba(245, 203, 118, 0.3)',
                                                 padding: '12px',
-                                                borderRadius: '6px',
+                                                borderRadius: '8px',
                                                 fontSize: '0.85rem',
-                                                color: '#92400e',
+                                                color: 'var(--accent-amber, #f5cb76)',
                                             }}
                                         >
-                                            Tài khoản của bạn ({user.email}) có vai trò {user.roles?.join(', ')}. Theo quy tắc <strong>BR-R-009</strong>, chỉ Bưu tá mới được nhận đơn/chào giá.
+                                            Tài khoản của bạn ({user.email}) hiện có vai trò {user.roles?.join(', ')}. Chỉ tài khoản Bưu tá mới có thể nhận đơn hoặc gửi chào giá.
                                         </div>
                                     ) : (
                                         <div className="ui-stack" style={{ gap: '10px' }}>
@@ -616,7 +617,7 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                                                     }}
                                                     style={{ width: '100%', padding: '12px' }}
                                                 >
-                                                    Gửi mức giá chào khác (UC-18)
+                                                    Gửi mức giá chào khác
                                                 </Button>
                                             )}
                                         </div>
@@ -634,10 +635,10 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                 </div>
             </div>
 
-            {/* Modal: Xác nhận nhận đơn giá niêm yết (UC-17) */}
+            {/* Modal: Xác nhận nhận đơn giá niêm yết */}
             <Modal
                 isOpen={isConfirmOpen}
-                title="Xác nhận nhận đơn theo giá niêm yết (UC-17)"
+                title="Xác nhận nhận đơn theo giá niêm yết"
                 onClose={() => {
                     if (!accepting) setIsConfirmOpen(false);
                 }}
@@ -650,7 +651,7 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                         </strong>?
                     </p>
 
-                    <div style={{ backgroundColor: 'var(--bg-tertiary, #f8fafc)', padding: '12px', borderRadius: '6px', fontSize: '0.9rem' }}>
+                    <div style={{ backgroundColor: 'var(--bg-tertiary, #242d39)', border: '1px solid var(--border-subtle, #333d4c)', padding: '12px', borderRadius: '8px', fontSize: '0.9rem' }}>
                         <p style={{ margin: '4px 0' }}>• Hàng hóa: <strong>{order.productName}</strong> ({order.weightKg} kg)</p>
                         <p style={{ margin: '4px 0' }}>• Tuyến đường: {order.pickupAddress} ➔ {order.deliveryAddress}</p>
                     </div>
@@ -683,10 +684,10 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                 </div>
             </Modal>
 
-            {/* Modal: Gửi chào giá (UC-18 / API-044) */}
+            {/* Modal: Gửi chào giá */}
             <Modal
                 isOpen={isOfferModalOpen}
-                title="Gửi chào giá cho người gửi (UC-18)"
+                title="Gửi chào giá cho người gửi"
                 description={`Kiện hàng: ${order.productName} • Giá gợi ý: ${numberFormat.format(suggestedPrice)} đ`}
                 onClose={() => {
                     if (!submittingOffer) setIsOfferModalOpen(false);
@@ -704,7 +705,9 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                                 width: '100%',
                                 padding: '10px 12px',
                                 borderRadius: '8px',
-                                border: '1px solid var(--border-color, #d1d5db)',
+                                backgroundColor: 'var(--bg-secondary, #181e27)',
+                                color: 'var(--text-primary, #f1f4fb)',
+                                border: '1px solid var(--border-subtle, #333d4c)',
                                 fontSize: '1.1rem',
                                 fontWeight: 600,
                             }}
@@ -716,7 +719,7 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                             placeholder={`Ví dụ: ${suggestedPrice}`}
                         />
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                            Quy tắc BR-R-029: Mức giá hợp lệ từ 70% ({numberFormat.format(minPriceAllowed)} đ) đến 150% ({numberFormat.format(maxPriceAllowed)} đ).
+                            Mức giá hợp lệ từ 70% ({numberFormat.format(minPriceAllowed)} đ) đến 150% ({numberFormat.format(maxPriceAllowed)} đ).
                         </div>
                     </div>
 
@@ -730,7 +733,9 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                                 width: '100%',
                                 padding: '10px 12px',
                                 borderRadius: '8px',
-                                border: '1px solid var(--border-color, #d1d5db)',
+                                backgroundColor: 'var(--bg-secondary, #181e27)',
+                                color: 'var(--text-primary, #f1f4fb)',
+                                border: '1px solid var(--border-subtle, #333d4c)',
                                 fontSize: '0.9rem',
                             }}
                             value={offerEtaMinutes}
@@ -754,7 +759,9 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                                 width: '100%',
                                 padding: '10px 12px',
                                 borderRadius: '8px',
-                                border: '1px solid var(--border-color, #d1d5db)',
+                                backgroundColor: 'var(--bg-secondary, #181e27)',
+                                color: 'var(--text-primary, #f1f4fb)',
+                                border: '1px solid var(--border-subtle, #333d4c)',
                                 fontSize: '0.875rem',
                                 minHeight: '80px',
                                 resize: 'vertical',
@@ -786,7 +793,7 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                 </div>
             </Modal>
 
-            {/* Modal: Phản giá lại cho người gửi (UC-19) */}
+            {/* Modal: Phản giá lại cho người gửi */}
             <Modal
                 isOpen={isCounterModalOpen}
                 title="Phản đề xuất mức giá mới"
@@ -804,7 +811,9 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                                 width: '100%',
                                 padding: '10px 12px',
                                 borderRadius: '8px',
-                                border: '1px solid var(--border-color, #d1d5db)',
+                                backgroundColor: 'var(--bg-secondary, #181e27)',
+                                color: 'var(--text-primary, #f1f4fb)',
+                                border: '1px solid var(--border-subtle, #333d4c)',
                                 fontSize: '1rem',
                             }}
                             min={minPriceAllowed}
@@ -825,7 +834,9 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                                 width: '100%',
                                 padding: '10px 12px',
                                 borderRadius: '8px',
-                                border: '1px solid var(--border-color, #d1d5db)',
+                                backgroundColor: 'var(--bg-secondary, #181e27)',
+                                color: 'var(--text-primary, #f1f4fb)',
+                                border: '1px solid var(--border-subtle, #333d4c)',
                                 fontSize: '0.875rem',
                                 minHeight: '80px',
                             }}

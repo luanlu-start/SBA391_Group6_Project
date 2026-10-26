@@ -179,7 +179,7 @@ export default function OrderOffersPage(): React.ReactElement {
         <div className="ui-stack" style={{ gap: '24px' }}>
             <PageHeader
                 title={`Chào giá đơn hàng #${order.orderCode}`}
-                eyebrow="SCR-21 / UC-19: Thương lượng & Chốt bưu tá"
+                eyebrow="Thương lượng & Chốt bưu tá"
                 description={`So sánh các đề xuất giá và bưu tá phù hợp để giao kiện hàng: ${order.productName}`}
                 actions={
                     <div className="ui-row" style={{ gap: '12px' }}>
@@ -205,8 +205,8 @@ export default function OrderOffersPage(): React.ReactElement {
                     style={{
                         padding: '16px 20px',
                         borderRadius: '12px',
-                        backgroundColor: 'var(--accent-emerald-subtle, #ecfdf5)',
-                        border: '1px solid var(--accent-emerald, #10b981)',
+                        backgroundColor: 'var(--success-bg, #15332d)',
+                        border: '1px solid var(--accent-emerald, #6cdeb4)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
@@ -215,12 +215,12 @@ export default function OrderOffersPage(): React.ReactElement {
                     }}
                 >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <CheckCircle2 size={24} style={{ color: 'var(--accent-emerald, #10b981)' }} />
+                        <CheckCircle2 size={24} style={{ color: 'var(--accent-emerald, #6cdeb4)' }} />
                         <div>
-                            <div style={{ fontWeight: 600, color: '#065f46' }}>
+                            <div style={{ fontWeight: 600, color: 'var(--text-primary, #f1f4fb)' }}>
                                 {acceptResult.message}
                             </div>
-                            <div style={{ fontSize: '0.875rem', color: '#047857' }}>
+                            <div style={{ fontSize: '0.875rem', color: 'var(--accent-emerald, #6cdeb4)' }}>
                                 Bưu tá: <strong>{acceptResult.courierName}</strong> • Giá thống nhất:{' '}
                                 <strong>{numberFormat.format(acceptResult.priceAgreed)} đ</strong>
                             </div>
@@ -299,7 +299,7 @@ export default function OrderOffersPage(): React.ReactElement {
                         }}
                     >
                         <Clock size={40} style={{ margin: '0 auto 12px', opacity: 0.5 }} />
-                        <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px' }}>
+                        <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>
                             Chưa có chào giá nào cho đơn này
                         </h3>
                         <p style={{ maxWidth: '420px', margin: '0 auto', fontSize: '0.875rem' }}>
@@ -328,13 +328,13 @@ export default function OrderOffersPage(): React.ReactElement {
                                     key={offer.id}
                                     style={{
                                         border: offer.status === 'ACCEPTED'
-                                            ? '2px solid var(--accent-emerald, #10b981)'
-                                            : '1px solid var(--border-color, #e5e7eb)',
+                                            ? '2px solid var(--accent-emerald, #6cdeb4)'
+                                            : '1px solid var(--border-subtle, #333d4c)',
                                         borderRadius: '12px',
                                         padding: '20px',
                                         backgroundColor: offer.status === 'ACCEPTED'
-                                            ? 'var(--accent-emerald-subtle, #f0fdf4)'
-                                            : 'var(--surface, #ffffff)',
+                                            ? 'rgba(108, 222, 180, 0.08)'
+                                            : 'var(--bg-card, #181e27)',
                                         display: 'flex',
                                         flexDirection: 'column',
                                         gap: '16px',
@@ -356,20 +356,21 @@ export default function OrderOffersPage(): React.ReactElement {
                                                     width: '44px',
                                                     height: '44px',
                                                     borderRadius: '50%',
-                                                    backgroundColor: 'var(--primary-subtle, #eff6ff)',
-                                                    color: 'var(--primary, #2563eb)',
+                                                    backgroundColor: 'rgba(243, 112, 33, 0.15)',
+                                                    color: 'var(--primary, #f37021)',
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
                                                     fontWeight: 600,
                                                     fontSize: '1.125rem',
+                                                    border: '1px solid rgba(243, 112, 33, 0.3)',
                                                 }}
                                             >
                                                 {offer.courierName ? offer.courierName[0].toUpperCase() : 'B'}
                                             </div>
                                             <div>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    <span style={{ fontWeight: 600, fontSize: '1rem' }}>
+                                                    <span style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--text-primary)' }}>
                                                         {offer.courierName}
                                                     </span>
                                                     {offer.fptBadge && (
@@ -391,15 +392,15 @@ export default function OrderOffersPage(): React.ReactElement {
                                                 >
                                                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                         <Award size={14} style={{ color: 'var(--primary)' }} />
-                                                        Hạng: <strong>{offer.courierTierName}</strong>
+                                                        Hạng: <strong style={{ color: 'var(--text-primary)' }}>{offer.courierTierName}</strong>
                                                     </span>
                                                     <span>•</span>
                                                     <span>
-                                                        Điểm uy tín: <strong>{offer.courierTrustScore}</strong>/100
+                                                        Điểm uy tín: <strong style={{ color: 'var(--text-primary)' }}>{offer.courierTrustScore}</strong>/100
                                                     </span>
                                                     <span>•</span>
                                                     <span>
-                                                        Đã hoàn thành: <strong>{offer.courierCompletedOrders}</strong> đơn
+                                                        Đã hoàn thành: <strong style={{ color: 'var(--text-primary)' }}>{offer.courierCompletedOrders}</strong> đơn
                                                     </span>
                                                 </div>
                                             </div>
@@ -425,7 +426,8 @@ export default function OrderOffersPage(): React.ReactElement {
                                             gap: '12px',
                                             padding: '14px 16px',
                                             borderRadius: '8px',
-                                            backgroundColor: 'var(--background-secondary, #f9fafb)',
+                                            backgroundColor: 'var(--bg-tertiary, #242d39)',
+                                            border: '1px solid var(--border-subtle, #333d4c)',
                                         }}
                                     >
                                         <div>
@@ -436,7 +438,7 @@ export default function OrderOffersPage(): React.ReactElement {
                                                 style={{
                                                     fontSize: '1.25rem',
                                                     fontWeight: 700,
-                                                    color: 'var(--text-main)',
+                                                    color: 'var(--text-primary)',
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     gap: '8px',
@@ -451,15 +453,15 @@ export default function OrderOffersPage(): React.ReactElement {
                                                             padding: '2px 6px',
                                                             borderRadius: '4px',
                                                             backgroundColor: isLower
-                                                                ? 'var(--accent-emerald-subtle, #ecfdf5)'
+                                                                ? 'rgba(108, 222, 180, 0.15)'
                                                                 : isHigher
-                                                                ? 'var(--warning-subtle, #fffbeb)'
-                                                                : '#f3f4f6',
+                                                                ? 'rgba(245, 203, 118, 0.15)'
+                                                                : 'rgba(255, 255, 255, 0.08)',
                                                             color: isLower
-                                                                ? '#059669'
+                                                                ? 'var(--accent-emerald, #6cdeb4)'
                                                                 : isHigher
-                                                                ? '#d97706'
-                                                                : '#6b7280',
+                                                                ? 'var(--accent-amber, #f5cb76)'
+                                                                : 'var(--text-secondary, #b0bdd2)',
                                                             display: 'inline-flex',
                                                             alignItems: 'center',
                                                             gap: '2px',
@@ -478,7 +480,7 @@ export default function OrderOffersPage(): React.ReactElement {
                                                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                                                     Dự kiến lấy hàng
                                                 </div>
-                                                <div style={{ fontSize: '0.9375rem', fontWeight: 500, marginTop: '2px' }}>
+                                                <div style={{ fontSize: '0.9375rem', fontWeight: 500, marginTop: '2px', color: 'var(--text-primary)' }}>
                                                     <Clock size={14} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'text-bottom' }} />
                                                     {new Date(offer.etaPickup).toLocaleTimeString('vi-VN', {
                                                         hour: '2-digit',
@@ -494,7 +496,7 @@ export default function OrderOffersPage(): React.ReactElement {
                                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                                                 Thời hạn hiệu lực
                                             </div>
-                                            <div style={{ fontSize: '0.9375rem', fontWeight: 500, marginTop: '2px' }}>
+                                            <div style={{ fontSize: '0.9375rem', fontWeight: 500, marginTop: '2px', color: 'var(--text-primary)' }}>
                                                 {new Date(offer.expiresAt).toLocaleTimeString('vi-VN', {
                                                     hour: '2-digit',
                                                     minute: '2-digit',
@@ -510,11 +512,11 @@ export default function OrderOffersPage(): React.ReactElement {
                                         <div
                                             style={{
                                                 fontSize: '0.875rem',
-                                                color: 'var(--text-secondary, #4b5563)',
+                                                color: 'var(--text-secondary, #b0bdd2)',
                                                 fontStyle: 'italic',
                                                 padding: '8px 12px',
                                                 borderLeft: '3px solid var(--primary)',
-                                                backgroundColor: 'var(--background-secondary, #f9fafb)',
+                                                backgroundColor: 'var(--bg-tertiary, #242d39)',
                                                 borderRadius: '0 6px 6px 0',
                                             }}
                                         >
@@ -529,7 +531,7 @@ export default function OrderOffersPage(): React.ReactElement {
                                                 display: 'flex',
                                                 justifyContent: 'flex-end',
                                                 gap: '10px',
-                                                borderTop: '1px solid var(--border-color, #e5e7eb)',
+                                                borderTop: '1px solid var(--border-subtle, #333d4c)',
                                                 paddingTop: '14px',
                                                 flexWrap: 'wrap',
                                             }}
@@ -666,7 +668,9 @@ export default function OrderOffersPage(): React.ReactElement {
                                 width: '100%',
                                 padding: '10px 12px',
                                 borderRadius: '8px',
-                                border: '1px solid var(--border-color, #d1d5db)',
+                                backgroundColor: 'var(--bg-secondary, #181e27)',
+                                color: 'var(--text-primary, #f1f4fb)',
+                                border: '1px solid var(--border-subtle, #333d4c)',
                                 fontSize: '1rem',
                             }}
                             min={minPriceAllowed}
@@ -677,12 +681,12 @@ export default function OrderOffersPage(): React.ReactElement {
                             placeholder={`Khoảng cho phép: ${minPriceAllowed} - ${maxPriceAllowed}`}
                         />
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                            Quy tắc BR-R-029: Mức giá phải nằm trong khoảng từ 70% ({numberFormat.format(minPriceAllowed)} đ) đến 150% ({numberFormat.format(maxPriceAllowed)} đ) của giá gợi ý.
+                            Mức giá phải nằm trong khoảng từ 70% ({numberFormat.format(minPriceAllowed)} đ) đến 150% ({numberFormat.format(maxPriceAllowed)} đ) của giá gợi ý.
                         </div>
                     </div>
 
                     <div>
-                        <label style={{ display: 'block', fontWeight: 500, fontSize: '0.875rem', marginBottom: '6px' }}>
+                        <label style={{ display: 'block', fontWeight: 500, fontSize: '0.875rem', marginBottom: '6px', color: 'var(--text-primary)' }}>
                             Lời nhắn thương lượng (tùy chọn)
                         </label>
                         <textarea
@@ -691,7 +695,9 @@ export default function OrderOffersPage(): React.ReactElement {
                                 width: '100%',
                                 padding: '10px 12px',
                                 borderRadius: '8px',
-                                border: '1px solid var(--border-color, #d1d5db)',
+                                backgroundColor: 'var(--bg-secondary, #181e27)',
+                                color: 'var(--text-primary, #f1f4fb)',
+                                border: '1px solid var(--border-subtle, #333d4c)',
                                 fontSize: '0.875rem',
                                 minHeight: '80px',
                                 resize: 'vertical',

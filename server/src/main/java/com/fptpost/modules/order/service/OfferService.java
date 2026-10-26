@@ -49,14 +49,14 @@ public class OfferService implements IOfferService {
     private final UserProfileRepository userProfileRepository;
     private final CourierProfileRepository courierProfileRepository;
 
-    private static final BigDecimal MIN_PRICE_FACTOR = new BigDecimal("0.70"); // PRM-039 (70%)
-    private static final BigDecimal MAX_PRICE_FACTOR = new BigDecimal("1.50"); // PRM-040 (150%)
-    private static final int MAX_COUNTER_ROUNDS = 3;                           // PRM-054 (3 vòng)
-    private static final long OFFER_TTL_MINUTES = 120;                         // PRM-041 (120 phút)
-    private static final long HOLD_PAYMENT_MINUTES = 15;                       // PRM-023 (15 phút)
+    private static final BigDecimal MIN_PRICE_FACTOR = new BigDecimal("0.70"); // 70% giá gợi ý
+    private static final BigDecimal MAX_PRICE_FACTOR = new BigDecimal("1.50"); // 150% giá gợi ý
+    private static final int MAX_COUNTER_ROUNDS = 3;                           // Tối đa 3 vòng
+    private static final long OFFER_TTL_MINUTES = 120;                         // Hiệu lực 120 phút
+    private static final long HOLD_PAYMENT_MINUTES = 15;                       // Giữ chỗ ký quỹ 15 phút
 
     // ==========================================
-    // UC-18: Gửi chào giá (API-044)
+    // Gửi chào giá (COURIER)
     // ==========================================
     @Override
     @Transactional
@@ -65,7 +65,6 @@ public class OfferService implements IOfferService {
             throw new AppException(GlobalErrorCode.UNAUTHORIZED);
         }
 
-        // BR-R-009: Chỉ tài khoản có vai trò Người giao (COURIER) mới được gửi chào giá
         boolean hasCourierRole = courierUser.getRoles() != null && courierUser.getRoles().stream()
                 .anyMatch(r -> "COURIER".equalsIgnoreCase(r.getCode()));
         if (!hasCourierRole) {
@@ -78,17 +77,14 @@ public class OfferService implements IOfferService {
 
         Order order = findMarketOrderByIdentifier(orderIdentifier);
 
-        // Đơn phải đang ở trạng thái tìm người giao và chưa được gán
         if (order.getStatus() != OrderStatus.FINDING_SHIPPER || order.getCourierId() != null) {
             throw new AppException(OrderErrorCode.ORDER_NOT_AVAILABLE);
         }
 
-        // BR-R-008: Không được tự chào giá đơn do chính mình tạo
         if (order.getSenderId() != null && order.getSenderId().equals(courierUser.getId())) {
             throw new AppException(OrderErrorCode.OFFER_SELF_FORBIDDEN);
         }
 
-        // Kiểm tra hồ sơ & hạn mức của bưu tá
         CourierProfile profile = getOrInitCourierProfile(courierUser);
         if (profile.getRestrictedUntil() != null && profile.getRestrictedUntil().isAfter(Instant.now())) {
             throw new AppException(OrderErrorCode.COURIER_ACCOUNT_RESTRICTED);
@@ -96,7 +92,6 @@ public class OfferService implements IOfferService {
 
         CourierTier tier = profile.getTier() != null ? profile.getTier() : CourierTier.SILVER;
 
-        // BR-R-024: Đơn giá trị khai báo > 1.000.000đ yêu cầu từ hạng Bạc trở lên
         BigDecimal highValueThreshold = new BigDecimal("1000000");
         if (order.getDeclaredValue() != null && order.getDeclaredValue().compareTo(highValueThreshold) > 0) {
             if (!tier.isCanAcceptHighValue()) {
@@ -104,13 +99,9 @@ public class OfferService implements IOfferService {
             }
         }
 
-        // BR-R-028: Hạn mức nhận đơn theo hạng
         checkCourierLimits(courierUser.getId(), tier, order.getDeclaredValue());
-
-        // BR-R-029: Kiểm tra biên giá chào [70% - 150%] của giá gợi ý
         validatePriceBounds(order, request.getPrice());
 
-        // BR-R-030: Một chào giá hiệu lực mỗi người giao - Chào giá cũ chuyển sang WITHDRAWN
         List<Offer> activeOffers = offerRepository.findByOrderIdAndCourierIdAndStatusIn(
                 order.getId(),
                 courierUser.getId(),
@@ -122,7 +113,6 @@ public class OfferService implements IOfferService {
             offerRepository.save(oldOffer);
         }
 
-        // Tạo chào giá mới
         Instant now = Instant.now();
         Offer newOffer = Offer.builder()
                 .order(order)
@@ -143,7 +133,7 @@ public class OfferService implements IOfferService {
     }
 
     // ==========================================
-    // UC-18: Rút chào giá (API-045)
+    // Rút chào giá (COURIER)
     // ==========================================
     @Override
     @Transactional
@@ -171,7 +161,7 @@ public class OfferService implements IOfferService {
     }
 
     // ==========================================
-    // UC-18: Chào giá của tôi (API-046)
+    // Chào giá của tôi (COURIER)
     // ==========================================
     @Override
     public List<OfferResponse> getMyOffers(User courierUser) {
@@ -184,14 +174,12 @@ public class OfferService implements IOfferService {
     }
 
     // ==========================================
-    // UC-19: Danh sách chào giá của đơn (API-047)
+    // Danh sách chào giá của đơn (SENDER / COURIER)
     // ==========================================
     @Override
     public List<OfferResponse> getOffersForOrder(String orderIdentifier, User currentUser) {
         Order order = findMarketOrderByIdentifier(orderIdentifier);
 
-        // Người gửi xem được tất cả chào giá của đơn hàng;
-        // Bưu tá chỉ xem được chào giá của chính mình trên đơn hàng
         boolean isSender = currentUser != null && order.getSenderId().equals(currentUser.getId());
         if (isSender) {
             return offerRepository.findByOrderIdOrderByCreatedAtDesc(order.getId()).stream()
@@ -202,13 +190,12 @@ public class OfferService implements IOfferService {
                     .map(this::mapToOfferResponse)
                     .toList();
         } else {
-            // Khách chưa đăng nhập không được xem danh sách chào giá chi tiết
             throw new AppException(GlobalErrorCode.UNAUTHORIZED);
         }
     }
 
     // ==========================================
-    // UC-19: Chấp nhận chào giá (API-048)
+    // Chấp nhận chào giá (SENDER)
     // ==========================================
     @Override
     @Transactional
@@ -222,22 +209,18 @@ public class OfferService implements IOfferService {
 
         Order order = findMarketOrderForUpdateByIdentifier(String.valueOf(offer.getOrder().getId()));
 
-        // Kiểm tra quyền: Người gọi phải là Người gửi đã tạo đơn
         if (!order.getSenderId().equals(senderUser.getId())) {
             throw new AppException(OrderErrorCode.OFFER_FORBIDDEN);
         }
 
-        // Đơn phải còn đang ở trạng thái tìm shipper và chưa ai nhận
         if (order.getStatus() != OrderStatus.FINDING_SHIPPER || order.getCourierId() != null) {
             throw new AppException(OrderErrorCode.ORDER_NOT_AVAILABLE);
         }
 
-        // Chào giá phải đang ở trạng thái PENDING (hoặc COUNTERED do bưu tá phản giá)
         if (offer.getStatus() != OfferStatus.PENDING && offer.getStatus() != OfferStatus.COUNTERED) {
             throw new AppException(OrderErrorCode.OFFER_NOT_ACTIVE);
         }
 
-        // Kiểm tra thời hạn hiệu lực chào giá
         if (offer.getExpiresAt() != null && offer.getExpiresAt().isBefore(Instant.now())) {
             offer.setStatus(OfferStatus.EXPIRED);
             offerRepository.save(offer);
@@ -248,10 +231,8 @@ public class OfferService implements IOfferService {
         CourierProfile profile = getOrInitCourierProfile(courier);
         CourierTier tier = profile.getTier() != null ? profile.getTier() : CourierTier.SILVER;
 
-        // BR-R-028: Kiểm tra lại hạn mức bưu tá tại thời điểm chốt
         checkCourierLimits(courier.getId(), tier, order.getDeclaredValue());
 
-        // BR-F-032 & BR-R-031: Chốt người giao, chuyển trạng thái đơn sang Chờ ký quỹ (AWAITING_PAYMENT)
         offer.setStatus(OfferStatus.ACCEPTED);
         offer.setUpdatedAt(Instant.now());
         offerRepository.save(offer);
@@ -259,13 +240,10 @@ public class OfferService implements IOfferService {
         order.setCourierId(courier.getId());
         order.setPriceAgreed(offer.getPrice());
         order.setStatus(OrderStatus.AWAITING_PAYMENT);
-
-        // BR-R-055: Khóa hoa hồng nền tảng theo hạng của người giao tại thời điểm chấp nhận
         order.setFeeRateLocked(tier.getCommissionRate());
         order.setUpdatedAt(Instant.now());
         Order savedOrder = orderRepository.save(order);
 
-        // BR-R-031: Tự động từ chối tất cả các chào giá còn lại của đơn hàng
         List<Offer> otherOffers = offerRepository.findByOrderIdAndStatusInOrderByCreatedAtDesc(
                 order.getId(),
                 List.of(OfferStatus.PENDING, OfferStatus.COUNTERED)
@@ -295,7 +273,7 @@ public class OfferService implements IOfferService {
     }
 
     // ==========================================
-    // UC-19: Từ chối chào giá (API-049)
+    // Từ chối chào giá (SENDER)
     // ==========================================
     @Override
     @Transactional
@@ -324,7 +302,7 @@ public class OfferService implements IOfferService {
     }
 
     // ==========================================
-    // UC-19: Phản giá (API-050)
+    // Phản giá (SENDER / COURIER)
     // ==========================================
     @Override
     @Transactional
@@ -338,7 +316,6 @@ public class OfferService implements IOfferService {
 
         Order order = currentOffer.getOrder();
 
-        // Kiểm tra quyền: Người gọi phải là Người gửi của đơn HOẶC Bưu tá của chào giá này
         boolean isSender = order.getSenderId().equals(currentUser.getId());
         boolean isCourier = currentOffer.getCourier().getId().equals(currentUser.getId());
 
@@ -346,12 +323,10 @@ public class OfferService implements IOfferService {
             throw new AppException(OrderErrorCode.OFFER_FORBIDDEN);
         }
 
-        // Không được tự phản giá lại đề xuất của chính mình khi đối phương chưa phản hồi
         if (currentOffer.isCreatedBySender() == isSender) {
             throw new AppException(OrderErrorCode.OFFER_FORBIDDEN);
         }
 
-        // Đơn phải còn đang ở trạng thái tìm bưu tá
         if (order.getStatus() != OrderStatus.FINDING_SHIPPER || order.getCourierId() != null) {
             throw new AppException(OrderErrorCode.ORDER_NOT_AVAILABLE);
         }
@@ -360,20 +335,16 @@ public class OfferService implements IOfferService {
             throw new AppException(OrderErrorCode.OFFER_NOT_ACTIVE);
         }
 
-        // BR-R-032: Thương lượng tối đa 3 vòng cho một chào giá
         if (currentOffer.getRoundNo() >= MAX_COUNTER_ROUNDS) {
             throw new AppException(OrderErrorCode.OFFER_EXCEEDED_ROUNDS);
         }
 
-        // BR-R-029: Kiểm tra biên giá phản đề xuất [70% - 150%]
         validatePriceBounds(order, request.getPrice());
 
-        // Đánh dấu offer hiện tại là COUNTERED
         currentOffer.setStatus(OfferStatus.COUNTERED);
         currentOffer.setUpdatedAt(Instant.now());
         offerRepository.save(currentOffer);
 
-        // Sinh chào giá con cho vòng tiếp theo
         Instant now = Instant.now();
         Offer nextOffer = Offer.builder()
                 .order(order)
@@ -445,18 +416,17 @@ public class OfferService implements IOfferService {
                 CourierProfile newProfile = CourierProfile.builder()
                         .user(courierUser)
                         .tier(CourierTier.SILVER)
-                        .trustScore(80)
+                        .trustScore(BigDecimal.valueOf(80))
                         .completedOrders(10)
-                        .createdAt(Instant.now())
-                        .updatedAt(Instant.now())
+                        .commitmentVersion("1.0")
+                        .registeredAt(Instant.now())
                         .build();
                 profile = courierProfileRepository.save(newProfile);
             } catch (Exception e) {
-                log.warn("Không thể lưu profile bưu tá vào DB: {}", e.getMessage());
                 profile = CourierProfile.builder()
                         .user(courierUser)
                         .tier(CourierTier.SILVER)
-                        .trustScore(80)
+                        .trustScore(BigDecimal.valueOf(80))
                         .completedOrders(10)
                         .build();
             }
@@ -503,8 +473,8 @@ public class OfferService implements IOfferService {
         CourierTier tier = courierProfile != null && courierProfile.getTier() != null
                 ? courierProfile.getTier() : CourierTier.SILVER;
         Integer trustScore = courierProfile != null && courierProfile.getTrustScore() != null
-                ? courierProfile.getTrustScore() : 80;
-        Integer completedOrders = courierProfile != null && courierProfile.getCompletedOrders() != null
+                ? courierProfile.getTrustScore().intValue() : 80;
+        Integer completedOrders = courierProfile != null
                 ? courierProfile.getCompletedOrders() : 10;
 
         Order order = offer.getOrder();

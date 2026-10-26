@@ -94,11 +94,14 @@ class OfferServiceTest {
                 .build();
 
         courierProfile = CourierProfile.builder()
-                .id(1L)
+                .userId(20L)
                 .user(courierUser)
                 .tier(CourierTier.SILVER)
-                .trustScore(85)
+                .trustScore(new BigDecimal("85"))
                 .completedOrders(25)
+                .commitmentVersion("1.0")
+                .registeredAt(java.time.Instant.now())
+                .vehicleType(com.fptpost.modules.identity.enums.VehicleType.MOTORBIKE)
                 .build();
 
         when(courierProfileRepository.findByUserId(20L)).thenReturn(Optional.of(courierProfile));

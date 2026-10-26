@@ -247,10 +247,10 @@ export default function CourierMarketplacePage(): React.ReactElement {
                 </div>
             </section>
 
-            {/* Privacy Notice (BR-R-027) */}
+            {/* Privacy Notice */}
             <div className="privacy-pill-notice">
                 <ShieldAlert size={16} aria-hidden="true" />
-                <span>Thông tin chi tiết (số nhà, số điện thoại người nhận) được ẩn cho đến khi tài xế nhận đơn (Quy tắc BR-R-023, BR-R-027).</span>
+                <span>Thông tin chi tiết (số nhà, số điện thoại người nhận) được ẩn để bảo mật cho đến khi tài xế nhận đơn thành công.</span>
             </div>
 
             {/* Order Cards Grid */}
@@ -300,7 +300,7 @@ export default function CourierMarketplacePage(): React.ReactElement {
                 </div>
             </footer>
 
-            {/* Modal xác nhận nhận đơn (UC-17) */}
+            {/* Modal xác nhận nhận đơn */}
             {selectedOrderToAccept && (
                 <Modal
                     isOpen={!!selectedOrderToAccept}
@@ -319,7 +319,7 @@ export default function CourierMarketplacePage(): React.ReactElement {
                             <p style={{ margin: '4px 0' }}>💰 <strong>Giá trị khai báo:</strong> {Number(selectedOrderToAccept.declaredValue).toLocaleString('vi-VN')} đ</p>
                             {selectedOrderToAccept.declaredValue > 1000000 && (
                                 <p style={{ margin: '4px 0', color: 'var(--amber-700, #b45309)', fontSize: '0.9rem' }}>
-                                    ⚠️ <em>Đơn hàng giá trị cao: Yêu cầu bưu tá từ hạng Bạc trở lên (BR-R-024).</em>
+                                    ⚠️ <em>Đơn hàng giá trị cao: Yêu cầu bưu tá từ hạng Bạc trở lên.</em>
                                 </p>
                             )}
                         </div>

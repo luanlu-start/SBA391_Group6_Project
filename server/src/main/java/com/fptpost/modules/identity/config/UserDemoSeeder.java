@@ -111,12 +111,11 @@ public class UserDemoSeeder implements CommandLineRunner {
             com.fptpost.modules.identity.model.CourierProfile courierProfile = com.fptpost.modules.identity.model.CourierProfile.builder()
                     .user(user)
                     .tier(com.fptpost.modules.identity.enums.CourierTier.SILVER)
-                    .trustScore(80)
+                    .trustScore(java.math.BigDecimal.valueOf(80))
                     .completedOrders(25)
-                    .vehicleType("Xe máy Honda Wave")
-                    .areas("Hòa Lạc, Thạch Thất, Cầu Giấy")
-                    .createdAt(now)
-                    .updatedAt(now)
+                    .vehicleType(com.fptpost.modules.identity.enums.VehicleType.MOTORBIKE)
+                    .areas(java.util.List.of("Hòa Lạc", "Thạch Thất", "Cầu Giấy"))
+                    .commitmentVersion("1.0").registeredAt(now)
                     .build();
             courierProfileRepository.save(courierProfile);
         }

@@ -47,7 +47,7 @@ export default function MarketplaceOrderCard({
                                 alignItems: 'center',
                                 gap: '4px',
                             }}
-                            title="Đơn hàng giá trị cao (> 1.000.000đ) - Yêu cầu tài xế hạng Bạc trở lên (BR-R-024)"
+                            title="Đơn hàng giá trị cao (> 1.000.000đ) - Yêu cầu tài xế hạng Bạc trở lên"
                         >
                             <ShieldCheck size={12} />
                             Hàng giá trị cao

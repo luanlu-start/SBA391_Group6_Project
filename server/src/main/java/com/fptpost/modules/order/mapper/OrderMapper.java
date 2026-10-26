@@ -2,6 +2,8 @@ package com.fptpost.modules.order.mapper;
 
 import com.fptpost.modules.order.dto.OrderRequest;
 import com.fptpost.modules.order.dto.OrderResponse;
+import com.fptpost.modules.order.dto.response.MarketplaceOrderResponse;
+import com.fptpost.modules.order.dto.response.OrderDetailResponse;
 import com.fptpost.modules.order.model.Order;
 import com.fptpost.modules.order.model.OrderImage;
 import org.mapstruct.Mapper;
@@ -9,6 +11,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
 import org.mapstruct.ReportingPolicy;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -37,6 +40,17 @@ public interface OrderMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "images", ignore = true)
     void updateEntityFromDto(OrderRequest request, @MappingTarget Order order);
+
+    MarketplaceOrderResponse toMarketplaceOrderResponse(Order order);
+
+    default Page<MarketplaceOrderResponse> toMarketplaceOrderResponses(Page<Order> orders) {
+        if (orders == null || orders.isEmpty()) {
+            return Page.empty();
+        }
+        return orders.map(this::toMarketplaceOrderResponse);
+    }
+
+    OrderDetailResponse toOrderDetailResponse(Order order);
 
     @Named("mapImagesToUrls")
     default List<String> mapImagesToUrls(List<OrderImage> images) {

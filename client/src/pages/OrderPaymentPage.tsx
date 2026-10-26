@@ -169,7 +169,7 @@ export default function OrderPaymentPage() {
       <PageHeader 
         eyebrow="Đơn hàng & Ký quỹ" 
         title="Thanh toán & Ký quỹ Đơn hàng" 
-        description="Thanh toán tiền ký quỹ (Escrow) bảo đảm hàng hóa qua Ví nội bộ FPTPost hoặc Cổng VNPay (UC-35, SCR-22)."
+        description="Thanh toán tiền ký quỹ (Escrow) bảo đảm hàng hóa qua Ví nội bộ FPTPost hoặc Cổng VNPay."
         actions={
           <div className="ui-row">
             <Link to="/wallet" className="ui-button ui-button-secondary ui-button-sm">
