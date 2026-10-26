@@ -28,6 +28,10 @@ export const authService = {
     await axiosClient.post('/auth/password/reset', { identifier, otp, newPassword });
     clearAuthentication();
   },
+  async changePassword(currentPassword: string, newPassword: string) {
+    await axiosClient.post('/auth/password/change', { currentPassword, newPassword });
+    clearAuthentication();
+  },
   async login(identifier: string, password: string, rememberMe = false) {
     const { data } = await axiosClient.post<unknown, ApiResponse<AuthenticationResponse>>('/auth/login', { identifier, password, rememberMe },
       { headers: await csrfHeaders() });

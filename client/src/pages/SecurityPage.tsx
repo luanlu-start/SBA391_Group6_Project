@@ -4,6 +4,7 @@ import { ArrowLeft, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useAuthentication } from '../auth/useAuthentication';
 import { useSessions } from '../features/auth/hooks/useSessions';
 import SessionList from '../features/auth/components/SessionList';
+import ChangePasswordForm from '../features/auth/components/ChangePasswordForm';
 import { describeDevice, formatSessionTime } from '../features/auth/utils/sessionDisplay';
 import type { SessionResponse } from '../types/identity';
 import ApiErrorNotice from '../components/ApiErrorNotice';
@@ -35,9 +36,12 @@ export default function SecurityPage() {
 
   return <div className="ui-stack security-page">
     <PageHeader eyebrow="Tài khoản" title="Bảo mật và thiết bị"
-      description="Quản lý các phiên đăng nhập trên trình duyệt và thiết bị của bạn."
+      description="Đổi mật khẩu và quản lý các phiên đăng nhập của bạn."
       actions={<Link to="/account" className="ui-button ui-button-secondary"><ArrowLeft size={17} aria-hidden="true" />Tài khoản</Link>} />
     {notice && <Alert tone="success">{notice}</Alert>}
+    <SectionCard title="Đổi mật khẩu" description="Nhập mật khẩu hiện tại để xác nhận đây là tài khoản của bạn.">
+      <ChangePasswordForm />
+    </SectionCard>
     <Alert tone="info" title="Phiên đăng nhập là gì?">
       Mỗi trình duyệt có một phiên đăng nhập. Đăng nhập lại trên cùng trình duyệt sẽ thay phiên trước.
       Bạn chỉ cần đăng xuất phiên trên trình duyệt hoặc thiết bị không còn sử dụng hay không nhận ra.

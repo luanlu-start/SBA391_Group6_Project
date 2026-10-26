@@ -1,0 +1,9 @@
+.courier-days { border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: var(--space-4); min-width: 0; }
+.courier-days legend { color: var(--text-primary); padding-inline: var(--space-2); font-weight: 600; }
+.courier-days legend span { color: var(--text-accent); }
+.courier-days .ui-form-actions { gap: var(--space-4); }
+.courier-hours { display: grid; gap: var(--space-2); padding-left: 20px; color: var(--text-secondary); }
+.account-mode-select { width: auto; max-width: 150px; flex: 0 0 auto; }
+.navbar-actions { flex-wrap: nowrap; }
+@media (max-width: 600px) { .account-mode-select { max-width: 125px; font-size: .78rem; } }
+@media (max-width: 420px) { .navbar-actions:has(.account-mode-select) .navbar-account-label { display: none; } }

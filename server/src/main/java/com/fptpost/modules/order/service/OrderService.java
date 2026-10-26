@@ -93,7 +93,6 @@ public class OrderService {
         Order updated = orderRepository.save(order);
         return orderMapper.toResponse(updated);
     }
-
     public List<OrderResponse> getOrdersBySenderId(Long senderId) {
         List<Order> orders = orderRepository.findBySenderIdOrderByCreatedAtDesc(senderId);
         return orderMapper.toResponses(orders);

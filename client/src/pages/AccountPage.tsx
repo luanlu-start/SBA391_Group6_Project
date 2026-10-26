@@ -35,6 +35,10 @@ export default function AccountPage() {
     <div className="ui-form-actions">
       <Link className="ui-button ui-button-primary" to="/wallet">Ví FPTPost (Nạp tiền)</Link>
       <Link className="ui-button ui-button-secondary" to="/me/security">Bảo mật và thiết bị</Link>
+      <Link className="ui-button ui-button-secondary" to="/me/profile">Hồ sơ cá nhân</Link>
+      <Link className="ui-button ui-button-secondary" to="/me/addresses">Sổ địa chỉ</Link>
+      <Link className="ui-button ui-button-secondary" to="/me/kyc">Xác minh danh tính</Link>
+      <Link className="ui-button ui-button-secondary" to="/me/courier-register">Người giao</Link>
       <Link className="ui-button ui-button-secondary" to="/">Về trang chủ</Link>
       <Button variant="danger" onClick={logout} loading={busy} loadingText="Đang đăng xuất…">Đăng xuất</Button>
     </div>
