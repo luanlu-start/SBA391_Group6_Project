@@ -1,6 +1,7 @@
 package com.fptpost.modules.order.controller;
 
 import com.fptpost.common.response.ApiResponse;
+import com.fptpost.modules.order.dto.OrderCancelRequest;
 import com.fptpost.modules.order.dto.OrderRequest;
 import com.fptpost.modules.order.dto.OrderResponse;
 import com.fptpost.modules.order.service.OrderService;
@@ -11,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -39,6 +41,7 @@ public class OrderController {
     private final UserRepository userRepository;
 
     @PostMapping(value = "/upload-images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('SENDER')")
     @Operation(summary = "Tải lên hình ảnh đơn hàng", description = "Tải lên một hoặc nhiều hình ảnh cho đơn hàng (hỗ trợ JPG, PNG, WEBP, GIF)")
     public ResponseEntity<ApiResponse<List<String>>> uploadImages(
             @RequestParam("files") List<MultipartFile> files) {
@@ -47,6 +50,7 @@ public class OrderController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('SENDER')")
     @Operation(summary = "Tạo mới đơn hàng", description = "Tạo mới một đơn hàng vào hệ thống")
     public ResponseEntity<ApiResponse<OrderResponse>> createOrder(
             @AuthenticationPrincipal Jwt jwt,
@@ -66,6 +70,7 @@ public class OrderController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('SENDER')")
     @Operation(summary = "Chỉnh sửa đơn hàng (UC-14, API-037)", description = "Cho phép người gửi cập nhật thông tin đơn hàng khi đơn còn ở trạng thái PENDING")
     public ResponseEntity<ApiResponse<OrderResponse>> updateOrder(
             @PathVariable Long id,
@@ -80,7 +85,25 @@ public class OrderController {
         OrderResponse updated = orderService.updateOrder(id, currentUserId, request);
         return ResponseEntity.ok(ApiResponse.success("Order updated successfully", updated));
     }
+
+    @PostMapping("/{id}/cancel")
+    @PreAuthorize("hasRole('SENDER')")
+    @Operation(summary = "Hủy đơn hàng (UC-15, API-038)", description = "Cho phép người gửi hủy đơn hàng khi đơn chưa có tài xế nhận hoặc đang chờ xử lý")
+    public ResponseEntity<ApiResponse<OrderResponse>> cancelOrder(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody(required = false) OrderCancelRequest request) {
+        Long currentUserId = null;
+        if (jwt != null && jwt.getSubject() != null) {
+            currentUserId = resolveUserId(jwt);
+        }
+        String reason = request != null ? request.getReason() : null;
+        OrderResponse cancelled = orderService.cancelOrder(id, currentUserId, reason);
+        return ResponseEntity.ok(ApiResponse.success("Hủy đơn hàng thành công", cancelled));
+    }
+
     @GetMapping("/my-orders")
+    @PreAuthorize("hasRole('SENDER')")
     @Operation(summary = "Xem danh sách đơn hàng của tôi", description = "Lấy danh sách tất cả các đơn hàng do tài khoản hiện tại tạo")
     public ResponseEntity<ApiResponse<List<OrderResponse>>> getMyOrders(@AuthenticationPrincipal Jwt jwt) {
         Long currentUserId = resolveUserId(jwt);
