@@ -2,6 +2,7 @@ import type {
   AuthenticationResponse,
   UserResponse,
 } from '../types/identity';
+import { clearAccountMode } from './accountModeStore';
 
 interface SessionState {
   user: UserResponse | null;
@@ -45,6 +46,7 @@ export function setAuthentication(response: AuthenticationResponse) {
 }
 
 export function clearAuthentication() {
+  clearAccountMode();
   accessToken = null;
   accessTokenExpiresAt = null;
 
@@ -53,5 +55,11 @@ export function clearAuthentication() {
     initializing: false,
   };
 
+  listeners.forEach(listener => listener());
+}
+
+export function updateAuthenticatedUser(user: UserResponse) {
+  if (state.user?.id !== user.id) return;
+  state = { ...state, user };
   listeners.forEach(listener => listener());
 }

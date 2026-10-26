@@ -16,11 +16,12 @@ spring:
     multipart:
       enabled: true
       max-file-size: 10MB
+      file-size-threshold: 10MB
       max-request-size: 50MB
   datasource:
     url: ${SQLSERVER_URL:jdbc:sqlserver://${COMPUTERNAME}:1433;databaseName=group6_project_db;encrypt=true;trustServerCertificate=true}
     username: ${SQLSERVER_USERNAME:sa}
-    password: ${SQLSERVER_PASSWORD}
+    password: ${SQLSERVER_PASSWORD:123456}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
   jpa:
     open-in-view: false

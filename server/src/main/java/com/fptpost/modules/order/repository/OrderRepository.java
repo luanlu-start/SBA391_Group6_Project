@@ -12,4 +12,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Optional<Order> findByOrderCode(String orderCode);
 
     boolean existsByOrderCode(String orderCode);
+
+    java.util.List<Order> findBySenderIdOrderByCreatedAtDesc(Long senderId);
 }

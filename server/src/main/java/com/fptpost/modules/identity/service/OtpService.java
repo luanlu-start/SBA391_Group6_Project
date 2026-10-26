@@ -6,6 +6,7 @@ import com.fptpost.common.mail.enums.EmailTemplateType;
 import com.fptpost.common.mail.exception.EmailDeliveryException;
 import com.fptpost.common.mail.service.EmailService;
 import com.fptpost.modules.identity.config.RegistrationProperties;
+import com.fptpost.modules.identity.config.ProfileProperties;
 import com.fptpost.modules.identity.exception.IdentityErrorCode;
 import com.fptpost.modules.identity.exception.IdentityException;
 import com.fptpost.modules.identity.dto.request.OtpVerificationRequest;
@@ -47,6 +48,7 @@ public class OtpService {
     UserMapper userMapper;
     PasswordEncoder passwordEncoder;
     RegistrationProperties registrationProperties;
+    ProfileProperties profileProperties;
     EmailService emailService;
     Clock identityClock;
     SecureRandom identityRandom;
@@ -61,13 +63,17 @@ public class OtpService {
     }
 
     private OtpCode generateAndSendOtp(User user, String fullName, OtpType type) {
+        return generateAndSendOtp(user, fullName, type, user.getEmail());
+    }
+
+    private OtpCode generateAndSendOtp(User user, String fullName, OtpType type, String target) {
         Instant now = identityClock.instant();
         String code = String.format(Locale.ROOT, "%06d", identityRandom.nextInt(1000000));
 
         OtpCode otp = OtpCode.builder()
                 .publicId(UUID.randomUUID())
                 .user(user)
-                .target(user.getEmail())
+                .target(target)
                 .type(type)
                 .codeHash(passwordEncoder.encode(code))
                 .createdAt(now)
@@ -78,8 +84,12 @@ public class OtpService {
         // Shares the user creation transaction; delivery failure rolls back all registration data.
         try {
             emailService.sendEmail(EmailRequest.builder()
-                    .email(user.getEmail())
-                    .templateType(type == OtpType.PASSWORD_RESET ? EmailTemplateType.RESET_PASSWORD : EmailTemplateType.VERIFY_EMAIL)
+                    .email(target)
+                    .templateType(switch (type) {
+                        case PASSWORD_RESET -> EmailTemplateType.RESET_PASSWORD;
+                        case REGISTRATION -> EmailTemplateType.VERIFY_EMAIL;
+                        default -> EmailTemplateType.CONTACT_CHANGE;
+                    })
                     .variables(Map.of("fullName", fullName, "otp", code,
                             "expirationMinutes", registrationProperties.getOtpTtlMinutes()))
                     .build());
@@ -87,6 +97,26 @@ public class OtpService {
             throw new AppException(IdentityErrorCode.OTP_DELIVERY_FAILED);
         }
         return otp;
+    }
+
+    @Transactional
+    public OtpCode issueContactOtp(User user, OtpType type, String target) {
+        if (type != OtpType.EMAIL_CHANGE && type != OtpType.PHONE_CHANGE) throw new IllegalArgumentException("Invalid contact OTP purpose");
+        String fullName = userProfileRepository.findById(user.getId()).orElseThrow().getFullName();
+        return generateAndSendOtp(user, fullName, type, target);
+    }
+
+    @Transactional(noRollbackFor = IdentityException.class)
+    public void consumeContactOtp(OtpCode otp, String code) {
+        if (otp.getUsedAt() != null) throw new AppException(IdentityErrorCode.OTP_ALREADY_USED);
+        if (otp.getTries() >= registrationProperties.getOtpMaxAttempts()) throw new AppException(IdentityErrorCode.OTP_ATTEMPTS_EXCEEDED);
+        if (!identityClock.instant().isBefore(otp.getExpiresAt())) throw new AppException(IdentityErrorCode.OTP_EXPIRED);
+        if (!passwordEncoder.matches(code, otp.getCodeHash())) {
+            otp.setTries(otp.getTries() + 1); otpCodeRepository.saveAndFlush(otp);
+            throw new IdentityException(otp.getTries() >= registrationProperties.getOtpMaxAttempts()
+                    ? IdentityErrorCode.OTP_ATTEMPTS_EXCEEDED : IdentityErrorCode.OTP_INVALID);
+        }
+        otp.setUsedAt(identityClock.instant()); otpCodeRepository.saveAndFlush(otp);
     }
 
     @Transactional
@@ -169,6 +199,7 @@ public class OtpService {
 
         otp.setUsedAt(now);
         user.setEmailVerifiedAt(now);
+        user.setFptBadge(profileProperties.isFptEmail(user.getEmail()));
         user.setStatus(UserStatus.ACTIVE);
         user.setUpdatedAt(now);
         otpCodeRepository.saveAndFlush(otp);

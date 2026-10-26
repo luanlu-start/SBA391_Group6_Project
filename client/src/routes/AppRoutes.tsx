@@ -11,6 +11,11 @@ import ForgotPasswordPage from '../pages/ForgotPasswordPage';
 import ResetPasswordPage from '../pages/ResetPasswordPage';
 import AccountPage from '../pages/AccountPage';
 import SecurityPage from '../pages/SecurityPage';
+import ProfilePage from '../pages/ProfilePage';
+import AddressesPage from '../pages/AddressesPage';
+import KycPage from '../pages/KycPage';
+import CourierRegisterPage from '../pages/CourierRegisterPage';
+import CourierPage from '../pages/CourierPage';
 import LegalPage from '../pages/LegalPage';
 import WalletPage from '../pages/WalletPage';
 import OrderPaymentPage from '../pages/OrderPaymentPage';
@@ -52,6 +57,11 @@ export default function AppRoutes() {
         <Route path="verify" element={<VerifyOtpPage />} />
         <Route path="account" element={<AccountPage />} />
         <Route path="me/security" element={<SecurityPage />} />
+        <Route path="me/profile" element={<ProfilePage />} />
+        <Route path="me/addresses" element={<AddressesPage />} />
+        <Route path="me/kyc" element={<KycPage />} />
+        <Route path="me/courier-register" element={<CourierRegisterPage />} />
+        <Route path="courier" element={<CourierPage />} />
         <Route path="legal" element={<LegalPage />} />
         <Route path="*" element={<NotFoundPage />} />
         <Route path="orders/:orderId/chat" element={<ChatPage />} />
