@@ -8,6 +8,10 @@ export const orderApi = {
     return axiosClient.post<unknown, ApiResponse<Order>>('/orders', data);
   },
 
+  update: (id: number | string, data: OrderRequest) => {
+    return axiosClient.put<unknown, ApiResponse<Order>>(`/orders/${id}`, data);
+  },
+
   getAll: () => {
     return axiosClient.get<unknown, ApiResponse<Order[]>>('/orders');
   },
