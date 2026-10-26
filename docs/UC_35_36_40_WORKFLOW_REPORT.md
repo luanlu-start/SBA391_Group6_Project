@@ -1,19 +1,30 @@
-# Báo Cáo Luồng Nghiệp Vụ & Phân Tích Chức Năng: UC-35, UC-36 & UC-40
+# Báo Cáo Luồng Nghiệp Vụ & Phân Tích Chức Năng: UC-34, UC-35, UC-36 & UC-40
 
 > **Dự án**: SBA391 - FPTPost Logistics & Crowdsourced Delivery Platform  
-> **Phân hệ**: Payment & Wallet Core (Thanh toán, Ký quỹ & Quản lý Ví)  
+> **Phân hệ**: Payment & Wallet Core (Nạp tiền, Thanh toán, Ký quỹ, Rút tiền & Quản lý Ví)  
 > **Nguyên tắc cốt lõi**: ACID Transactions, Pessimistic Locking, Sổ cái kép (Double-Entry Ledger), Idempotency.
 
 ---
 
-## 1. Tổng Quan Kiến Trúc & Mối Quan Hệ Giữa 3 Use Cases
+## 1. Tổng Quan Kiến Trúc & Mối Quan Hệ Giữa 4 Use Cases
 
-Hệ thống tài chính nội bộ của FPTPost vận hành trên cơ chế **Ví điện tử + Ký quỹ giữ hộ (Escrow) + Sổ cái đối ứng kép (Double-Entry Ledger)**. Ba Use Case này tạo nên một vòng đời giao dịch khép kín từ lúc phát sinh đơn đến khi thu nhập về túi bưu tá:
+Hệ thống tài chính nội bộ của FPTPost vận hành trên cơ chế **Ví điện tử + Ký quỹ giữ hộ (Escrow) + Sổ cái đối ứng kép (Double-Entry Ledger)**. Bốn Use Case này tạo nên toàn bộ chu trình dòng tiền khép kín:
+
+1. **Dòng tiền vào (Money In - UC-34)**: Nạp tiền từ Ngân hàng qua cổng VNPay vào Ví khả dụng.
+2. **Dòng tiền bảo đảm (Money Escrowed - UC-35)**: Giam giữ tiền từ Ví/VNPay vào quỹ Ký quỹ đơn hàng.
+3. **Dòng tiền thu nhập (Money Earned - UC-36)**: Giải ngân tiền ký quỹ về Ví khả dụng của Bưu tá sau khi giao hàng thành công.
+4. **Dòng tiền ra (Money Out - UC-40)**: Rút tiền từ Ví khả dụng về tài khoản Ngân hàng cá nhân.
 
 ```
-[Người gửi (SENDER)]
-       │
-       ▼
+                                ┌────────────────────────────────┐
+                                │   UC-34: Nạp tiền qua VNPay    │
+                                │ (Cổng VNPay ──► Ví khả dụng)   │
+                                └──────────────┬─────────────────┘
+                                               │
+                                               ▼
+[Người gửi (SENDER)] ─────────────► [ Ví khả dụng (available) ]
+       │                                       │
+       ▼                                       ▼
  [ UC-35: Ký Quỹ Đơn Hàng ] ───(Ví nội bộ hoặc VNPay)───► [ Khoản Ký Quỹ (Escrow: HELD) ]
                                                                       │
                                                            Đơn giao hoàn tất
@@ -27,16 +38,64 @@ Hệ thống tài chính nội bộ của FPTPost vận hành trên cơ chế **
 
 ---
 
-## 2. Use Case 35: Thanh Toán & Ký Quỹ Đơn Hàng (Order Escrow Payment)
+## 2. Use Case 34: Nạp Tiền Vào Ví Qua VNPay (Wallet Topup via VNPay)
 
 ### 2.1. Mục Tiêu & Tiền Điều Kiện
+- **Mục tiêu**: Người dùng (cả người gửi và bưu tá) nạp tiền từ tài khoản/thẻ ngân hàng qua cổng thanh toán VNPay vào Ví nội bộ FPTPost để thanh toán cước phí hoặc lưu trữ số dư.
+- **Tiền điều kiện**: 
+  - Người dùng đã đăng nhập hệ thống (JWT hợp lệ).
+  - Số tiền nạp mỗi lần: Tối thiểu **20.000 VNĐ** (`MIN_TOPUP`), tối đa **10.000.000 VNĐ** (`MAX_TOPUP`).
+  - Hạn mức ví: Tổng số dư khả dụng sau khi nạp không vượt quá **50.000.000 VNĐ** (`MAX_BALANCE`).
+
+### 2.2. Luồng Xử Lý Chi Tiết (Working Flow)
+1. **Khởi tạo yêu cầu nạp tiền (API-084)**:
+   - Người dùng nhập số tiền nạp tại `WalletPage.tsx`, chọn ngân hàng (tùy chọn) và nhấn "Nạp tiền".
+   - Frontend gửi `POST /api/v1/wallet/topups` với body `{ amount: 100000, bankCode?: string }`.
+   - `WalletController.topupWallet` tiếp nhận và ủy quyền cho `WalletService.createTopupUrl`:
+     - Kiểm tra hạn mức nạp: `20.000 <= amount <= 10.000.000`.
+     - Lấy hoặc tự động tạo ví (`getOrCreateWallet`), kiểm tra `available + amount <= 50.000.000`.
+     - Sinh mã giao dịch duy nhất `txnRef = TOPUP_{userId}_{currentTimeMillis}`.
+     - Tạo bản ghi `PaymentTransaction` với `purpose = WALLET_TOPUP`, `status = PENDING`.
+     - Tính toán tham số VNPay và sinh chữ ký số HMAC-SHA512.
+     - Trả về `paymentUrl` của cổng VNPay cho Frontend.
+2. **Khách hàng thanh toán trên cổng VNPay**:
+   - Trình duyệt điều hướng tới cổng thanh toán VNPay để người dùng quét mã QR hoặc nhập thẻ ngân hàng.
+3. **Xử lý Webhook IPN từ VNPay (API-088)**:
+   - Sau khi giao dịch hoàn tất, cổng VNPay gửi Webhook IPN ngầm đến `POST /api/v1/payment/vnpay-ipn`.
+   - `VNPayService.processIpn` thực hiện:
+     - Kiểm tra tính toàn vẹn và chữ ký số (`vnp_SecureHash`).
+     - Tìm kiếm `PaymentTransaction` theo `txnRef`. Kiểm tra trạng thái giao dịch (Idempotency).
+     - Nếu thanh toán thành công (`vnp_ResponseCode == 00` && `vnp_TransactionStatus == 00`):
+       - Cập nhật `PaymentTransaction.status = SUCCESS`.
+       - Áp dụng **Pessimistic Write Lock** (`walletRepository.findByUserIdForUpdate(userId)`).
+       - Tăng số dư khả dụng: `wallet.available = available + amount`.
+       - Ghi bút toán sổ cái kép qua `ledgerService.recordWalletTopup(userId, amount, txnRef)` với `idempotencyKey = TOPUP_{txnRef}`:
+         - **Ghi Nợ (DEBIT)**: `VNPAY_CLEARING` (Tài sản thanh toán trung gian VNPay).
+         - **Ghi Có (CREDIT)**: `USER_WALLET_{userId}` (Nghĩa vụ nợ với khách hàng).
+
+### 2.3. Bảng Phân Trách Nhiệm Hàm (Function Responsibility Matrix)
+
+| Lớp (Layer) | Tên Tệp / Thành Phần | Tên Hàm / Method | Nhiệm Vụ Cụ Thể |
+| :--- | :--- | :--- | :--- |
+| **Frontend UI** | `client/src/pages/WalletPage.tsx` | `handleTopup(e)` | Validate form số tiền (20k - 10M), gọi API nạp và điều hướng sang VNPay `paymentUrl` |
+| **Frontend API**| `client/src/api/walletApi.ts` | `topup(data)` | Gửi request `POST /api/v1/wallet/topups` |
+| **Controller** | `WalletController.java` | `topupWallet(...)` | Nhận JWT, trích xuất `userId`, parse DTO `WalletTopupRequest`, gọi Service |
+| **Service** | `WalletService.java` | `createTopupUrl(...)` | Validate hạn mức ví, sinh `txnRef`, tạo `PaymentTransaction(PENDING)`, sinh HMAC-SHA512 URL VNPay |
+| **Service** | `VNPayService.java` | `processIpn(...)` | Xử lý Webhook VNPay, xác thực chữ ký, khóa ví bằng Pessimistic Lock, cộng `available`, gọi LedgerService |
+| **Ledger** | `LedgerService.java` | `recordWalletTopup(...)` | Ghi bút toán sổ cái kép (Nợ `VNPAY_CLEARING`, Có `USER_WALLET_{userId}`), ngăn lặp bằng Idempotency Key `TOPUP_{txnRef}` |
+
+---
+
+## 3. Use Case 35: Thanh Toán & Ký Quỹ Đơn Hàng (Order Escrow Payment)
+
+### 3.1. Mục Tiêu & Tiền Điều Kiện
 - **Mục tiêu**: Người gửi (Sender) thanh toán cước phí để giữ tiền ký quỹ (`Escrow`), bảo đảm khả năng chi trả cho shipper. Khi ký quỹ thành công, đơn hàng đổi trạng thái sang `ESCROWED` và xuất hiện trên sàn nhận đơn.
 - **Tiền điều kiện**: 
   - Đơn hàng tồn tại, đang ở trạng thái chờ ký quỹ (`PENDING_ESCROW` / `PENDING`).
   - Người thực hiện phải chính là người tạo đơn hàng (`order.senderId == userId`).
   - Nếu chọn trả bằng ví: số dư khả dụng `wallet.available >= order.totalFee`.
 
-### 2.2. Luồng Xử Lý Chi Tiết (Working Flow)
+### 3.2. Luồng Xử Lý Chi Tiết (Working Flow)
 - **Nhánh A: Thanh toán bằng Ví nội bộ (`WALLET`)**:
   1. Frontend gọi `POST /api/v1/orders/{id}/payment` với `{ "paymentMethod": "WALLET" }`.
   2. Backend áp dụng **Pessimistic Write Lock** (`findByUserIdForUpdate`) trên ví người gửi.
@@ -54,7 +113,7 @@ Hệ thống tài chính nội bộ của FPTPost vận hành trên cơ chế **
      - Nếu thành công (`vnp_ResponseCode == 00`): Cập nhật `PaymentTransaction` thành `SUCCESS`, tạo `Escrow` (`HELD`, `paymentMethod = VNPAY`), chuyển đơn sang `ESCROWED`.
      - Ghi bút toán sổ cái kép: Nợ `VNPAY_CLEARING`, Có `ESCROW_ORDER_{orderId}`.
 
-### 2.3. Bảng Phân Trách Nhiệm Hàm (Function Responsibility Matrix)
+### 3.3. Bảng Phân Trách Nhiệm Hàm (Function Responsibility Matrix)
 
 | Lớp (Layer) | Tên Tệp / Thành Phần | Tên Hàm / Method | Nhiệm Vụ Cụ Thể |
 | :--- | :--- | :--- | :--- |
@@ -69,9 +128,9 @@ Hệ thống tài chính nội bộ của FPTPost vận hành trên cơ chế **
 
 ---
 
-## 3. Use Case 36: Tra Cứu & Giải Ngân Ký Quỹ Cho Người Giao (Courier Escrow Release)
+## 4. Use Case 36: Tra Cứu & Giải Ngân Ký Quỹ Cho Người Giao (Courier Escrow Release)
 
-### 3.1. Mục Tiêu & Tiền Điều Kiện
+### 4.1. Mục Tiêu & Tiền Điều Kiện
 - **Mục tiêu**: Sau khi đơn hàng được giao thành công, khoản tiền ký quỹ giam giữ trong hệ thống được tự động hoặc chỉ định giải ngân về ví khả dụng của Người giao hàng (Courier).
 - **Tiền điều kiện**:
   - Đơn hàng tồn tại và đã có bưu tá nhận (`order.courierId != null`).
@@ -79,7 +138,7 @@ Hệ thống tài chính nội bộ của FPTPost vận hành trên cơ chế **
   - Khoản ký quỹ không bị phong tỏa (`escrow.frozen == false`).
   - Không được giải ngân trùng lặp (`escrow.status != RELEASED`).
 
-### 3.2. Luồng Xử Lý Chi Tiết (Working Flow)
+### 4.2. Luồng Xử Lý Chi Tiết (Working Flow)
 - **Luồng 1: Tra cứu thông tin ký quỹ đơn hàng (API-092)**:
   1. Frontend gọi `GET /api/v1/orders/{id}/escrow`.
   2. Backend xác thực: Người gọi phải là Người gửi (`senderId`), Người giao (`courierId`), hoặc `ADMIN`.
@@ -93,7 +152,7 @@ Hệ thống tài chính nội bộ của FPTPost vận hành trên cơ chế **
   6. Cập nhật `escrow.status = RELEASED` và lưu dấu thời gian `releaseAt = Instant.now()`.
   7. Ghi bút toán sổ cái kép với Idempotency Key `ESCROW_RELEASE_{orderId}_{escrowRef}`: Nợ `ESCROW_ORDER_{orderId}` (giảm nghĩa vụ giam giữ), Có `USER_WALLET_{courierId}` (tăng số dư cho shipper).
 
-### 3.3. Bảng Phân Trách Nhiệm Hàm (Function Responsibility Matrix)
+### 4.3. Bảng Phân Trách Nhiệm Hàm (Function Responsibility Matrix)
 
 | Lớp (Layer) | Tên Tệp / Thành Phần | Tên Hàm / Method | Nhiệm Vụ Cụ Thể |
 | :--- | :--- | :--- | :--- |
@@ -109,9 +168,9 @@ Hệ thống tài chính nội bộ của FPTPost vận hành trên cơ chế **
 
 ---
 
-## 4. Use Case 40: Yêu Cầu Rút Tiền Từ Ví Về Ngân Hàng (Wallet Withdrawal)
+## 5. Use Case 40: Yêu Cầu Rút Tiền Từ Ví Về Ngân Hàng (Wallet Withdrawal)
 
-### 4.1. Mục Tiêu & Tiền Điều Kiện
+### 5.1. Mục Tiêu & Tiền Điều Kiện
 - **Mục tiêu**: Cho phép người dùng (cả người gửi và bưu tá) lập lệnh rút số dư khả dụng (`available`) về tài khoản ngân hàng thụ hưởng, theo dõi tiến độ và cho phép hủy khi chưa duyệt.
 - **Tiền điều kiện**:
   - Người dùng đã đăng nhập và sở hữu ví.
@@ -119,7 +178,7 @@ Hệ thống tài chính nội bộ của FPTPost vận hành trên cơ chế **
   - Số dư khả dụng `available >= amount + fee`.
   - Khi hủy lệnh: Yêu cầu phải thuộc sở hữu chính chủ và trạng thái đang là `PENDING_REVIEW`.
 
-### 4.2. Luồng Xử Lý Chi Tiết (Working Flow)
+### 5.2. Luồng Xử Lý Chi Tiết (Working Flow)
 - **Luồng 1: Tạo yêu cầu rút tiền (API-097)**:
   1. Người dùng mở Modal rút tiền trên trang Ví (`WalletPage.tsx`), nhập số tiền, ngân hàng, số tài khoản, tên chủ thẻ.
   2. Frontend gửi `POST /api/v1/wallet/withdrawals`.
@@ -139,7 +198,7 @@ Hệ thống tài chính nội bộ của FPTPost vận hành trên cơ chế **
   5. Đổi trạng thái `WithdrawalRequest` thành `CANCELLED`.
   6. Ghi bút toán sổ cái hoàn tác: Nợ `CLEARING_WITHDRAWAL`, Có `USER_WALLET_{userId}`.
 
-### 4.3. Bảng Phân Trách Nhiệm Hàm (Function Responsibility Matrix)
+### 5.3. Bảng Phân Trách Nhiệm Hàm (Function Responsibility Matrix)
 
 | Lớp (Layer) | Tên Tệp / Thành Phần | Tên Hàm / Method | Nhiệm Vụ Cụ Thể |
 | :--- | :--- | :--- | :--- |
@@ -159,12 +218,13 @@ Hệ thống tài chính nội bộ của FPTPost vận hành trên cơ chế **
 
 ---
 
-## 5. Tổng Hợp Bút Toán Sổ Cái Kép (Double-Entry Ledger Matrix)
+## 6. Tổng Hợp Bút Toán Sổ Cái Kép (Double-Entry Ledger Matrix)
 
-Mọi biến động tài chính trong cả 3 Use Case đều tuân thủ nguyên tắc cân bằng kế toán `Tổng Nợ (Debit) == Tổng Có (Credit)`:
+Mọi biến động tài chính trong cả 4 Use Case đều tuân thủ nguyên tắc cân bằng kế toán `Tổng Nợ (Debit) == Tổng Có (Credit)`:
 
 | Nghiệp Vụ (Use Case) | Mã Giao Dịch Ledger (`type`) | Tài Khoản Ghi Nợ (DEBIT) | Tài Khoản Ghi Có (CREDIT) | Ý Nghĩa Kế Toán |
 | :--- | :--- | :--- | :--- | :--- |
+| **UC-34: Nạp tiền ví qua VNPay** | `WALLET_TOPUP` | `VNPAY_CLEARING` | `USER_WALLET_{userId}` | Tăng tài sản thanh toán trung gian VNPay, tăng nghĩa vụ nợ (số dư ví) người dùng |
 | **UC-35: Ký quỹ qua Ví** | `ORDER_ESCROW_HOLD` | `USER_WALLET_{senderId}` | `ESCROW_ORDER_{orderId}` | Giảm nghĩa vụ ví sender, tăng quỹ ký quỹ giam giữ cho đơn hàng |
 | **UC-35: Ký quỹ qua VNPay** | `ORDER_ESCROW_HOLD` | `VNPAY_CLEARING` | `ESCROW_ORDER_{orderId}` | Tăng tài sản thanh toán trung gian VNPay, tăng quỹ ký quỹ giam giữ |
 | **UC-36: Giải ngân ký quỹ** | `ESCROW_RELEASE` | `ESCROW_ORDER_{orderId}` | `USER_WALLET_{courierId}` | Giải phóng quỹ ký quỹ giam giữ, chuyển thành số dư khả dụng ví shipper |
@@ -173,16 +233,18 @@ Mọi biến động tài chính trong cả 3 Use Case đều tuân thủ nguyê
 
 ---
 
-## 6. Cơ Chế Bảo Đảm An Toàn Dữ Liệu & Chống Gian Lận
+## 7. Cơ Chế Bảo Đảm An Toàn Dữ Liệu & Chống Gian Lận
 
-1. **Khóa bi quan (Pessimistic Locking)**: Tất cả phương thức cập nhật số dư ví (`payOrder`, `releaseEscrow`, `createWithdrawalRequest`, `cancelWithdrawalRequest`) đều gọi `walletRepository.findByUserIdForUpdate(userId)`. Lệnh SQL phát sinh là `SELECT ... FOR UPDATE`, ngăn ngừa triệt để hiện tượng race condition khi người dùng gửi 2 yêu cầu rút/thanh toán cùng một mili-giây.
+1. **Khóa bi quan (Pessimistic Locking)**: Tất cả phương thức cập nhật số dư ví (`processIpn` nạp tiền, `payOrder`, `releaseEscrow`, `createWithdrawalRequest`, `cancelWithdrawalRequest`) đều gọi `walletRepository.findByUserIdForUpdate(userId)`. Lệnh SQL phát sinh là `SELECT ... FOR UPDATE`, ngăn ngừa triệt để hiện tượng race condition khi người dùng gửi 2 yêu cầu cùng lúc.
 2. **Khóa chống lặp (Idempotency Key)**:
-   - Ký quỹ VNPay: `ESCROW_VNPAY_{txnRef}`.
+   - Nạp tiền ví qua VNPay: `TOPUP_{txnRef}`.
+   - Ký quỹ qua VNPay: `ESCROW_VNPAY_{txnRef}`.
    - Giải ngân Escrow: `ESCROW_RELEASE_{orderId}_{escrowRef}`.
    - Yêu cầu rút tiền: `WITHDRAWAL_REQ_{requestCode}`.
    - Hủy rút tiền: `CANCEL_WDR_{requestCode}`.
    Nếu webhook hoặc API bị gọi lại nhiều lần do mạng chập chờn, hệ thống tự động phát hiện `existsByIdempotencyKey` và trả về kết quả đã ghi nhận trước đó, tuyệt đối không trừ hoặc cộng tiền lần thứ hai.
 3. **Phân Quyền Phù Hợp**:
+   - `WalletController.topupWallet`: Người dùng chỉ có quyền nạp vào tài khoản của chính mình.
    - `OrderController.payOrder`: Chỉ người tạo đơn (`SENDER`) hoặc `ADMIN`.
    - `EscrowController.getEscrow`: Chỉ `SENDER`, `COURIER` được gán, hoặc `ADMIN`.
    - `EscrowController.releaseEscrow`: Bắt buộc quyền `ADMIN`.
