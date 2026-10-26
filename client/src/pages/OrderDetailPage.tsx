@@ -9,6 +9,7 @@ import {
   Calendar,
   Truck,
   Image as ImageIcon,
+  Pencil,
 } from 'lucide-react';
 import type { Order } from '../types/order';
 import { ORDER_STATUS_MAP } from '../types/order';
@@ -144,10 +145,20 @@ export default function OrderDetailPage() {
         eyebrow={`Chi tiết đơn hàng #${order.id}`}
         description={`Đơn được tiếp nhận trên hệ thống lúc ${new Date(order.createdAt).toLocaleString('vi-VN')}`}
         actions={
-          <div className="ui-row" style={{ gap: '12px' }}>
+          <div className="ui-row" style={{ gap: '12px', alignItems: 'center' }}>
             <Badge dot tone={statusConfig.tone}>
               {statusConfig.label}
             </Badge>
+            {order.status === 'PENDING' && (
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<Pencil size={15} />}
+                onClick={() => navigate(`/sender/orders/${order.id}/edit`)}
+              >
+                Chỉnh sửa đơn
+              </Button>
+            )}
             <Button
               variant="ghost"
               icon={<ArrowLeft size={16} />}

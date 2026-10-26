@@ -8,6 +8,10 @@ export const orderApi = {
     return axiosClient.post<unknown, ApiResponse<Order>>('/orders', data);
   },
 
+  update: (id: number | string, data: OrderRequest) => {
+    return axiosClient.put<unknown, ApiResponse<Order>>(`/orders/${id}`, data);
+  },
+
   getAll: () => {
     return axiosClient.get<unknown, ApiResponse<Order[]>>('/orders');
   },
@@ -35,7 +39,6 @@ export const orderApi = {
   payOrder: (id: number | string, data: OrderPaymentRequest) => {
     return axiosClient.post<unknown, ApiResponse<OrderPaymentResponse>>(`/orders/${id}/payment`, data);
   },
-
   getEscrow: (id: number | string) => {
     return axiosClient.get<unknown, ApiResponse<EscrowResponse>>(`/orders/${id}/escrow`);
   },

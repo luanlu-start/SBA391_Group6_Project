@@ -65,6 +65,21 @@ public class OrderController {
                 .body(ApiResponse.created("Order created successfully", created));
     }
 
+    @PutMapping("/{id}")
+    @Operation(summary = "Chỉnh sửa đơn hàng (UC-14, API-037)", description = "Cho phép người gửi cập nhật thông tin đơn hàng khi đơn còn ở trạng thái PENDING")
+    public ResponseEntity<ApiResponse<OrderResponse>> updateOrder(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody OrderRequest request) {
+        Long currentUserId = null;
+        if (jwt != null && jwt.getSubject() != null) {
+            currentUserId = resolveUserId(jwt);
+        } else if (request.getSenderId() != null) {
+            currentUserId = request.getSenderId();
+        }
+        OrderResponse updated = orderService.updateOrder(id, currentUserId, request);
+        return ResponseEntity.ok(ApiResponse.success("Order updated successfully", updated));
+    }
     @GetMapping("/my-orders")
     @Operation(summary = "Xem danh sách đơn hàng của tôi", description = "Lấy danh sách tất cả các đơn hàng do tài khoản hiện tại tạo")
     public ResponseEntity<ApiResponse<List<OrderResponse>>> getMyOrders(@AuthenticationPrincipal Jwt jwt) {
@@ -98,6 +113,7 @@ public class OrderController {
         OrderPaymentResponse response = orderPaymentService.payOrder(userId, id, request, httpRequest);
         return ResponseEntity.ok(ApiResponse.success("Xử lý thanh toán đơn hàng thành công", response));
     }
+
     private Long resolveUserId(Jwt jwt) {
         if (jwt == null || jwt.getSubject() == null) {
             throw new AppException(GlobalErrorCode.UNAUTHORIZED);

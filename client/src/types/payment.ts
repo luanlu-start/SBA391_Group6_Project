@@ -82,4 +82,3 @@ export interface EscrowReleaseResponse {
   message: string;
   releasedAt: string;
 }
-
