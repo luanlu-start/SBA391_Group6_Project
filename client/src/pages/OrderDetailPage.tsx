@@ -10,6 +10,7 @@ import {
   Truck,
   Image as ImageIcon,
   Pencil,
+  XCircle,
 } from 'lucide-react';
 import type { Order } from '../types/order';
 import { ORDER_STATUS_MAP } from '../types/order';
@@ -20,6 +21,9 @@ import PageHeader from '../components/ui/PageHeader';
 import SectionCard from '../components/ui/SectionCard';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
+import Modal from '../components/ui/Modal';
+import Alert from '../components/ui/Alert';
+import Input from '../components/ui/Input';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ApiErrorNotice from '../components/ApiErrorNotice';
 import type { EscrowResponse } from '../types/payment';
@@ -47,6 +51,12 @@ export default function OrderDetailPage() {
       .then(res => setEscrow(res.data))
       .catch(() => setEscrow(null));
   };
+
+  // Trạng thái modal hủy đơn
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<ApiError | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -95,6 +105,22 @@ export default function OrderDetailPage() {
     }
   };
 
+  async function handleConfirmCancel() {
+    if (!order) return;
+    setCancelling(true);
+    setCancelError(null);
+    try {
+      const res = await orderApi.cancel(order.id, cancelReason.trim() || undefined);
+      setOrder(res.data);
+      setIsCancelModalOpen(false);
+      setCancelReason('');
+    } catch (cause) {
+      setCancelError(getApiError(cause));
+    } finally {
+      setCancelling(false);
+    }
+  }
+
   if (loading) {
     return <LoadingSpinner text="Đang tải thông tin chi tiết đơn hàng…" />;
   }
@@ -138,6 +164,9 @@ export default function OrderDetailPage() {
     tone: 'neutral',
   };
 
+  const canEdit = order.status === 'PENDING';
+  const canCancel = order.status === 'PENDING' || order.status === 'FINDING_SHIPPER';
+
   return (
     <div className="ui-stack">
       <PageHeader
@@ -149,7 +178,7 @@ export default function OrderDetailPage() {
             <Badge dot tone={statusConfig.tone}>
               {statusConfig.label}
             </Badge>
-            {order.status === 'PENDING' && (
+            {canEdit && (
               <Button
                 variant="secondary"
                 size="sm"
@@ -157,6 +186,20 @@ export default function OrderDetailPage() {
                 onClick={() => navigate(`/sender/orders/${order.id}/edit`)}
               >
                 Chỉnh sửa đơn
+              </Button>
+            )}
+            {canCancel && (
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<XCircle size={15} style={{ color: 'var(--accent-rose, #ffa6b3)' }} />}
+                onClick={() => {
+                  setCancelError(null);
+                  setCancelReason('');
+                  setIsCancelModalOpen(true);
+                }}
+              >
+                Hủy đơn hàng
               </Button>
             )}
             <Button
@@ -510,6 +553,51 @@ export default function OrderDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Modal xác nhận hủy đơn hàng */}
+      <Modal
+        isOpen={isCancelModalOpen}
+        onClose={() => !cancelling && setIsCancelModalOpen(false)}
+        title="Xác nhận hủy đơn hàng"
+        description={`Bạn có chắc chắn muốn hủy đơn hàng ${order.orderCode}?`}
+        closeDisabled={cancelling}
+      >
+        <div className="ui-stack" style={{ gap: '16px' }}>
+          {cancelError && <ApiErrorNotice error={cancelError} />}
+
+          <Alert tone="warning" title="Lưu ý khi hủy đơn">
+            Đơn hàng sau khi hủy sẽ chuyển sang trạng thái <strong>Đã hủy (CANCELLED)</strong> và không thể tiếp tục thực hiện giao dịch hay chỉnh sửa.
+          </Alert>
+
+          <Input
+            label="Lý do hủy đơn (Tùy chọn)"
+            placeholder="Ví dụ: Đổi ý không gửi nữa, sai thông tin hàng, tìm được phương án khác..."
+            value={cancelReason}
+            onChange={e => setCancelReason(e.target.value)}
+            disabled={cancelling}
+            maxLength={255}
+          />
+
+          <div className="ui-row" style={{ justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
+            <Button
+              variant="secondary"
+              onClick={() => setIsCancelModalOpen(false)}
+              disabled={cancelling}
+            >
+              Đóng
+            </Button>
+            <Button
+              variant="primary"
+              style={{ background: 'var(--accent-rose, #ffa6b3)', color: '#251207', borderColor: 'transparent' }}
+              onClick={() => void handleConfirmCancel()}
+              loading={cancelling}
+              loadingText="Đang xử lý hủy đơn…"
+            >
+              Xác nhận hủy
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
