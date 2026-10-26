@@ -228,7 +228,6 @@ Luồng giao diện:
   - Nạp ví: Ghi Nợ (DEBIT) tài khoản trung gian `VNPAY_CLEARING`, Ghi Có (CREDIT) tài khoản ví `USER_WALLET_{userId}`.
   - Ký quỹ bằng ví: Ghi Nợ (DEBIT) `USER_WALLET_{userId}`, Ghi Có (CREDIT) `ESCROW_ORDER_{orderId}`.
   - Ký quỹ qua VNPay: Ghi Nợ (DEBIT) `VNPAY_CLEARING`, Ghi Có (CREDIT) `ESCROW_ORDER_{orderId}`.
-
 Google login và KYC chưa triển khai.
 Cấu hình SMTP/template nằm trong [README](../README.md), schema trong [DATABASE](DATABASE.md),
 mã lỗi và field validation theo [contract lỗi](API-ERRORS.md).
