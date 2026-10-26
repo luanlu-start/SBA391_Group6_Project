@@ -94,7 +94,7 @@ export default function CourierMarketplacePage(): React.ReactElement {
         }
         if (!isCourier) {
             setActionError(
-                new ApiError('Tài khoản hiện tại của bạn không có vai trò Bưu tá. Theo quy tắc BR-R-009, chỉ tài khoản COURIER mới được nhận đơn.')
+                new ApiError('Tài khoản hiện tại của bạn không có vai trò Bưu tá. Chỉ tài khoản COURIER mới được nhận đơn.')
             );
             return;
         }
@@ -131,34 +131,25 @@ export default function CourierMarketplacePage(): React.ReactElement {
                 <p className="home-eyebrow"><span />Sàn Giao Hàng Bưu Chính</p>
                 <h1 className="market-title">Duyệt & Tìm Kiếm <span>Sàn Đơn Khả Dụng</span></h1>
                 <p className="market-description">
-                    Khám phá các kiện hàng đang mở trên toàn hệ thống. Nhận đơn ngay theo giá niêm yết (UC-17) để tối ưu lộ trình và thu nhập bưu tá của bạn.
+                    Khám phá các kiện hàng đang mở trên toàn hệ thống. Nhận đơn ngay theo giá niêm yết để tối ưu lộ trình và thu nhập bưu tá của bạn.
                 </p>
             </header>
 
             {/* Banner trạng thái đăng nhập / vai trò Bưu tá */}
             {!user && (
-                <div
-                    style={{
-                        padding: '12px 16px',
-                        marginBottom: '16px',
-                        backgroundColor: 'var(--blue-50, #eff6ff)',
-                        border: '1px solid var(--blue-200, #bfdbfe)',
-                        borderRadius: 'var(--radius-md, 8px)',
-                        color: 'var(--blue-900, #1e3a8a)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '12px',
-                        flexWrap: 'wrap',
-                    }}
-                >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <AlertTriangle size={18} color="var(--primary, #0284c7)" />
-                        <span>
-                            Bạn chưa đăng nhập. Để nhận đơn (UC-17), vui lòng <strong>Đăng nhập tài khoản Bưu tá</strong> (Tài khoản mẫu: <code>courier@fptpost.vn</code> / Mật khẩu: <code>12345678</code>).
-                        </span>
+                <div className="market-alert-banner info">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <AlertTriangle size={20} color="#38bdf8" />
+                        <span style={{ fontSize: '0.92rem', lineHeight: '1.5' }}>
+                Bạn chưa đăng nhập. Để nhận đơn, vui lòng <strong style={{ color: '#fff' }}>Đăng nhập tài khoản Bưu tá</strong>
+                            {' '}(Tài khoản mẫu: <code className="market-alert-code">courier@fptpost.vn</code> / Mật khẩu: <code style={{ backgroundColor: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(56, 189, 248, 0.25)', padding: '2px 6px', borderRadius: '4px', color: '#7dd3fc' }}>12345678</code>).
+            </span>
                     </div>
-                    <Button variant="secondary" onClick={() => navigate('/login')} style={{ padding: '6px 14px', fontSize: '0.85rem' }}>
+                    <Button
+                        variant="secondary"
+                        onClick={() => navigate('/login')}
+                        
+                    >
                         Đăng nhập ngay
                     </Button>
                 </div>
@@ -181,26 +172,13 @@ export default function CourierMarketplacePage(): React.ReactElement {
                     <AlertTriangle size={18} color="#d97706" />
                     <span>
                         Bạn đang đăng nhập với tài khoản <strong>{user.email}</strong> ({user.roles?.join(', ')}).
-                        Theo quy tắc <strong>BR-R-009</strong>, chỉ tài khoản có vai trò <strong>Bưu tá (COURIER)</strong> mới được nhận đơn. Vui lòng đăng nhập với <code>courier@fptpost.vn</code> (12345678).
+                        Chỉ tài khoản có vai trò <strong>Bưu tá (COURIER)</strong> mới được nhận đơn. Vui lòng đăng nhập với <code>courier@fptpost.vn</code> (12345678).
                     </span>
                 </div>
             )}
 
             {user && isCourier && (
-                <div
-                    style={{
-                        padding: '10px 16px',
-                        marginBottom: '16px',
-                        backgroundColor: 'var(--emerald-50, #ecfdf5)',
-                        border: '1px solid var(--emerald-200, #a7f3d0)',
-                        borderRadius: 'var(--radius-md, 8px)',
-                        color: 'var(--emerald-900, #064e3b)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        fontSize: '0.9rem',
-                    }}
-                >
+                <div className="market-alert-banner-courier">
                     <CheckCircle2 size={16} color="#059669" />
                     <span>
                         Tài khoản: <strong>{user.fullName || user.email}</strong> (Bưu tá - Hạng Bạc). Đủ điều kiện nhận đơn trên sàn!
@@ -241,7 +219,7 @@ export default function CourierMarketplacePage(): React.ReactElement {
             {/* Thông báo lỗi nếu có */}
             {actionError && (
                 <div style={{ marginBottom: '16px' }}>
-                    <ApiErrorNotice message={actionError.message} correlationId={actionError.correlationId} />
+                    <ApiErrorNotice error={actionError} />
                 </div>
             )}
 
@@ -260,7 +238,7 @@ export default function CourierMarketplacePage(): React.ReactElement {
 
                 <div className="filter-actions">
                     <div className="filter-select-wrapper">
-                        <Select label="Sắp xếp theo" value={sort} onChange={handleSortChange}>
+                        <Select value={sort} onChange={handleSortChange}>
                             <option value="createdAt,desc">Mới nhất trước</option>
                             <option value="weightKg,asc">Khối lượng: Nhẹ đến nặng</option>
                             <option value="weightKg,desc">Khối lượng: Nặng đến nhẹ</option>
@@ -326,7 +304,7 @@ export default function CourierMarketplacePage(): React.ReactElement {
             {selectedOrderToAccept && (
                 <Modal
                     isOpen={!!selectedOrderToAccept}
-                    title="Xác nhận nhận đơn hàng (UC-17)"
+                    title="Xác nhận nhận đơn hàng"
                     onClose={() => {
                         if (!accepting) setSelectedOrderToAccept(null);
                     }}
@@ -352,7 +330,7 @@ export default function CourierMarketplacePage(): React.ReactElement {
                         </div>
 
                         {actionError && (
-                            <ApiErrorNotice message={actionError.message} correlationId={actionError.correlationId} />
+                            <ApiErrorNotice error={actionError} />
                         )}
 
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' }}>

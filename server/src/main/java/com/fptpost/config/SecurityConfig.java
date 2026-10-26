@@ -52,6 +52,8 @@ public class SecurityConfig {
                                 "/api/v1/auth/password/forgot", "/api/v1/auth/password/reset").permitAll()
                         .requestMatchers("/api/v1/orders/**").permitAll()
                         .requestMatchers("/api/v1/market/**").permitAll()
+                        .requestMatchers("/api/v1/offers/**").permitAll()
+                        .requestMatchers("/api/v1/me/offers").permitAll()
                         .requestMatchers("/api/v1/wallet/**").authenticated()
                         .requestMatchers(
                                 "/api/payment/**",

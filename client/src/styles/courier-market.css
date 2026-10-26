@@ -405,3 +405,47 @@
     font-weight: 600;
     color: #94a3b8;
 }
+
+.market-alert-banner {
+    padding: 14px 18px;
+    margin-bottom: 16px;
+    border-radius: var(--radius-md, 8px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.market-alert-banner-courier {
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    background-color: var(--emerald-50, #ecfdf5);
+    border: 1px solid var(--emerald-200, #a7f3d0);
+    border-radius: var(--radius-md, 8px);
+    color: var(--emerald-900, #064e3b);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+}
+
+.market-alert-banner.info {
+    background-color: rgba(2, 132, 199, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: #e0f2fe;
+}
+
+.market-alert-banner.warning {
+    background-color: rgba(217, 119, 6, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    color: #fef3c7;
+}
+
+.market-alert-code {
+    background-color: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #7dd3fc;
+}

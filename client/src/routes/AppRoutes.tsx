@@ -17,6 +17,7 @@ import VNPayReturnPage from '../pages/VNPayReturnPage';
 import OrdersPage from '../pages/OrdersPage';
 import CreateOrderPage from '../pages/CreateOrderPage';
 import OrderDetailPage from '../pages/OrderDetailPage';
+import OrderOffersPage from '../pages/OrderOffersPage';
 import ChatPage from '../pages/ChatPage';
 import CourierOrderDetailPage from "../pages/CourierOrderDetailPage";
 import CourierMarketplacePage from "../pages/CourierMarketplacePage";
@@ -48,6 +49,8 @@ export default function AppRoutes() {
           <Route path="sender/orders" element={<OrdersPage />} />
           <Route path="sender/orders/new" element={<CreateOrderPage />} />
           <Route path="sender/orders/:id" element={<OrderDetailPage />} />
+          <Route path="sender/orders/:id/offers" element={<OrderOffersPage />} />
+          <Route path="orders/:id/offers" element={<OrderOffersPage />} />
           <Route path="courier/market" element={<CourierMarketplacePage />} />
           <Route path="courier/market/:id" element={<CourierOrderDetailPage />} />
           <Route path="verify" element={<VerifyOtpPage />} />

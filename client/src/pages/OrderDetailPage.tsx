@@ -8,6 +8,7 @@ import {
   Package,
   Calendar,
   Truck,
+  DollarSign,
   Image as ImageIcon,
 } from 'lucide-react';
 import type { Order } from '../types/order';
@@ -159,22 +160,7 @@ export default function OrderDetailPage() {
                   <Phone size={16} />
                   <span>Số điện thoại người nhận:</span>
                 </dt>
-                <dd>
-                  <a
-                    href={`tel:${order.receiverPhone}`}
-                    style={{ color: 'var(--primary)', fontWeight: 500 }}
-                  >
-                    {order.receiverPhone}
-                  </a>
-                </dd>
-              </div>
-
-              <div>
-                <dt className="ui-row" style={{ gap: '6px' }}>
-                  <User size={16} />
-                  <span>Người gửi ID:</span>
-                </dt>
-                <dd>#{order.senderId}</dd>
+                <dd>{order.receiverPhone}</dd>
               </div>
             </div>
           </SectionCard>
@@ -272,7 +258,26 @@ export default function OrderDetailPage() {
         </div>
 
         {/* Right Column: Order Summary & Meta */}
-        <div className="ui-stack">
+        <div className="ui-stack" style={{ gap: '20px' }}>
+          {/* Card Quản lý chào giá (UC-19 / SCR-21) */}
+          {(order.status === 'PENDING' || order.status === 'FINDING_SHIPPER') && (
+            <SectionCard title="Chào giá từ bưu tá (UC-19)">
+              <div className="ui-stack" style={{ gap: '12px' }}>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
+                  Đơn hàng đang mở trên sàn. Bưu tá có thể gửi chào giá hoặc nhận đơn theo giá niêm yết.
+                </p>
+                <Button
+                  variant="primary"
+                  icon={<DollarSign size={16} />}
+                  onClick={() => navigate(`/sender/orders/${order.id}/offers`)}
+                  style={{ width: '100%' }}
+                >
+                  Xem danh sách chào giá (SCR-21)
+                </Button>
+              </div>
+            </SectionCard>
+          )}
+
           <SectionCard title="Trạng thái đơn hàng">
             <div className="ui-stack" style={{ gap: '16px' }}>
               <div className="ui-row" style={{ justifyContent: 'space-between' }}>

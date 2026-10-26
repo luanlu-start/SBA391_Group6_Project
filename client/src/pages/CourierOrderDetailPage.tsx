@@ -1,21 +1,25 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft,
     MapPin,
     Package,
-    ShieldAlert,
-    ShieldCheck,
     Weight,
     DollarSign,
     CheckCircle2,
     Calendar,
     AlertTriangle,
     Truck,
+    Send,
+    RotateCcw,
+    XCircle,
 } from 'lucide-react';
 import { marketPlaceOrderApi } from '../api/marketPlaceOrderApi';
+import { offerApi } from '../api/offerApi';
 import type { MarketplaceOrderDetail, MarketOrderAcceptResponse } from '../types/order';
 import { ORDER_STATUS_MAP } from '../types/order';
+import type { Offer } from '../types/offer';
+import { OFFER_STATUS_MAP } from '../types/offer';
 import { getApiError, type ApiError } from '../api/ApiError';
 import PageHeader from '../components/ui/PageHeader';
 import SectionCard from '../components/ui/SectionCard';
@@ -38,35 +42,54 @@ export default function CourierOrderDetailPage(): React.ReactElement {
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<ApiError | null>(null);
 
-    // Xử lý nhận đơn (UC-17)
+    // Xử lý nhận đơn theo giá niêm yết (UC-17)
     const [isConfirmOpen, setIsConfirmOpen] = useState<boolean>(false);
     const [accepting, setAccepting] = useState<boolean>(false);
     const [acceptResult, setAcceptResult] = useState<MarketOrderAcceptResponse | null>(null);
     const [acceptError, setAcceptError] = useState<ApiError | null>(null);
 
-    useEffect(() => {
+    // Xử lý chào giá (UC-18)
+    const [myOffers, setMyOffers] = useState<Offer[]>([]);
+    const [isOfferModalOpen, setIsOfferModalOpen] = useState<boolean>(false);
+    const [offerPrice, setOfferPrice] = useState<string>('');
+    const [offerMessage, setOfferMessage] = useState<string>('');
+    const [offerEtaMinutes, setOfferEtaMinutes] = useState<string>('30');
+    const [submittingOffer, setSubmittingOffer] = useState<boolean>(false);
+    const [offerActionError, setOfferActionError] = useState<ApiError | null>(null);
+
+    // Phản giá lại khi người gửi đã counter (UC-19)
+    const [isCounterModalOpen, setIsCounterModalOpen] = useState<boolean>(false);
+    const [counterPrice, setCounterPrice] = useState<string>('');
+    const [counterMessage, setCounterMessage] = useState<string>('');
+
+    const fetchOrderAndOffers = useCallback(async () => {
         if (!id) return;
-        let mounted = true;
         setLoading(true);
         setError(null);
+        try {
+            const orderRes = await marketPlaceOrderApi.getById(id);
+            setOrder(orderRes.data);
 
-        marketPlaceOrderApi
-            .getById(id)
-            .then(res => {
-                if (mounted) setOrder(res.data);
-            })
-            .catch(err => {
-                if (mounted) setError(getApiError(err));
-            })
-            .finally(() => {
-                if (mounted) setLoading(false);
-            });
+            if (isCourier) {
+                try {
+                    const offersRes = await offerApi.getOffersForOrder(id);
+                    setMyOffers(offersRes.data || []);
+                } catch {
+                    // Non-critical if courier doesn't have offers yet
+                }
+            }
+        } catch (err) {
+            setError(getApiError(err));
+        } finally {
+            setLoading(false);
+        }
+    }, [id, isCourier]);
 
-        return () => {
-            mounted = false;
-        };
-    }, [id]);
+    useEffect(() => {
+        fetchOrderAndOffers();
+    }, [fetchOrderAndOffers]);
 
+    // Handle accept fixed price order (UC-17)
     const handleAcceptOrder = async () => {
         if (!id) return;
         setAccepting(true);
@@ -75,7 +98,6 @@ export default function CourierOrderDetailPage(): React.ReactElement {
             const res = await marketPlaceOrderApi.acceptOrder(id);
             setAcceptResult(res.data);
             setIsConfirmOpen(false);
-            // Cập nhật lại trạng thái local của đơn
             if (order) {
                 setOrder({
                     ...order,
@@ -87,6 +109,82 @@ export default function CourierOrderDetailPage(): React.ReactElement {
             setAcceptError(getApiError(err));
         } finally {
             setAccepting(false);
+        }
+    };
+
+    // Handle submit custom offer (UC-18)
+    const handleSubmitOffer = async () => {
+        if (!id || !order) return;
+        const priceNum = Number(offerPrice.replace(/\D/g, ''));
+        if (!priceNum || priceNum < 1000) {
+            alert('Vui lòng nhập mức giá chào hợp lệ (tối thiểu 1.000đ)');
+            return;
+        }
+
+        setSubmittingOffer(true);
+        setOfferActionError(null);
+        try {
+            let etaPickup: string | undefined = undefined;
+            const minutes = Number(offerEtaMinutes);
+            if (!isNaN(minutes) && minutes > 0) {
+                etaPickup = new Date(Date.now() + minutes * 60 * 1000).toISOString();
+            }
+
+            await offerApi.createOffer(id, {
+                price: priceNum,
+                message: offerMessage.trim() || undefined,
+                etaPickup,
+            });
+
+            setIsOfferModalOpen(false);
+            setOfferPrice('');
+            setOfferMessage('');
+            await fetchOrderAndOffers();
+        } catch (err) {
+            setOfferActionError(getApiError(err));
+        } finally {
+            setSubmittingOffer(false);
+        }
+    };
+
+    // Handle withdraw offer (API-045 / UC-18)
+    const handleWithdrawOffer = async (offerId: number) => {
+        if (!window.confirm('Bạn có chắc chắn muốn rút lại chào giá này không?')) return;
+        setSubmittingOffer(true);
+        setOfferActionError(null);
+        try {
+            await offerApi.withdrawOffer(offerId);
+            await fetchOrderAndOffers();
+        } catch (err) {
+            setOfferActionError(getApiError(err));
+        } finally {
+            setSubmittingOffer(false);
+        }
+    };
+
+    // Handle counter-offer by courier when sender countered (UC-19)
+    const handleCounterOffer = async (parentOfferId: number) => {
+        const priceNum = Number(counterPrice.replace(/\D/g, ''));
+        if (!priceNum || priceNum < 1000) {
+            alert('Vui lòng nhập mức giá phản hồi hợp lệ');
+            return;
+        }
+
+        setSubmittingOffer(true);
+        setOfferActionError(null);
+        try {
+            await offerApi.counterOffer(parentOfferId, {
+                price: priceNum,
+                message: counterMessage.trim() || undefined,
+            });
+            setIsCounterModalOpen(false);
+            setCounterPrice('');
+            setCounterMessage('');
+            await fetchOrderAndOffers();
+        } catch (err) {
+            setOfferActionError(getApiError(err));
+        } finally {
+            setSubmittingOffer(false);
         }
     };
 
@@ -113,13 +211,13 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                 <SectionCard>
                     <div className="ui-stack">
                         {error ? (
-                            <ApiErrorNotice message={error.message} correlationId={error.correlationId} />
+                            <ApiErrorNotice error={error} />
                         ) : (
                             <p>Đơn hàng không tồn tại trên sàn hoặc đã bị hủy.</p>
                         )}
                         <div>
                             <Button variant="secondary" onClick={() => navigate('/courier/market')}>
-                                Về trang sàn đơn
+                                Về trang danh sách sàn đơn
                             </Button>
                         </div>
                     </div>
@@ -133,12 +231,19 @@ export default function CourierOrderDetailPage(): React.ReactElement {
         tone: 'neutral',
     };
 
+    const suggestedPrice = order.priceSuggested || order.declaredValue || 35000;
+    const minPriceAllowed = Math.round(suggestedPrice * 0.7);
+    const maxPriceAllowed = Math.round(suggestedPrice * 1.5);
+
+    // Tìm chào giá mới nhất còn hiệu lực của bưu tá cho đơn này
+    const activeOffer = myOffers.find(o => o.status === 'PENDING' || o.status === 'COUNTERED');
+
     return (
-        <div className="ui-stack" style={{ gap: '24px' }}>
+        <div className="ui-stack" style={{ gap: '20px' }}>
             <PageHeader
-                title={`Kiện hàng: ${order.orderCode}`}
-                eyebrow="Chi tiết đơn trên sàn (SCR-30)"
-                description={`Đăng lúc ${new Date(order.createdAt).toLocaleString('vi-VN')}`}
+                title={`Kiện hàng: ${order.productName}`}
+                eyebrow={`Mã vận đơn: ${order.orderCode} (SCR-30)`}
+                description={`Đơn được đăng từ ${order.pickupAddress} tới ${order.deliveryAddress}`}
                 actions={
                     <div className="ui-row" style={{ gap: '12px' }}>
                         <Badge dot tone={statusConfig.tone}>
@@ -155,76 +260,46 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                 }
             />
 
-            {/* Banner thành công sau khi nhận đơn thành công */}
+            {offerActionError && <ApiErrorNotice error={offerActionError} />}
+
+            {/* Thông báo thành công nhận đơn (UC-17) */}
             {acceptResult && (
                 <div
                     style={{
-                        padding: '20px',
                         backgroundColor: 'var(--emerald-50, #ecfdf5)',
-                        border: '1px solid var(--emerald-300, #6ee7b7)',
-                        borderRadius: 'var(--radius-lg, 12px)',
-                        color: 'var(--emerald-950, #022c22)',
+                        border: '1px solid var(--emerald-500, #10b981)',
+                        padding: '16px',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '12px',
                     }}
                 >
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                        <CheckCircle2 size={24} color="var(--emerald-600, #059669)" style={{ flexShrink: 0, marginTop: '2px' }} />
-                        <div className="ui-stack" style={{ gap: '8px' }}>
-                            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>
-                                Nhận đơn thành công! (Mã vận đơn: {acceptResult.orderCode})
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <CheckCircle2 size={28} style={{ color: 'var(--emerald-600, #059669)', flexShrink: 0 }} />
+                        <div>
+                            <h3 style={{ margin: 0, fontSize: '1rem', color: '#065f46' }}>
+                                Nhận đơn thành công!
                             </h3>
-                            <p style={{ margin: 0, fontSize: '0.95rem' }}>
-                                Đơn hàng đã được gắn với tài khoản của bạn và chuyển sang trạng thái <strong>Chờ ký quỹ</strong>.
-                                Người gửi có <strong>15 phút</strong> (PRM-023) để hoàn tất thanh toán ký quỹ qua Ví hoặc VNPay.
+                            <p style={{ margin: '4px 0 0', fontSize: '0.875rem', color: '#047857' }}>
+                                Đơn hàng <strong>{acceptResult.orderCode}</strong> đã được chuyển sang trạng thái <strong>Chờ ký quỹ</strong>. Người gửi sẽ có 15 phút để hoàn tất ký quỹ cước phí.
                             </p>
-                            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted, #64748b)' }}>
-                                Giá cước giao hàng đã chốt: <strong>{numberFormat.format(acceptResult.priceAgreed)} đ</strong>.
-                            </p>
-                            <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-                                <Button
-                                    variant="primary"
-                                    onClick={() => navigate('/courier/market')}
-                                >
-                                    Tiếp tục duyệt sàn đơn
-                                </Button>
-                            </div>
                         </div>
                     </div>
+                    <Button variant="secondary" onClick={() => navigate('/courier/market')}>
+                        Tiếp tục tìm đơn
+                    </Button>
                 </div>
             )}
 
-            {/* Thông báo lỗi khi nhận đơn */}
-            {acceptError && (
-                <ApiErrorNotice message={acceptError.message} correlationId={acceptError.correlationId} />
-            )}
-
-            {/* Cảnh báo bảo mật dữ liệu nhạy cảm */}
-            <div
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    padding: '12px 16px',
-                    backgroundColor: 'var(--sky-50, #f0f9ff)',
-                    border: '1px solid var(--sky-200, #bae6fd)',
-                    borderRadius: 'var(--radius-md, 8px)',
-                    color: 'var(--sky-900, #0c4a6e)',
-                    fontSize: '0.9rem',
-                }}
-            >
-                <ShieldAlert size={18} color="var(--sky-600, #0284c7)" style={{ flexShrink: 0 }} />
-                <span>
-                    <strong>Quy định bảo mật (BR-R-023, BR-R-027):</strong> Số điện thoại và địa chỉ chi tiết của người nhận được bảo mật.
-                    Sau khi bạn nhận đơn và người gửi ký quỹ thành công, thông tin liên lạc đầy đủ sẽ hiển thị.
-                </span>
-            </div>
-
             <div className="ui-showcase-grid">
-                {/* Cột trái: Lộ trình và Thông tin hàng hóa */}
+                {/* Cột trái: Thông tin hành trình & Kiện hàng */}
                 <div className="ui-stack" style={{ gap: '20px' }}>
-                    {/* Tuyến đường vận chuyển */}
+                    {/* Tuyến đường giao nhận */}
                     <SectionCard
-                        title="Tuyến đường & Điểm giao nhận"
-                        description="Khu vực nhận hàng và giao hàng dự kiến"
+                        title="Tuyến đường vận chuyển"
+                        description="Thông tin địa điểm lấy và giao hàng của người gửi"
                     >
                         <div className="ui-summary-list">
                             <div>
@@ -298,33 +373,34 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                                                 fontSize: '0.8rem',
                                                 padding: '2px 8px',
                                                 backgroundColor: 'var(--amber-100, #fef3c7)',
-                                                color: 'var(--amber-800, #92400e)',
+                                                color: '#b45309',
                                                 borderRadius: '4px',
+                                                fontWeight: 600,
                                             }}
                                         >
-                                            Yêu cầu hạng Bạc+
+                                            Hàng giá trị cao (Yêu cầu hạng Bạc trở lên)
                                         </span>
                                     )}
                                 </dd>
                             </div>
 
                             <div>
-                                <dt>Mô tả chi tiết:</dt>
+                                <dt>Mô tả kiện hàng:</dt>
                                 <dd>{order.productDescription || 'Không có mô tả chi tiết'}</dd>
                             </div>
 
                             <div>
-                                <dt>Ghi chú cho tài xế:</dt>
+                                <dt>Ghi chú của người gửi:</dt>
                                 <dd>{order.deliveryNote || 'Không có ghi chú'}</dd>
                             </div>
                         </div>
                     </SectionCard>
 
-                    {/* Ảnh kiện hàng */}
+                    {/* Ảnh hàng */}
                     {order.imageUrls && order.imageUrls.length > 0 && (
                         <SectionCard
-                            title="Hình ảnh kiện hàng thực tế"
-                            description={`${order.imageUrls.length} ảnh đính kèm từ người gửi`}
+                            title="Hình ảnh kiện hàng"
+                            description={`${order.imageUrls.length} ảnh thực tế do người gửi tải lên`}
                         >
                             <div
                                 style={{
@@ -341,7 +417,7 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                                         rel="noreferrer"
                                         style={{
                                             display: 'block',
-                                            borderRadius: 'var(--radius-md)',
+                                            borderRadius: '6px',
                                             overflow: 'hidden',
                                             border: '1px solid var(--border-subtle)',
                                             aspectRatio: '1 / 1',
@@ -359,14 +435,17 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                     )}
                 </div>
 
-                {/* Cột phải: Giá niêm yết, quy tắc và Hành động nhận đơn */}
+                {/* Cột phải: Giá niêm yết, Chào giá của bưu tá và Hành động */}
                 <div className="ui-stack" style={{ gap: '20px' }}>
-                    <SectionCard title="Cước phí & Thanh toán">
+                    <SectionCard title="Cước phí & Nhận đơn">
                         <div className="ui-stack" style={{ gap: '16px' }}>
                             <div style={{ textAlign: 'center', padding: '16px', backgroundColor: 'var(--bg-tertiary, #f8fafc)', borderRadius: '8px' }}>
-                                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Giá cước niêm yết (người gửi đề xuất)</span>
+                                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Giá cước niêm yết (hệ thống & người gửi)</span>
                                 <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--primary, #0284c7)', marginTop: '4px' }}>
-                                    {numberFormat.format(order.priceSuggested || order.declaredValue || 35000)} <small style={{ fontSize: '1rem' }}>đ</small>
+                                    {numberFormat.format(suggestedPrice)} <small style={{ fontSize: '1rem' }}>đ</small>
+                                </div>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                    Biên chào giá hợp lệ (70% - 150%): <strong>{numberFormat.format(minPriceAllowed)} đ</strong> - <strong>{numberFormat.format(maxPriceAllowed)} đ</strong>
                                 </div>
                             </div>
 
@@ -387,20 +466,100 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                                 </div>
                             </div>
 
+                            {/* Card Hiển thị Chào giá hiện tại của bưu tá (UC-18 / UC-19) */}
+                            {activeOffer && (
+                                <div
+                                    style={{
+                                        border: '1px solid var(--primary, #2563eb)',
+                                        borderRadius: '8px',
+                                        padding: '14px',
+                                        backgroundColor: 'var(--primary-subtle, #eff6ff)',
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                        <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1e3a8a' }}>
+                                            Chào giá của bạn cho đơn này
+                                        </span>
+                                        <Badge dot tone={OFFER_STATUS_MAP[activeOffer.status]?.tone || 'neutral'}>
+                                            {OFFER_STATUS_MAP[activeOffer.status]?.label || activeOffer.status}
+                                        </Badge>
+                                    </div>
+
+                                    <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--primary)' }}>
+                                        {numberFormat.format(activeOffer.price)} đ
+                                    </div>
+
+                                    {activeOffer.message && (
+                                        <div style={{ fontSize: '0.8rem', fontStyle: 'italic', color: '#3b82f6', marginTop: '4px' }}>
+                                            &ldquo;{activeOffer.message}&rdquo;
+                                        </div>
+                                    )}
+
+                                    {/* Nếu người gửi đã phản giá lại cho shipper */}
+                                    {activeOffer.status === 'COUNTERED' && activeOffer.createdBySender && (
+                                        <div
+                                            style={{
+                                                marginTop: '10px',
+                                                padding: '10px',
+                                                backgroundColor: '#fff',
+                                                borderRadius: '6px',
+                                                border: '1px solid #fed7aa',
+                                            }}
+                                        >
+                                            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#c2410c' }}>
+                                                Người gửi phản đề xuất mức giá: {numberFormat.format(activeOffer.price)} đ
+                                            </div>
+                                            {activeOffer.message && (
+                                                <div style={{ fontSize: '0.8rem', color: '#7c2d12', marginTop: '2px' }}>
+                                                    Lời nhắn: &ldquo;{activeOffer.message}&rdquo;
+                                                </div>
+                                            )}
+                                            <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                                                {activeOffer.roundNo < 3 && (
+                                                    <Button
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        icon={<RotateCcw size={14} />}
+                                                        onClick={() => {
+                                                            setCounterPrice(String(suggestedPrice));
+                                                            setIsCounterModalOpen(true);
+                                                        }}
+                                                    >
+                                                        Phản giá lại
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            icon={<XCircle size={14} />}
+                                            onClick={() => handleWithdrawOffer(activeOffer.id)}
+                                            disabled={submittingOffer}
+                                        >
+                                            Rút chào giá (API-045)
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Quy tắc bưu tá cần nắm */}
                             <div style={{ borderTop: '1px solid var(--border-subtle, #e2e8f0)', paddingTop: '12px' }}>
                                 <h4 style={{ fontSize: '0.9rem', marginBottom: '8px', color: 'var(--text-secondary)' }}>
-                                    Quy tắc nhận đơn (BR):
+                                    Quy tắc bưu tá (BR):
                                 </h4>
                                 <ul style={{ fontSize: '0.8rem', color: 'var(--text-muted)', paddingLeft: '16px', margin: 0, lineHeight: 1.6 }}>
-                                    <li><strong>BR-R-008:</strong> Không tự nhận đơn do chính mình tạo.</li>
-                                    <li><strong>BR-R-024:</strong> Đơn {'>'} 1.000.000đ yêu cầu bưu tá từ hạng Bạc trở lên.</li>
-                                    <li><strong>BR-R-028:</strong> Hạn mức số đơn và tổng giá trị tối đa theo hạng bưu tá.</li>
-                                    <li><strong>BR-F-029:</strong> Nhận đơn thành công sẽ chuyển trạng thái sang Chờ ký quỹ.</li>
+                                    <li><strong>BR-R-008:</strong> Không tự nhận/chào giá đơn của chính mình.</li>
+                                    <li><strong>BR-R-024:</strong> Đơn {'>'} 1.000.000đ yêu cầu từ hạng Bạc trở lên.</li>
+                                    <li><strong>BR-R-029:</strong> Biên giá chào từ 70% đến 150% giá gợi ý.</li>
+                                    <li><strong>BR-R-030:</strong> Mỗi bưu tá chỉ có 1 chào giá hiệu lực cho 1 đơn.</li>
                                 </ul>
                             </div>
 
-                            {/* Nút hành động chính (UC-17) */}
+                            {/* Nút hành động chính (UC-17 & UC-18) */}
                             {order.isAvailable && !acceptResult && (
                                 <>
                                     {!user ? (
@@ -416,7 +575,7 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                                             }}
                                         >
                                             <p style={{ margin: '0 0 8px 0' }}>
-                                                Bạn chưa đăng nhập. Vui lòng đăng nhập với tài khoản Bưu tá để nhận đơn này (<code>courier@fptpost.vn</code> / <code>12345678</code>).
+                                                Bạn chưa đăng nhập. Vui lòng đăng nhập với tài khoản Bưu tá để nhận đơn hoặc chào giá (<code>courier@fptpost.vn</code> / <code>12345678</code>).
                                             </p>
                                             <Button variant="secondary" onClick={() => navigate('/login')} style={{ width: '100%', padding: '8px' }}>
                                                 Đăng nhập tài khoản Bưu tá
@@ -433,17 +592,34 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                                                 color: '#92400e',
                                             }}
                                         >
-                                            Tài khoản của bạn ({user.email}) có vai trò {user.roles?.join(', ')}. Theo quy tắc <strong>BR-R-009</strong>, chỉ Bưu tá mới được nhận đơn. Vui lòng chuyển sang tài khoản <code>courier@fptpost.vn</code>.
+                                            Tài khoản của bạn ({user.email}) có vai trò {user.roles?.join(', ')}. Theo quy tắc <strong>BR-R-009</strong>, chỉ Bưu tá mới được nhận đơn/chào giá.
                                         </div>
                                     ) : (
-                                        <Button
-                                            variant="primary"
-                                            icon={<CheckCircle2 size={18} />}
-                                            onClick={() => setIsConfirmOpen(true)}
-                                            style={{ width: '100%', padding: '14px', fontSize: '1rem' }}
-                                        >
-                                            Nhận đơn này (Giá niêm yết)
-                                        </Button>
+                                        <div className="ui-stack" style={{ gap: '10px' }}>
+                                            <Button
+                                                variant="primary"
+                                                icon={<CheckCircle2 size={18} />}
+                                                onClick={() => setIsConfirmOpen(true)}
+                                                style={{ width: '100%', padding: '14px', fontSize: '1rem' }}
+                                            >
+                                                Nhận đơn (Giá niêm yết: {numberFormat.format(suggestedPrice)} đ)
+                                            </Button>
+
+                                            {!activeOffer && (
+                                                <Button
+                                                    variant="secondary"
+                                                    icon={<Send size={16} />}
+                                                    onClick={() => {
+                                                        setOfferPrice(String(suggestedPrice));
+                                                        setOfferMessage('');
+                                                        setIsOfferModalOpen(true);
+                                                    }}
+                                                    style={{ width: '100%', padding: '12px' }}
+                                                >
+                                                    Gửi mức giá chào khác (UC-18)
+                                                </Button>
+                                            )}
+                                        </div>
                                     )}
                                 </>
                             )}
@@ -458,7 +634,7 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                 </div>
             </div>
 
-            {/* Modal xác nhận nhận đơn */}
+            {/* Modal: Xác nhận nhận đơn giá niêm yết (UC-17) */}
             <Modal
                 isOpen={isConfirmOpen}
                 title="Xác nhận nhận đơn theo giá niêm yết (UC-17)"
@@ -470,19 +646,13 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                     <p>
                         Bạn xác nhận sẽ nhận giao kiện hàng <strong>{order.orderCode}</strong> với mức giá niêm yết là{' '}
                         <strong style={{ color: 'var(--primary)' }}>
-                            {numberFormat.format(order.priceSuggested || order.declaredValue || 35000)} đ
+                            {numberFormat.format(suggestedPrice)} đ
                         </strong>?
                     </p>
 
                     <div style={{ backgroundColor: 'var(--bg-tertiary, #f8fafc)', padding: '12px', borderRadius: '6px', fontSize: '0.9rem' }}>
                         <p style={{ margin: '4px 0' }}>• Hàng hóa: <strong>{order.productName}</strong> ({order.weightKg} kg)</p>
                         <p style={{ margin: '4px 0' }}>• Tuyến đường: {order.pickupAddress} ➔ {order.deliveryAddress}</p>
-                        {order.requiresSilverTier && (
-                            <p style={{ margin: '4px 0', color: 'var(--amber-700)' }}>
-                                <ShieldCheck size={14} style={{ display: 'inline', marginRight: '4px' }} />
-                                Đơn giá trị cao: Hệ thống sẽ tự động đối chiếu hạng thành viên Bạc trở lên.
-                            </p>
-                        )}
                     </div>
 
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
@@ -491,7 +661,7 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                     </div>
 
                     {acceptError && (
-                        <ApiErrorNotice message={acceptError.message} correlationId={acceptError.correlationId} />
+                        <ApiErrorNotice error={acceptError} />
                     )}
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
@@ -508,6 +678,175 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                             disabled={accepting}
                         >
                             {accepting ? 'Đang gửi yêu cầu...' : 'Tôi đồng ý nhận đơn'}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Modal: Gửi chào giá (UC-18 / API-044) */}
+            <Modal
+                isOpen={isOfferModalOpen}
+                title="Gửi chào giá cho người gửi (UC-18)"
+                description={`Kiện hàng: ${order.productName} • Giá gợi ý: ${numberFormat.format(suggestedPrice)} đ`}
+                onClose={() => {
+                    if (!submittingOffer) setIsOfferModalOpen(false);
+                }}
+            >
+                <div className="ui-stack" style={{ gap: '16px' }}>
+                    <div>
+                        <label style={{ display: 'block', fontWeight: 500, fontSize: '0.875rem', marginBottom: '6px' }}>
+                            Mức giá bạn chào (VNĐ) <span style={{ color: 'red' }}>*</span>
+                        </label>
+                        <input
+                            type="number"
+                            className="ui-input"
+                            style={{
+                                width: '100%',
+                                padding: '10px 12px',
+                                borderRadius: '8px',
+                                border: '1px solid var(--border-color, #d1d5db)',
+                                fontSize: '1.1rem',
+                                fontWeight: 600,
+                            }}
+                            min={minPriceAllowed}
+                            max={maxPriceAllowed}
+                            step={1000}
+                            value={offerPrice}
+                            onChange={e => setOfferPrice(e.target.value)}
+                            placeholder={`Ví dụ: ${suggestedPrice}`}
+                        />
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                            Quy tắc BR-R-029: Mức giá hợp lệ từ 70% ({numberFormat.format(minPriceAllowed)} đ) đến 150% ({numberFormat.format(maxPriceAllowed)} đ).
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style={{ display: 'block', fontWeight: 500, fontSize: '0.875rem', marginBottom: '6px' }}>
+                            Thời gian bạn có thể đến lấy hàng dự kiến
+                        </label>
+                        <select
+                            className="ui-input"
+                            style={{
+                                width: '100%',
+                                padding: '10px 12px',
+                                borderRadius: '8px',
+                                border: '1px solid var(--border-color, #d1d5db)',
+                                fontSize: '0.9rem',
+                            }}
+                            value={offerEtaMinutes}
+                            onChange={e => setOfferEtaMinutes(e.target.value)}
+                        >
+                            <option value="15">Trong vòng 15 phút</option>
+                            <option value="30">Trong vòng 30 phút</option>
+                            <option value="45">Trong vòng 45 phút</option>
+                            <option value="60">Trong vòng 1 giờ</option>
+                            <option value="120">Trong vòng 2 giờ</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label style={{ display: 'block', fontWeight: 500, fontSize: '0.875rem', marginBottom: '6px' }}>
+                            Lời nhắn gửi người gửi (tùy chọn)
+                        </label>
+                        <textarea
+                            className="ui-input"
+                            style={{
+                                width: '100%',
+                                padding: '10px 12px',
+                                borderRadius: '8px',
+                                border: '1px solid var(--border-color, #d1d5db)',
+                                fontSize: '0.875rem',
+                                minHeight: '80px',
+                                resize: 'vertical',
+                            }}
+                            value={offerMessage}
+                            onChange={e => setOfferMessage(e.target.value)}
+                            placeholder="Ví dụ: Em đang ở gần khu vực này, có thể qua lấy ngay được ạ..."
+                            maxLength={500}
+                        />
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+                        <Button
+                            variant="secondary"
+                            onClick={() => setIsOfferModalOpen(false)}
+                            disabled={submittingOffer}
+                        >
+                            Hủy bỏ
+                        </Button>
+                        <Button
+                            variant="primary"
+                            icon={<Send size={16} />}
+                            onClick={handleSubmitOffer}
+                            disabled={submittingOffer}
+                        >
+                            {submittingOffer ? 'Đang gửi...' : 'Gửi lời chào giá'}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Modal: Phản giá lại cho người gửi (UC-19) */}
+            <Modal
+                isOpen={isCounterModalOpen}
+                title="Phản đề xuất mức giá mới"
+                onClose={() => setIsCounterModalOpen(false)}
+            >
+                <div className="ui-stack" style={{ gap: '16px' }}>
+                    <div>
+                        <label style={{ display: 'block', fontWeight: 500, fontSize: '0.875rem', marginBottom: '6px' }}>
+                            Mức giá phản đề xuất (VNĐ) <span style={{ color: 'red' }}>*</span>
+                        </label>
+                        <input
+                            type="number"
+                            className="ui-input"
+                            style={{
+                                width: '100%',
+                                padding: '10px 12px',
+                                borderRadius: '8px',
+                                border: '1px solid var(--border-color, #d1d5db)',
+                                fontSize: '1rem',
+                            }}
+                            min={minPriceAllowed}
+                            max={maxPriceAllowed}
+                            step={1000}
+                            value={counterPrice}
+                            onChange={e => setCounterPrice(e.target.value)}
+                        />
+                    </div>
+
+                    <div>
+                        <label style={{ display: 'block', fontWeight: 500, fontSize: '0.875rem', marginBottom: '6px' }}>
+                            Lời nhắn
+                        </label>
+                        <textarea
+                            className="ui-input"
+                            style={{
+                                width: '100%',
+                                padding: '10px 12px',
+                                borderRadius: '8px',
+                                border: '1px solid var(--border-color, #d1d5db)',
+                                fontSize: '0.875rem',
+                                minHeight: '80px',
+                            }}
+                            value={counterMessage}
+                            onChange={e => setCounterMessage(e.target.value)}
+                            maxLength={500}
+                        />
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+                        <Button variant="secondary" onClick={() => setIsCounterModalOpen(false)}>
+                            Đóng
+                        </Button>
+                        <Button
+                            variant="primary"
+                            onClick={() => {
+                                if (activeOffer) handleCounterOffer(activeOffer.id);
+                            }}
+                            disabled={submittingOffer}
+                        >
+                            {submittingOffer ? 'Đang gửi...' : 'Gửi phản giá'}
                         </Button>
                     </div>
                 </div>
