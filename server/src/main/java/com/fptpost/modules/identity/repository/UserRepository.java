@@ -18,6 +18,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"roles"})
     Optional<User> findByPublicId(UUID publicId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select u from User u where u.publicId = :publicId")
+    Optional<User> findByPublicIdForUpdate(@Param("publicId") UUID publicId);
+
     @Query("select u.id from User u where u.email = :identifier or u.phone = :identifier")
     Optional<Long> findIdByIdentifier(@Param("identifier") String identifier);
 

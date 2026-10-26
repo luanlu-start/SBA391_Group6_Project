@@ -27,7 +27,7 @@ public class SecurityConfig {
         return registration;
     }
     @Bean SecurityFilterChain securityFilterChain(HttpSecurity http, CorsFilter corsFilter,
-                                                  ProblemResponseFactory problems, ObjectMapper mapper, AuthenticationProperties properties) throws Exception {
+            ProblemResponseFactory problems, ObjectMapper mapper, AuthenticationProperties properties) throws Exception {
         CookieCsrfTokenRepository csrf = CookieCsrfTokenRepository.withHttpOnlyFalse();
         csrf.setCookieCustomizer(cookie -> cookie.path("/").sameSite("Strict").secure(properties.isCookieSecure()));
         JwtGrantedAuthoritiesConverter authorities = new JwtGrantedAuthoritiesConverter();
@@ -41,7 +41,7 @@ public class SecurityConfig {
                 .logout(logout -> logout.disable())
                 .csrf(config -> config.csrfTokenRepository(csrf).csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
                         .requireCsrfProtectionMatcher(request -> "POST".equals(request.getMethod()) && Set.of(
-                                        "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout")
+                                "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout")
                                 .contains(request.getRequestURI().substring(request.getContextPath().length()))))
                 .authorizeHttpRequests(auth -> auth.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
@@ -50,11 +50,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/register", "/api/v1/auth/otp/verify", "/api/v1/auth/otp/resend",
                                 "/api/v1/auth/login", "/api/v1/auth/refresh",
                                 "/api/v1/auth/password/forgot", "/api/v1/auth/password/reset").permitAll()
+                        .requestMatchers("/api/v1/admin/escrow/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/orders/*/escrow").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/orders/*/payment").hasAnyRole("SENDER", "ADMIN")
                         .requestMatchers("/api/v1/orders/**").permitAll()
-                        .requestMatchers("/api/v1/market/**").permitAll()
-                        .requestMatchers("/api/v1/offers/**").permitAll()
-                        .requestMatchers("/api/v1/me/offers").permitAll()
-                        .requestMatchers("/api/v1/wallet/**").authenticated()
+                        .requestMatchers("/api/v1/wallet/**", "/api/wallet/**").authenticated()
                         .requestMatchers(
                                 "/api/payment/**",
                                 "/api/v1/payment/**",
@@ -75,7 +75,7 @@ public class SecurityConfig {
         return http.build();
     }
     private static void writeProblem(ProblemResponseFactory problems, ObjectMapper mapper, HttpServletRequest request,
-                                     HttpServletResponse response, ErrorCode error) throws IOException {
+            HttpServletResponse response, ErrorCode error) throws IOException {
         response.setStatus(error.getHttpStatus().value());
         response.setContentType("application/problem+json");
         response.setHeader("Cache-Control", "no-store");

@@ -5,12 +5,14 @@ import com.fptpost.modules.chat.model.ChatRoom;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.index.MongoPersistentEntityIndexResolver;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@ConditionalOnProperty(prefix = "app.chat", name = "initialize-indexes", havingValue = "true", matchIfMissing = true)
 public class ChatMongoIndexInitializer implements ApplicationRunner {
 
     private final MongoTemplate mongoTemplate;

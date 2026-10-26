@@ -31,7 +31,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(AppException.class)
     public ResponseEntity<ApiProblem> handleAppException(AppException exception, HttpServletRequest request) {
         log.warn("API failure code={}", exception.getErrorCode().getCode());
-        return problems.response(exception.getErrorCode(), request, List.of());
+        HttpHeaders headers = new HttpHeaders();
+        if (exception.getRetryAfterSeconds() > 0) headers.set(HttpHeaders.RETRY_AFTER, Long.toString(exception.getRetryAfterSeconds()));
+        return problems.response(exception.getErrorCode(), exception.getErrorCode().getHttpStatus().value(), request, List.of(), headers);
     }
 
     @ExceptionHandler(BindException.class)
