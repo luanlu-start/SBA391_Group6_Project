@@ -53,6 +53,11 @@ abstract class IdentityFeatureHttpTest {
     @Autowired ContactChangeRepository contacts;
     @Autowired AddressRepository addresses;
     @Autowired AccountDataRequestRepository dataRequests;
+    @Autowired ConsentRepository consents;
+    @Autowired KycRequestRepository kycRequests;
+    @Autowired KycFileRepository kycFiles;
+    @Autowired KycIdentityClaimRepository kycClaims;
+    @Autowired IdentityAuditLogRepository auditLogs;
     @Autowired PasswordEncoder encoder;
     @Autowired JwtDecoder decoder;
     @Autowired PlatformTransactionManager transactions;
@@ -65,7 +70,13 @@ abstract class IdentityFeatureHttpTest {
     User user;
     String token;
     String ip;
-    @DynamicPropertySource static void properties(DynamicPropertyRegistry registry) { registry.add("app.files.directory", files::toString); }
+    static final String encryptionKey = randomKey(), hashKey = randomKey();
+    @DynamicPropertySource static void properties(DynamicPropertyRegistry registry) {
+        registry.add("app.files.directory", files::toString);
+        registry.add("KYC_ENCRYPTION_KEYS", () -> "{\"test\":\"" + encryptionKey + "\"}");
+        registry.add("KYC_ACTIVE_KEY_ID", () -> "test"); registry.add("KYC_HASH_KEY", () -> hashKey);
+    }
+    private static String randomKey() { byte[] key = new byte[32]; new java.security.SecureRandom().nextBytes(key); return Base64.getEncoder().encodeToString(key); }
     private static Path temporaryDirectory() {
         try { return Files.createTempDirectory("fpost-identity-tests-"); }
         catch (IOException exception) { throw new UncheckedIOException(exception); }
@@ -78,6 +89,7 @@ abstract class IdentityFeatureHttpTest {
         when(mailSender.createMimeMessage()).thenAnswer(invocation -> new MimeMessage(Session.getInstance(new Properties())));
         doAnswer(invocation -> { MimeMessage message = invocation.getArgument(0); message.saveChanges(); delivered.add(message); return null; })
                 .when(mailSender).send(any(MimeMessage.class));
+        auditLogs.deleteAll(); kycClaims.deleteAll(); kycFiles.deleteAll(); kycRequests.deleteAll(); consents.deleteAll();
         contacts.deleteAll(); addresses.deleteAll(); dataRequests.deleteAll(); sessions.deleteAll(); otps.deleteAll(); profiles.deleteAll(); users.deleteAll();
         user = createUser("member" + number + "@example.com", "+849" + String.format(Locale.ROOT, "%08d", number));
         token = access(login(user.getEmail(), "OldPassword123!", 200));

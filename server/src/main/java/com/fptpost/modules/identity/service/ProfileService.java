@@ -28,14 +28,19 @@ public class ProfileService {
     private final PrivateFileStorage fileStorage;
     private final ImageValidator imageValidator;
     private final Clock identityClock;
+    private final KycRequestRepository kycRequestRepository;
 
     @Transactional
     public UserResponse update(UUID owner, UUID session, ProfileUpdateRequest request) {
         User user = userAccess.lock(owner, session);
         var profile = profileRepository.findById(user.getId()).orElseThrow();
+        String fullName = request.getFullName().strip().replaceAll("\\s+", " ");
+        if ((!fullName.equalsIgnoreCase(profile.getFullName()) || !Objects.equals(request.getDob(), profile.getDob()))
+                && kycRequestRepository.existsByUserIdAndStatusIn(user.getId(), List.of(KycStatus.PENDING, KycStatus.APPROVED)))
+            throw new AppException(IdentityErrorCode.PROFILE_IDENTITY_LOCKED);
         LocalDate today = LocalDate.ofInstant(identityClock.instant(), ZoneId.of("Asia/Ho_Chi_Minh"));
         if (request.getDob() != null && request.getDob().plusYears(18).isAfter(today)) throw new AppException(IdentityErrorCode.PROFILE_AGE_INVALID);
-        profile.setFullName(request.getFullName().strip().replaceAll("\\s+", " "));
+        profile.setFullName(fullName);
         profile.setDob(request.getDob()); profile.setBio(trim(request.getBio())); profile.setEmergencyContact(trim(request.getEmergencyContact()));
         user.setUpdatedAt(identityClock.instant());
         profileRepository.saveAndFlush(profile);

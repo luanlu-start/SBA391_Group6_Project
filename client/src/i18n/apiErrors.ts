@@ -1,4 +1,14 @@
 export const apiErrorMessages: Record<string, string> = {
+  PROFILE_IDENTITY_LOCKED: "Không thể đổi họ tên hoặc ngày sinh khi hồ sơ đang chờ duyệt hoặc đã được xác minh.",
+  KYC_PROFILE_MISMATCH: "Họ tên và ngày sinh phải khớp hồ sơ cá nhân. Vui lòng cập nhật hồ sơ trước.",
+  KYC_INVALID_DOCUMENT: "Vui lòng kiểm tra ngày cấp và ngày hết hạn. CCCD phải còn hiệu lực.",
+  KYC_ID_DUPLICATED: "CCCD đã được sử dụng trong một hồ sơ khác. Vui lòng liên hệ hỗ trợ nếu cần.",
+  KYC_ALREADY_SUBMITTED: "Hồ sơ đang chờ duyệt hoặc đã được xác minh. Không thể gửi thêm hồ sơ.",
+  KYC_SUBMISSION_LIMIT: "Bạn được nộp tối đa 3 hồ sơ trong 7 ngày. Vui lòng chờ lượt tiếp theo.",
+  KYC_POLICY_CHANGED: "Vui lòng tải lại trang và đọc chính sách xác minh mới.",
+  KYC_ENCRYPTION_UNAVAILABLE: "Chưa thể lưu hoặc đọc hồ sơ xác minh an toàn. Vui lòng thử lại sau.",
+  KYC_FILE_LINK_INVALID: "Vui lòng mở lại ảnh từ hồ sơ để nhận liên kết mới.",
+
   PROFILE_AGE_INVALID: 'Người dùng phải đủ 18 tuổi.',
   PROFILE_CONTACT_INVALID: 'Vui lòng nhập email hoặc số di động Việt Nam hợp lệ.',
   PROFILE_CONTACT_UNCHANGED: 'Thông tin mới trùng với thông tin đang sử dụng.',
