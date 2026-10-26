@@ -150,6 +150,3 @@ export interface WithdrawalResponse {
   createdAt: string;
   updatedAt: string;
 }
-
-
-

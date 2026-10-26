@@ -18,6 +18,10 @@ import com.fptpost.common.exception.AppException;
 import com.fptpost.common.exception.GlobalErrorCode;
 import com.fptpost.modules.identity.model.User;
 import com.fptpost.modules.identity.repository.UserRepository;
+import com.fptpost.modules.payment.dto.OrderPaymentRequest;
+import com.fptpost.modules.payment.dto.OrderPaymentResponse;
+import com.fptpost.modules.payment.service.OrderPaymentService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 
@@ -31,6 +35,7 @@ import java.util.UUID;
 public class OrderController {
 
     private final OrderService orderService;
+    private final OrderPaymentService orderPaymentService;
     private final UserRepository userRepository;
 
     @PostMapping(value = "/upload-images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -60,6 +65,21 @@ public class OrderController {
                 .body(ApiResponse.created("Order created successfully", created));
     }
 
+    @PutMapping("/{id}")
+    @Operation(summary = "Chỉnh sửa đơn hàng (UC-14, API-037)", description = "Cho phép người gửi cập nhật thông tin đơn hàng khi đơn còn ở trạng thái PENDING")
+    public ResponseEntity<ApiResponse<OrderResponse>> updateOrder(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody OrderRequest request) {
+        Long currentUserId = null;
+        if (jwt != null && jwt.getSubject() != null) {
+            currentUserId = resolveUserId(jwt);
+        } else if (request.getSenderId() != null) {
+            currentUserId = request.getSenderId();
+        }
+        OrderResponse updated = orderService.updateOrder(id, currentUserId, request);
+        return ResponseEntity.ok(ApiResponse.success("Order updated successfully", updated));
+    }
     @GetMapping("/my-orders")
     @Operation(summary = "Xem danh sách đơn hàng của tôi", description = "Lấy danh sách tất cả các đơn hàng do tài khoản hiện tại tạo")
     public ResponseEntity<ApiResponse<List<OrderResponse>>> getMyOrders(@AuthenticationPrincipal Jwt jwt) {
@@ -80,6 +100,17 @@ public class OrderController {
     public ResponseEntity<ApiResponse<List<OrderResponse>>> getAllOrders() {
         List<OrderResponse> orders = orderService.getAllOrders();
         return ResponseEntity.ok(ApiResponse.success("Orders retrieved successfully", orders));
+    }
+    @PostMapping("/{id}/payment")
+    @Operation(summary = "Thanh toán và ký quỹ đơn hàng (UC-35, API-087)", description = "Người gửi thực hiện thanh toán ký quỹ đơn hàng qua Ví nội bộ hoặc Cổng VNPay.")
+    public ResponseEntity<ApiResponse<OrderPaymentResponse>> payOrder(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody OrderPaymentRequest request,
+            HttpServletRequest httpRequest) {
+        Long userId = resolveUserId(jwt);
+        OrderPaymentResponse response = orderPaymentService.payOrder(userId, id, request, httpRequest);
+        return ResponseEntity.ok(ApiResponse.success("Xử lý thanh toán đơn hàng thành công", response));
     }
 
     private Long resolveUserId(Jwt jwt) {

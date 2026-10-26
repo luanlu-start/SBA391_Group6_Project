@@ -250,7 +250,6 @@ Luồng giao diện:
   - Tiền điều kiện: Đơn hàng đã có người giao (`courierId != null`), khoản ký quỹ ở trạng thái `HELD`, không bị phong tỏa (`frozen == false`).
   - Xử lý: Giảm `escrowHeld` của sender (nếu ký quỹ từ ví), cộng `available` của shipper (tự động khởi tạo ví nếu chưa có), cập nhật `escrow.status = RELEASED` và `releaseAt = now()`, ghi nhận bút toán kép Sổ cái (Ledger).
 
-
 Google login và KYC chưa triển khai.
 Cấu hình SMTP/template nằm trong [README](../README.md), schema trong [DATABASE](DATABASE.md),
 mã lỗi và field validation theo [contract lỗi](API-ERRORS.md).

@@ -22,6 +22,7 @@ import OrderPaymentPage from '../pages/OrderPaymentPage';
 import VNPayReturnPage from '../pages/VNPayReturnPage';
 import OrdersPage from '../pages/OrdersPage';
 import CreateOrderPage from '../pages/CreateOrderPage';
+import EditOrderPage from '../pages/EditOrderPage';
 import OrderDetailPage from '../pages/OrderDetailPage';
 import ChatPage from '../pages/ChatPage';
 
@@ -54,6 +55,7 @@ export default function AppRoutes() {
         <Route path="sender/orders" element={<OrdersPage />} />
         <Route path="sender/orders/new" element={<CreateOrderPage />} />
         <Route path="sender/orders/:id" element={<OrderDetailPage />} />
+        <Route path="sender/orders/:id/edit" element={<EditOrderPage />} />
         <Route path="verify" element={<VerifyOtpPage />} />
         <Route path="account" element={<AccountPage />} />
         <Route path="me/security" element={<SecurityPage />} />
