@@ -1,7 +1,7 @@
 import axiosClient from './axiosClient';
 import type { ApiResponse } from '../types/api';
 import type { Order, OrderRequest } from '../types/order';
-import type { OrderPaymentRequest, OrderPaymentResponse } from '../types/payment';
+import type { EscrowReleaseResponse, EscrowResponse, OrderPaymentRequest, OrderPaymentResponse } from '../types/payment';
 
 export const orderApi = {
   create: (data: OrderRequest) => {
@@ -42,6 +42,13 @@ export const orderApi = {
 
   payOrder: (id: number | string, data: OrderPaymentRequest) => {
     return axiosClient.post<unknown, ApiResponse<OrderPaymentResponse>>(`/orders/${id}/payment`, data);
+  },
+  getEscrow: (id: number | string) => {
+    return axiosClient.get<unknown, ApiResponse<EscrowResponse>>(`/orders/${id}/escrow`);
+  },
+
+  releaseEscrow: (orderId: number | string) => {
+    return axiosClient.post<unknown, ApiResponse<EscrowReleaseResponse>>(`/admin/escrow/${orderId}/release`);
   },
 };
 

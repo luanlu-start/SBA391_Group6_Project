@@ -5,7 +5,10 @@ import com.fptpost.modules.order.exception.OrderErrorCode;
 import com.fptpost.modules.order.model.Order;
 import com.fptpost.modules.order.model.OrderStatus;
 import com.fptpost.modules.order.repository.OrderRepository;
+import com.fptpost.modules.identity.repository.UserRepository;
 import com.fptpost.modules.payment.config.VNPayConfig;
+import com.fptpost.modules.payment.dto.EscrowReleaseResponse;
+import com.fptpost.modules.payment.dto.EscrowResponse;
 import com.fptpost.modules.payment.dto.OrderPaymentRequest;
 import com.fptpost.modules.payment.dto.OrderPaymentResponse;
 import com.fptpost.modules.payment.exception.PaymentErrorCode;
@@ -43,6 +46,7 @@ public class OrderPaymentService {
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final LedgerService ledgerService;
     private final VNPayConfig vnPayConfig;
+    private final UserRepository userRepository;
 
     @Transactional
     public OrderPaymentResponse payOrder(Long userId, Long orderId, OrderPaymentRequest request, HttpServletRequest httpRequest) {
@@ -198,6 +202,157 @@ public class OrderPaymentService {
                 .paymentUrl(paymentUrl)
                 .txnRef(txnRef)
                 .message("Vui lòng chuyển hướng sang cổng VNPay để thanh toán ký quỹ")
+                .build();
+    }
+
+    /**
+     * Lấy thông tin khoản tiền ký quỹ của đơn hàng (UC-36, API-092).
+     * Kiểm tra quyền: Người xem phải là Người gửi (senderId), Người giao (courierId), hoặc ADMIN.
+     */
+    @Transactional(readOnly = true)
+    public EscrowResponse getEscrowByOrderId(Long orderId, Long currentUserId, boolean isAdmin) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new AppException(OrderErrorCode.ORDER_NOT_FOUND));
+
+        Escrow escrow = escrowRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new AppException(PaymentErrorCode.ESCROW_NOT_FOUND));
+
+        // Kiểm tra quyền truy cập: Người gửi, Người giao, hoặc ADMIN
+        boolean isSender = order.getSenderId() != null && order.getSenderId().equals(currentUserId);
+        boolean isCourier = order.getCourierId() != null && order.getCourierId().equals(currentUserId);
+        boolean isUserAdmin = isAdmin;
+        if (!isUserAdmin && currentUserId != null && userRepository != null) {
+            isUserAdmin = userRepository.findById(currentUserId)
+                    .map(u -> u.getRoles() != null && u.getRoles().stream()
+                            .anyMatch(r -> "ADMIN".equalsIgnoreCase(r.getCode())))
+                    .orElse(false);
+        }
+
+        if (!isSender && !isCourier && !isUserAdmin) {
+            log.warn("User {} is forbidden to view escrow for order {}", currentUserId, orderId);
+            throw new AppException(PaymentErrorCode.ESCROW_ACCESS_DENIED);
+        }
+
+        return EscrowResponse.builder()
+                .id(escrow.getId())
+                .orderId(order.getId())
+                .orderCode(order.getOrderCode())
+                .senderId(escrow.getSenderId())
+                .courierId(order.getCourierId())
+                .amount(escrow.getAmount())
+                .status(escrow.getStatus())
+                .paymentMethod(escrow.getPaymentMethod())
+                .releaseAt(escrow.getReleaseAt())
+                .frozen(escrow.isFrozen())
+                .createdAt(escrow.getCreatedAt())
+                .updatedAt(escrow.getUpdatedAt())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public EscrowResponse getEscrowByOrderId(Long orderId, Long currentUserId) {
+        return getEscrowByOrderId(orderId, currentUserId, false);
+    }
+
+    /**
+     * Giải ngân tiền ký quỹ cho người giao hàng (UC-36, API-093).
+     *
+     * @param orderId        Mã đơn hàng
+     * @param operatorUserId ID người thực hiện thao tác (Admin hoặc System)
+     * @param isAdmin        Cờ xác định quyền Admin
+     * @return Kết quả giải ngân ký quỹ
+     */
+    @Transactional
+    public EscrowReleaseResponse releaseEscrow(Long orderId, Long operatorUserId, boolean isAdmin) {
+        log.info("Processing escrow release request: orderId={}, operatorUserId={}, isAdmin={}", orderId, operatorUserId, isAdmin);
+
+        // 1. Kiểm tra đơn hàng tồn tại
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new AppException(OrderErrorCode.ORDER_NOT_FOUND));
+
+        // 2. Kiểm tra đơn hàng đã có người giao (courierId != null)
+        if (order.getCourierId() == null) {
+            log.warn("Order {} has no assigned courier for escrow release", orderId);
+            throw new AppException(PaymentErrorCode.ORDER_COURIER_NOT_ASSIGNED);
+        }
+
+        // 3. Kiểm tra khoản ký quỹ Escrow tồn tại
+        Escrow escrow = escrowRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new AppException(PaymentErrorCode.ESCROW_NOT_FOUND));
+
+        // 4. Kiểm tra trạng thái Escrow
+        if (escrow.getStatus() == EscrowStatus.RELEASED) {
+            log.warn("Escrow for order {} has already been released", orderId);
+            throw new AppException(PaymentErrorCode.ESCROW_ALREADY_RELEASED);
+        }
+        if (escrow.getStatus() != EscrowStatus.HELD) {
+            log.warn("Escrow for order {} is in status {}, expected HELD", orderId, escrow.getStatus());
+            throw new AppException(PaymentErrorCode.ESCROW_STATUS_INVALID);
+        }
+
+        // 5. Kiểm tra ký quỹ không bị phong tỏa (tranh chấp khiếu nại)
+        if (escrow.isFrozen()) {
+            log.warn("Escrow for order {} is frozen due to dispute/complaint", orderId);
+            throw new AppException(PaymentErrorCode.ESCROW_FROZEN);
+        }
+
+        Long amount = escrow.getAmount();
+        Long courierId = order.getCourierId();
+        Long senderId = escrow.getSenderId();
+
+        // 6. Cập nhật số dư ví với pessimistic lock (findByUserIdForUpdate)
+        // - Nếu đơn ký quỹ từ ví người gửi (paymentMethod == WALLET): giảm escrowHeld của sender
+        if (escrow.getPaymentMethod() == EscrowPaymentMethod.WALLET) {
+            Wallet senderWallet = walletRepository.findByUserIdForUpdate(senderId).orElseGet(() -> {
+                Wallet newWallet = Wallet.builder()
+                        .userId(senderId)
+                        .available(0L)
+                        .escrowHeld(0L)
+                        .pendingWithdraw(0L)
+                        .build();
+                return walletRepository.save(newWallet);
+            });
+            long currentEscrowHeld = senderWallet.getEscrowHeld() != null ? senderWallet.getEscrowHeld() : 0L;
+            senderWallet.setEscrowHeld(Math.max(0L, currentEscrowHeld - amount));
+            walletRepository.save(senderWallet);
+            log.info("Decremented escrowHeld for sender {}: new escrowHeld={}", senderId, senderWallet.getEscrowHeld());
+        }
+
+        // - Lấy hoặc tạo ví của Courier, cộng số dư khả dụng
+        Wallet courierWallet = walletRepository.findByUserIdForUpdate(courierId).orElseGet(() -> {
+            Wallet newWallet = Wallet.builder()
+                    .userId(courierId)
+                    .available(0L)
+                    .escrowHeld(0L)
+                    .pendingWithdraw(0L)
+                    .build();
+            return walletRepository.save(newWallet);
+        });
+        long currentAvailable = courierWallet.getAvailable() != null ? courierWallet.getAvailable() : 0L;
+        courierWallet.setAvailable(currentAvailable + amount);
+        walletRepository.save(courierWallet);
+        log.info("Credited available balance for courier {}: new available={}", courierId, courierWallet.getAvailable());
+
+        // 7. Cập nhật trạng thái Escrow
+        Instant releasedAt = Instant.now();
+        escrow.setStatus(EscrowStatus.RELEASED);
+        escrow.setReleaseAt(releasedAt);
+        escrowRepository.save(escrow);
+
+        // 8. Ghi sổ cái kép
+        String escrowRef = "ESCROW_ORD_" + orderId;
+        ledgerService.recordEscrowRelease(orderId, senderId, courierId, amount, escrowRef);
+
+        log.info("Successfully released escrow for orderId={}, courierId={}, amount={}", orderId, courierId, amount);
+
+        return EscrowReleaseResponse.builder()
+                .orderId(orderId)
+                .orderCode(order.getOrderCode())
+                .courierId(courierId)
+                .amountReleased(amount)
+                .status(EscrowStatus.RELEASED)
+                .message("Giải ngân tiền ký quỹ cho người giao hàng thành công")
+                .releasedAt(releasedAt)
                 .build();
     }
 }

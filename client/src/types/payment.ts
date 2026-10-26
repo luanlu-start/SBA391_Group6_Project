@@ -58,3 +58,27 @@ export interface VNPayReturnResponse {
   message: string;
 }
 
+export interface EscrowResponse {
+  id: number;
+  orderId: number;
+  orderCode: string;
+  senderId: number;
+  courierId?: number;
+  amount: number;
+  status: EscrowStatus;
+  paymentMethod: EscrowPaymentMethod;
+  releaseAt?: string;
+  frozen: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EscrowReleaseResponse {
+  orderId: number;
+  orderCode: string;
+  courierId: number;
+  amountReleased: number;
+  status: EscrowStatus;
+  message: string;
+  releasedAt: string;
+}

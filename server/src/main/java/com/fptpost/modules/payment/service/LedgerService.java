@@ -141,5 +141,47 @@ public class LedgerService {
         log.info("Saved ledger transaction for order escrow from VNPay: txnCode={}, orderId={}", txnCode, orderId);
         return saved;
     }
+    @Transactional
+    public LedgerTransaction recordEscrowRelease(Long orderId, Long senderId, Long courierId, Long amount, String escrowRef) {
+        String idemKey = "ESCROW_RELEASE_" + orderId + "_" + escrowRef;
+        if (ledgerTransactionRepository.existsByIdempotencyKey(idemKey)) {
+            log.info("Ledger entry already exists for escrow release orderId: {}, escrowRef: {}", orderId, escrowRef);
+            return ledgerTransactionRepository.findByIdempotencyKey(idemKey).orElse(null);
+        }
+
+        String txnCode = "LTX-ESCROW-REL-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        LedgerTransaction txn = LedgerTransaction.builder()
+                .transactionCode(txnCode)
+                .type(LedgerTransactionType.ESCROW_RELEASE)
+                .status(LedgerTransactionStatus.COMPLETED)
+                .idempotencyKey(idemKey)
+                .orderId(orderId)
+                .refType("ESCROW")
+                .refId(escrowRef)
+                .amount(amount)
+                .createdBy(courierId)
+                .description("Giải ngân tiền ký quỹ đơn hàng #" + orderId + " cho người giao ID " + courierId)
+                .build();
+
+        // Bút toán Nợ (Debit): ESCROW_ORDER_{orderId} (LIABILITY, debit = amount, credit = 0) -> Giảm nghĩa vụ khoản ký quỹ đang giam giữ
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("ESCROW_ORDER_" + orderId)
+                .accountType("LIABILITY")
+                .debit(amount)
+                .credit(0L)
+                .build());
+
+        // Bút toán Có (Credit): USER_WALLET_{courierId} (LIABILITY, debit = 0, credit = amount) -> Tăng nghĩa vụ số dư ví khả dụng của người giao hàng
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("USER_WALLET_" + courierId)
+                .accountType("LIABILITY")
+                .debit(0L)
+                .credit(amount)
+                .build());
+
+        LedgerTransaction saved = ledgerTransactionRepository.save(txn);
+        log.info("Saved ledger transaction for escrow release: txnCode={}, orderId={}, courierId={}", txnCode, orderId, courierId);
+        return saved;
+    }
 }
 

@@ -26,14 +26,31 @@ import Alert from '../components/ui/Alert';
 import Input from '../components/ui/Input';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ApiErrorNotice from '../components/ApiErrorNotice';
+import type { EscrowResponse } from '../types/payment';
+import { getSessionState } from '../auth/authSession';
+import { ShieldCheck, CheckCircle, AlertTriangle, DollarSign } from 'lucide-react';
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   const [order, setOrder] = useState<Order | null>(null);
+  const [escrow, setEscrow] = useState<EscrowResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
+  const [releasing, setReleasing] = useState(false);
+  const [releaseSuccess, setReleaseSuccess] = useState<string | null>(null);
+  const [releaseError, setReleaseError] = useState<string | null>(null);
+
+  const currentUser = getSessionState().user;
+  const isAdmin = currentUser?.roles?.includes('ADMIN') ?? false;
+
+  const fetchEscrow = (orderId: string | number) => {
+    orderApi
+      .getEscrow(orderId)
+      .then(res => setEscrow(res.data))
+      .catch(() => setEscrow(null));
+  };
 
   // Trạng thái modal hủy đơn
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -51,7 +68,10 @@ export default function OrderDetailPage() {
     orderApi
       .getById(id)
       .then(res => {
-        if (mounted) setOrder(res.data);
+        if (mounted) {
+          setOrder(res.data);
+          fetchEscrow(id);
+        }
       })
       .catch(cause => {
         if (mounted) setError(getApiError(cause));
@@ -64,6 +84,26 @@ export default function OrderDetailPage() {
       mounted = false;
     };
   }, [id]);
+
+  const handleReleaseEscrow = async () => {
+    if (!id) return;
+    if (!window.confirm('Bạn có chắc chắn muốn giải ngân tiền ký quỹ cho người giao hàng?')) {
+      return;
+    }
+    setReleasing(true);
+    setReleaseSuccess(null);
+    setReleaseError(null);
+    try {
+      const res = await orderApi.releaseEscrow(id);
+      setReleaseSuccess(res.data.message || 'Giải ngân tiền ký quỹ thành công!');
+      fetchEscrow(id);
+    } catch (err) {
+      const apiErr = getApiError(err);
+      setReleaseError(apiErr.message);
+    } finally {
+      setReleasing(false);
+    }
+  };
 
   async function handleConfirmCancel() {
     if (!order) return;
@@ -375,6 +415,142 @@ export default function OrderDetailPage() {
               </div>
             </div>
           </SectionCard>
+
+          {/* Thông tin Ký quỹ & Giải ngân (UC-36) */}
+          {escrow && (
+            <SectionCard
+              title="Ký quỹ an toàn (Escrow)"
+              description="Thông tin bảo đảm tài chính và giải ngân bưu tá (UC-36)"
+            >
+              <div className="ui-stack" style={{ gap: '16px' }}>
+                <div className="ui-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Trạng thái ký quỹ:</span>
+                  <Badge
+                    dot
+                    tone={
+                      escrow.status === 'RELEASED'
+                        ? 'success'
+                        : escrow.status === 'HELD'
+                        ? 'warning'
+                        : 'danger'
+                    }
+                  >
+                    {escrow.status === 'RELEASED'
+                      ? 'ĐÃ GIẢI NGÂN'
+                      : escrow.status === 'HELD'
+                      ? 'ĐANG GIAM GIỮ'
+                      : 'ĐÃ HOÀN TIỀN'}
+                  </Badge>
+                </div>
+
+                {escrow.frozen && (
+                  <div
+                    style={{
+                      padding: '8px 12px',
+                      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      borderRadius: 'var(--radius-sm)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      color: 'var(--accent-ruby)',
+                      fontSize: '0.85rem',
+                    }}
+                  >
+                    <AlertTriangle size={16} />
+                    <span>Khoản ký quỹ đang bị phong tỏa do tranh chấp/khiếu nại.</span>
+                  </div>
+                )}
+
+                {releaseSuccess && (
+                  <div
+                    style={{
+                      padding: '8px 12px',
+                      backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                      borderRadius: 'var(--radius-sm)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      color: 'var(--accent-emerald)',
+                      fontSize: '0.85rem',
+                    }}
+                  >
+                    <CheckCircle size={16} />
+                    <span>{releaseSuccess}</span>
+                  </div>
+                )}
+
+                {releaseError && (
+                  <div
+                    style={{
+                      padding: '8px 12px',
+                      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      borderRadius: 'var(--radius-sm)',
+                      color: 'var(--accent-ruby)',
+                      fontSize: '0.85rem',
+                    }}
+                  >
+                    {releaseError}
+                  </div>
+                )}
+
+                <div className="ui-summary-list">
+                  <div>
+                    <dt className="ui-row" style={{ gap: '6px' }}>
+                      <DollarSign size={14} />
+                      <span>Số tiền ký quỹ:</span>
+                    </dt>
+                    <dd style={{ fontWeight: 600, color: 'var(--primary)' }}>
+                      {Number(escrow.amount).toLocaleString('vi-VN')} VNĐ
+                    </dd>
+                  </div>
+
+                  <div>
+                    <dt>Phương thức ký quỹ:</dt>
+                    <dd>
+                      {escrow.paymentMethod === 'WALLET' ? 'Ví FPTPost' : 'Cổng VNPay'}
+                    </dd>
+                  </div>
+
+                  {escrow.courierId && (
+                    <div>
+                      <dt>Bưu tá thụ hưởng:</dt>
+                      <dd>#{escrow.courierId}</dd>
+                    </div>
+                  )}
+
+                  {escrow.releaseAt && (
+                    <div>
+                      <dt>Thời gian giải ngân:</dt>
+                      <dd>{new Date(escrow.releaseAt).toLocaleString('vi-VN')}</dd>
+                    </div>
+                  )}
+                </div>
+
+                {/* Nút hành động giải ngân dành cho ADMIN */}
+                {isAdmin && escrow.status === 'HELD' && !escrow.frozen && (
+                  <div style={{ marginTop: '8px' }}>
+                    <Button
+                      variant="primary"
+                      icon={<ShieldCheck size={16} />}
+                      onClick={handleReleaseEscrow}
+                      disabled={releasing || !order.courierId}
+                      style={{ width: '100%' }}
+                    >
+                      {releasing ? 'Đang giải ngân…' : 'Giải ngân cho người giao (API-093)'}
+                    </Button>
+                    {!order.courierId && (
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', textAlign: 'center' }}>
+                        * Cần chỉ định người giao trước khi thực hiện giải ngân
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </SectionCard>
+          )}
         </div>
       </div>
 
