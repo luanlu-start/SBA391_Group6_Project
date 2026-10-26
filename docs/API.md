@@ -29,7 +29,12 @@ và [SPEC](sources/fptpost-spec-v1.0.pdf), mục 6.
 | POST | /api/v1/auth/password/change | UC-06 đổi mật khẩu hiện tại; yêu cầu Bearer JWT |
 | GET | /api/v1/auth/sessions | UC-04 danh sách phiên đang hoạt động của tài khoản hiện tại |
 | DELETE | /api/v1/auth/sessions/{id} | UC-04 thu hồi một phiên của tài khoản hiện tại |
-| GET | /api/v1/wallet | UC-38 xem thông tin số dư ví, tiền ký quỹ; HTTP 200 |
+| GET | /api/v1/wallet | UC-38 (API-088) xem thông tin số dư ví, tiền ký quỹ; HTTP 200 |
+| GET | /api/v1/wallet/transactions | UC-38 (API-089) lịch sử biến động số dư và giao dịch ví; HTTP 200 |
+| GET | /api/v1/wallet/statement | UC-38 (API-090) bảng sao kê biến động tài khoản ví theo tháng; HTTP 200 |
+| POST | /api/v1/wallet/withdrawals | UC-40 (API-097) tạo yêu cầu rút tiền về tài khoản ngân hàng; HTTP 201 |
+| GET | /api/v1/wallet/withdrawals | UC-40 (API-098) danh sách phân trang các yêu cầu rút tiền của tôi; HTTP 200 |
+| POST | /api/v1/wallet/withdrawals/{id}/cancel | UC-40 (API-099) hủy yêu cầu rút tiền đang chờ duyệt; HTTP 200 |
 | POST | /api/v1/wallet/topups | UC-34 (API-084) nạp tiền ví qua VNPay, sinh paymentUrl; HTTP 200 |
 | GET | /api/v1/payment/vnpay-return | UC-34 (API-085) nhận return từ VNPay, hiển thị biên lai giao dịch |
 | GET/POST | /api/v1/payment/vnpay-ipn | UC-42 (API-086) webhook IPN từ VNPay, ghi nhận số dư và sổ cái kép |

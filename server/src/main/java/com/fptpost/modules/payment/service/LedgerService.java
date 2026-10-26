@@ -183,5 +183,89 @@ public class LedgerService {
         log.info("Saved ledger transaction for escrow release: txnCode={}, orderId={}, courierId={}", txnCode, orderId, courierId);
         return saved;
     }
+
+    @Transactional
+    public LedgerTransaction recordWithdrawalRequest(Long userId, Long amount, String requestCode) {
+        String idemKey = "WDR_" + requestCode;
+        if (ledgerTransactionRepository.existsByIdempotencyKey(idemKey)) {
+            log.info("Ledger entry already exists for withdrawal request: {}", requestCode);
+            return ledgerTransactionRepository.findByIdempotencyKey(idemKey).orElse(null);
+        }
+
+        String txnCode = "LTX-WDR-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        LedgerTransaction txn = LedgerTransaction.builder()
+                .transactionCode(txnCode)
+                .type(LedgerTransactionType.WITHDRAWAL_REQUEST)
+                .status(LedgerTransactionStatus.COMPLETED)
+                .idempotencyKey(idemKey)
+                .refType("WITHDRAWAL_REQUEST")
+                .refId(requestCode)
+                .amount(amount)
+                .createdBy(userId)
+                .description("Yêu cầu rút tiền #" + requestCode + " từ ví người dùng ID " + userId)
+                .build();
+
+        // Ghi Nợ (Debit): USER_WALLET_{userId} (Giảm nghĩa vụ số dư khả dụng của ví)
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("USER_WALLET_" + userId)
+                .accountType("LIABILITY")
+                .debit(amount)
+                .credit(0L)
+                .build());
+
+        // Ghi Có (Credit): CLEARING_WITHDRAWAL (Tăng nghĩa vụ tiền tạm giữ chờ chi trả rút tiền)
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("CLEARING_WITHDRAWAL")
+                .accountType("LIABILITY")
+                .debit(0L)
+                .credit(amount)
+                .build());
+
+        LedgerTransaction saved = ledgerTransactionRepository.save(txn);
+        log.info("Saved ledger transaction for withdrawal request: txnCode={}, requestCode={}, amount={}", txnCode, requestCode, amount);
+        return saved;
+    }
+
+    @Transactional
+    public LedgerTransaction recordWithdrawalCancellation(Long userId, Long amount, String requestCode) {
+        String idemKey = "CANCEL_WDR_" + requestCode;
+        if (ledgerTransactionRepository.existsByIdempotencyKey(idemKey)) {
+            log.info("Ledger entry already exists for withdrawal cancellation: {}", requestCode);
+            return ledgerTransactionRepository.findByIdempotencyKey(idemKey).orElse(null);
+        }
+
+        String txnCode = "LTX-WDR-CAN-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        LedgerTransaction txn = LedgerTransaction.builder()
+                .transactionCode(txnCode)
+                .type(LedgerTransactionType.WITHDRAWAL_CANCEL)
+                .status(LedgerTransactionStatus.COMPLETED)
+                .idempotencyKey(idemKey)
+                .refType("WITHDRAWAL_REQUEST")
+                .refId(requestCode)
+                .amount(amount)
+                .createdBy(userId)
+                .description("Hủy yêu cầu rút tiền #" + requestCode + ", hoàn trả về số dư khả dụng ví ID " + userId)
+                .build();
+
+        // Ghi Nợ (Debit): CLEARING_WITHDRAWAL (Giảm nghĩa vụ tiền tạm giữ chờ chi trả)
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("CLEARING_WITHDRAWAL")
+                .accountType("LIABILITY")
+                .debit(amount)
+                .credit(0L)
+                .build());
+
+        // Ghi Có (Credit): USER_WALLET_{userId} (Hoàn trả lại số dư khả dụng cho ví người dùng)
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("USER_WALLET_" + userId)
+                .accountType("LIABILITY")
+                .debit(0L)
+                .credit(amount)
+                .build());
+
+        LedgerTransaction saved = ledgerTransactionRepository.save(txn);
+        log.info("Saved ledger transaction for withdrawal cancellation: txnCode={}, requestCode={}, amount={}", txnCode, requestCode, amount);
+        return saved;
+    }
 }
 

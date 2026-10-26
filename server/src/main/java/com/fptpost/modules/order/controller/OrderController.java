@@ -124,7 +124,6 @@ public class OrderController {
         List<OrderResponse> orders = orderService.getAllOrders();
         return ResponseEntity.ok(ApiResponse.success("Orders retrieved successfully", orders));
     }
-
     @PostMapping("/{id}/payment")
     @Operation(summary = "Thanh toán và ký quỹ đơn hàng (UC-35, API-087)", description = "Người gửi thực hiện thanh toán ký quỹ đơn hàng qua Ví nội bộ hoặc Cổng VNPay.")
     public ResponseEntity<ApiResponse<OrderPaymentResponse>> payOrder(

@@ -22,5 +22,15 @@ public enum LedgerTransactionType {
     /**
      * Hoàn tiền ký quỹ cho người gửi (UC-37).
      */
-    ESCROW_REFUND
+    ESCROW_REFUND,
+
+    /**
+     * Yêu cầu rút tiền từ ví về ngân hàng (UC-40).
+     */
+    WITHDRAWAL_REQUEST,
+
+    /**
+     * Hủy yêu cầu rút tiền, hoàn trả tiền về ví (UC-40).
+     */
+    WITHDRAWAL_CANCEL
 }
