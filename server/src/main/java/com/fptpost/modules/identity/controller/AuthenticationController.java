@@ -15,6 +15,7 @@ import com.fptpost.modules.identity.service.AuthenticationService;
 import com.fptpost.modules.identity.service.PasswordService;
 import com.fptpost.modules.identity.dto.request.ForgotPasswordRequest;
 import com.fptpost.modules.identity.dto.request.ResetPasswordRequest;
+import com.fptpost.modules.identity.dto.request.ChangePasswordRequest;
 import com.fptpost.modules.identity.dto.response.PasswordResetRequestResponse;
 import com.fptpost.modules.identity.config.AuthenticationCookies;
 import com.fptpost.modules.identity.dto.request.AuthenticationRequest;
@@ -51,6 +52,15 @@ public class AuthenticationController {
     AuthenticationService authenticationService;
     AuthenticationCookies cookies;
     PasswordService passwordService;
+
+    @PostMapping("/password/change")
+    @Operation(summary = "UC-06: Đổi mật khẩu của tài khoản đang đăng nhập và thu hồi mọi phiên cũ")
+    public ResponseEntity<ApiResponse<Void>> changePassword(@AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody ChangePasswordRequest request) {
+        passwordService.changePassword(UUID.fromString(jwt.getSubject()), UUID.fromString(jwt.getClaimAsString("sid")), request);
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).header("Set-Cookie", cookies.clear())
+                .body(ApiResponse.success("Đổi mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới.", null));
+    }
 
     @PostMapping("/password/forgot")
     @Operation(summary = "UC-05: Yêu cầu OTP đặt lại mật khẩu qua email đã đăng ký")

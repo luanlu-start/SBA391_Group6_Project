@@ -26,6 +26,7 @@ và [SPEC](sources/fptpost-spec-v1.0.pdf), mục 6.
 | POST | /api/v1/auth/logout | Đăng xuất phiên hiện tại |
 | POST | /api/v1/auth/password/forgot | UC-05 yêu cầu OTP đặt lại mật khẩu; phản hồi chung HTTP 200 |
 | POST | /api/v1/auth/password/reset | UC-05 xác thực OTP, đổi mật khẩu và thu hồi mọi phiên cũ |
+| POST | /api/v1/auth/password/change | UC-06 đổi mật khẩu hiện tại; yêu cầu Bearer JWT |
 | GET | /api/v1/auth/sessions | UC-04 danh sách phiên đang hoạt động của tài khoản hiện tại |
 | DELETE | /api/v1/auth/sessions/{id} | UC-04 thu hồi một phiên của tài khoản hiện tại |
 | GET | /api/v1/wallet | UC-38 (API-088) xem thông tin số dư ví, tiền ký quỹ; HTTP 200 |
@@ -46,11 +47,11 @@ và [SPEC](sources/fptpost-spec-v1.0.pdf), mục 6.
 | GET | /api/v1/me | Thông tin người dùng đang đăng nhập |
 
 Product CRUD là ví dụ kỹ thuật, không tương ứng UC-12 hay các API orders.
-UC-01–05 đã có đăng ký, xác thực email, đăng nhập, refresh rotation, quản lý phiên và đặt lại mật khẩu.
+UC-01–06 đã có đăng ký, xác thực email, đăng nhập, refresh rotation, quản lý phiên, khôi phục và đổi mật khẩu.
 UC-34, UC-35 và UC-36 đã được triển khai hoàn chỉnh cho cả Backend, Security và Frontend: nạp tiền vào ví qua cổng VNPay (SCR-42), thanh toán và ký quỹ đơn hàng (SCR-22), giải ngân tiền ký quỹ cho shipper (UC-36), quản lý bút toán sổ cái kép (ledger) và xử lý IPN đa mục đích (WALLET_TOPUP / ORDER_ESCROW) bảo đảm tính toàn vẹn (idempotency).
 Product/Activity, Wallet, Escrow và Order Payment yêu cầu Bearer JWT; các endpoint callback VNPay công khai (return/ipn) được cấu hình trong SecurityConfig. Endpoint giải ngân admin yêu cầu role ADMIN.
 
-## API xác thực UC-01–05
+## API xác thực UC-01–06
 
 Luồng giao diện: `/register` → `/verify` → `/login` → `/account`.
 Các endpoint xác thực nằm trong `AuthenticationController`.
@@ -155,6 +156,19 @@ Email bảo mật dùng template `password-changed`, gửi sau khi transaction c
 Nếu thông báo bảo mật gửi thất bại, mật khẩu mới vẫn có hiệu lực; hiện ghi log, chưa có outbox/retry.
 Frontend không lưu OTP/mật khẩu vào localStorage/sessionStorage; router state chỉ giữ identifier và thời điểm được gửi lại.
 
+### Đổi mật khẩu (UC-06)
+
+SCR-12 dùng chung `/me/security` với quản lý phiên. `POST /api/v1/auth/password/change` yêu cầu Bearer JWT
+còn hiệu lực, body `{ "currentPassword": "OldPassword123!", "newPassword": "NewPassword456!" }`.
+Tài khoản được lấy từ JWT, không nhận ID/email để chọn tài khoản. Nhập lại mật khẩu chỉ kiểm tra ở frontend.
+
+- Mật khẩu hiện tại sai trả HTTP 400 `AUTH_CURRENT_PASSWORD_INCORRECT`; phiên hiện tại vẫn còn hiệu lực.
+- Mật khẩu mới dùng chung quy tắc với đăng ký/khôi phục, lưu BCrypt cost ≥ 10; trùng mật khẩu hiện tại trả HTTP 400 `AUTH_PASSWORD_UNCHANGED`.
+- Khóa User và kiểm tra lại phiên trong transaction để phối hợp với login/refresh/reset. Thành công cập nhật hash, thu hồi **mọi phiên** của tài khoản, kể cả phiên hiện tại, và vô hiệu OTP `PASSWORD_RESET` còn hiệu lực. OTP đăng ký và phiên tài khoản khác không bị ảnh hưởng.
+- HTTP 200 không cấp JWT, xóa refresh cookie; frontend xóa trạng thái xác thực và về `/login` với thông báo thành công.
+- Email bảo mật dùng chung sự kiện `PasswordChangedEvent` và template `password-changed` với UC-05, gửi sau commit. Lỗi gửi thông báo không hoàn tác mật khẩu; hiện ghi log, chưa có retry/outbox.
+- Giới hạn IP của auth áp dụng cả request sai JSON/validation; HTTP 429 có `Retry-After`. Không yêu cầu OTP cho UC-06 vì đã xác nhận bằng mật khẩu hiện tại.
+
 ## API Ví tiền & Ký quỹ (UC-34 & UC-35)
 
 Luồng giao diện:
@@ -237,7 +251,7 @@ Luồng giao diện:
   - Xử lý: Giảm `escrowHeld` của sender (nếu ký quỹ từ ví), cộng `available` của shipper (tự động khởi tạo ví nếu chưa có), cập nhật `escrow.status = RELEASED` và `releaseAt = now()`, ghi nhận bút toán kép Sổ cái (Ledger).
 
 
-Đổi mật khẩu (UC-06), Google login và KYC chưa triển khai.
+Google login và KYC chưa triển khai.
 Cấu hình SMTP/template nằm trong [README](../README.md), schema trong [DATABASE](DATABASE.md),
 mã lỗi và field validation theo [contract lỗi](API-ERRORS.md).
 

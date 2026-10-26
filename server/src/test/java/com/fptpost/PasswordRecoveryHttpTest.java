@@ -169,7 +169,7 @@ class PasswordRecoveryHttpTest {
         assertThat(body(response).has("data")).isFalse();
         assertThat(latest().getUsedAt()).isEqualTo(now.get());
         assertThat(delivered).hasSize(2);
-        assertThat(delivered.getLast().getSubject()).contains("Mật khẩu đã được đặt lại");
+        assertThat(delivered.getLast().getSubject()).contains("Mật khẩu đã được thay đổi");
         assertThat(text(delivered.getLast())).doesNotContain(otp, "NewPassword456!");
         for (var old : List.of(first, second)) {
             send(get("/api/v1/me").header("Authorization", "Bearer " + access(old)), 401);

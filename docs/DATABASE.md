@@ -128,6 +128,10 @@ OTP đăng ký và đặt lại mật khẩu được kiểm tra riêng. Reset d
 `tries` lưu cả khi trả lỗi, `used_at` chống sử dụng lại. Khi thành công, cập nhật `users.password_hash`,
 đánh dấu OTP đã dùng và thu hồi toàn bộ `sessions` của tài khoản trong cùng transaction có khóa User.
 
+UC-06 dùng lại các bảng này: khóa User theo `public_id`, kiểm tra mật khẩu hiện tại và phiên sở hữu,
+cập nhật `password_hash`, thu hồi mọi phiên và hết hạn OTP quên mật khẩu còn hiệu lực trong cùng transaction.
+Không thêm cột hoặc bảng; thông báo email bảo mật chỉ gửi sau commit.
+
 UC-04 dùng `sessions` để liệt kê các phiên đang hoạt động và thu hồi theo tài khoản sở hữu.
 Khi refresh, phiên mới giữ thời điểm đăng nhập `created_at`; phiên cũ lưu `replaced_by`
 để thao tác đăng xuất trên danh sách cũ vẫn thu hồi đúng phiên tiếp nối.
