@@ -70,7 +70,7 @@ export interface Order {
 export type OrderResponse = Order;
 
 export interface OrderRequest {
-  senderId: number;
+  senderId?: number;
   pickupAddress: string;
   deliveryAddress: string;
   receiverName: string;

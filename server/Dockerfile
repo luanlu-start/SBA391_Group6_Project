@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl \
     && groupadd --gid 10001 app && useradd --uid 10001 --gid app app
 WORKDIR /app
 COPY --from=build --chown=app:app /workspace/target/sba391-server-1.0.0.jar app.jar
+RUN mkdir -p /app/private-data && chown app:app /app/private-data
 USER app
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

@@ -25,6 +25,11 @@ public interface UserMapper {
     @Mapping(target = "phone", source = "user.phone")
     @Mapping(target = "status", source = "user.status")
     @Mapping(target = "emailVerifiedAt", source = "user.emailVerifiedAt")
+    @Mapping(target = "dob", source = "profile.dob")
+    @Mapping(target = "bio", source = "profile.bio")
+    @Mapping(target = "emergencyContact", source = "profile.emergencyContact")
+    @Mapping(target = "fptBadge", source = "user.fptBadge")
+    @Mapping(target = "avatarAvailable", expression = "java(profile.getAvatarStorageKey() != null)")
     @Mapping(target = "roles", expression = "java(user.getRoles().stream().map(role -> role.getCode()).sorted().toList())")
     UserResponse toUserResponse(User user, UserProfile profile);
 

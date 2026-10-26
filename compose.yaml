@@ -54,6 +54,9 @@ services:
     environment:
       SERVER_PORT: "8080"
       JWT_SECRET: ${JWT_SECRET:-}
+      KYC_ENCRYPTION_KEYS: ${KYC_ENCRYPTION_KEYS:-}
+      KYC_ACTIVE_KEY_ID: ${KYC_ACTIVE_KEY_ID:-}
+      KYC_HASH_KEY: ${KYC_HASH_KEY:-}
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
       VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-}
       VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-}
@@ -74,6 +77,8 @@ services:
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:${FRONTEND_PORT:-5173},http://127.0.0.1:${FRONTEND_PORT:-5173},http://localhost:5173,http://127.0.0.1:5173}
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
+    volumes:
+      - identity-private-data:/app/private-data
     depends_on:
       sqlserver-init:
         condition: service_completed_successfully
@@ -105,5 +110,6 @@ services:
       retries: 6
 
 volumes:
+  identity-private-data:
   sqlserver-2022-data:
   mongo-data:
