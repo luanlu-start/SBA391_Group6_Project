@@ -16,20 +16,27 @@ spring:
     multipart:
       enabled: true
       max-file-size: 10MB
+      file-size-threshold: 10MB
       max-request-size: 50MB
   datasource:
     url: ${SQLSERVER_URL:jdbc:sqlserver://${COMPUTERNAME}:1433;databaseName=group6_project_db;encrypt=true;trustServerCertificate=true}
     username: ${SQLSERVER_USERNAME:sa}
-    password: ${SQLSERVER_PASSWORD}
+    password: ${SQLSERVER_PASSWORD:123456}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
   jpa:
     open-in-view: false
+    defer-datasource-initialization: true
     hibernate:
       ddl-auto: update
     properties:
       hibernate:
         jdbc:
           time_zone: UTC
+  sql:
+    init:
+      mode: always
+      continue-on-error: true
+      encoding: UTF-8
   data:
     mongodb:
       uri: ${MONGODB_URI:mongodb://localhost:27017/group6_project_db}

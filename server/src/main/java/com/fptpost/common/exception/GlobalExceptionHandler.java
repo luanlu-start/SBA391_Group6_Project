@@ -31,7 +31,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(AppException.class)
     public ResponseEntity<ApiProblem> handleAppException(AppException exception, HttpServletRequest request) {
         log.warn("API failure code={}", exception.getErrorCode().getCode());
-        return problems.response(exception.getErrorCode(), request, List.of());
+        HttpHeaders headers = new HttpHeaders();
+        if (exception.getRetryAfterSeconds() > 0) headers.set(HttpHeaders.RETRY_AFTER, Long.toString(exception.getRetryAfterSeconds()));
+        return problems.response(exception.getErrorCode(), exception.getErrorCode().getHttpStatus().value(), request, List.of(), headers);
     }
 
     @ExceptionHandler(BindException.class)
@@ -44,10 +46,24 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problems.response(GlobalErrorCode.UPSTREAM_UNAVAILABLE, request, List.of());
     }
 
+    @ExceptionHandler({
+            org.springframework.dao.OptimisticLockingFailureException.class,
+            org.springframework.dao.PessimisticLockingFailureException.class,
+            jakarta.persistence.OptimisticLockException.class,
+            jakarta.persistence.PessimisticLockException.class
+    })
+    public ResponseEntity<ApiProblem> handleLockingFailure(Exception ex, HttpServletRequest request) {
+        log.warn("Locking conflict on order: {}", ex.getMessage());
+        return problems.response(com.fptpost.modules.order.exception.OrderErrorCode.ORDER_NOT_AVAILABLE, request, List.of());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiProblem> handleGenericException(Exception exception, HttpServletRequest request) {
-        log.error("API failure code={} exceptionType={}", GlobalErrorCode.INTERNAL_SERVER_ERROR.getCode(),
-                exception.getClass().getSimpleName());
+        log.error("API failure code={} exceptionType={} message={}",
+                GlobalErrorCode.INTERNAL_SERVER_ERROR.getCode(),
+                exception.getClass().getSimpleName(),
+                exception.getMessage(),
+                exception);
         return problems.response(GlobalErrorCode.INTERNAL_SERVER_ERROR, request, List.of());
     }
 

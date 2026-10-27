@@ -76,6 +76,8 @@ public class Order {
     @Column(name = "price_agreed", precision = 15, scale = 2)
     private BigDecimal priceAgreed;
 
+    @Column(name = "fee_rate_locked", precision = 5, scale = 4)
+    private BigDecimal feeRateLocked;
 
     @Column(name = "distance_km", precision = 10, scale = 2)
     private BigDecimal distanceKm;

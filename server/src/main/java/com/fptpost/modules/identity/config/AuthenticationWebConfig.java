@@ -20,7 +20,7 @@ public class AuthenticationWebConfig implements WebMvcConfigurer {
         registry.addInterceptor(new HandlerInterceptor() {
             @Override
             public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
-                if ("POST".equals(request.getMethod())) {
+                if ("POST".equals(request.getMethod()) || "PATCH".equals(request.getMethod())) {
                     try {
                         // Count malformed requests too; do not trust client-supplied forwarded headers.
                         limiter.check(request.getRemoteAddr());
@@ -32,6 +32,6 @@ public class AuthenticationWebConfig implements WebMvcConfigurer {
                 return true;
             }
         }).addPathPatterns("/api/v1/auth/register", "/api/v1/auth/otp/verify", "/api/v1/auth/otp/resend", "/api/v1/auth/login", "/api/v1/auth/refresh",
-                "/api/v1/auth/password/forgot", "/api/v1/auth/password/reset");
+                "/api/v1/auth/password/forgot", "/api/v1/auth/password/reset", "/api/v1/auth/password/change", "/api/v1/me/contact", "/api/v1/me/contact/**", "/api/v1/me/kyc", "/api/v1/me/kyc/**", "/api/v1/me/courier-registration");
     }
 }

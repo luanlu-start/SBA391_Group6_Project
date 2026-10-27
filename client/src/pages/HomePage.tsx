@@ -76,7 +76,7 @@ export default function HomePage() {
     <section className="home-courier" id="become-courier" aria-labelledby="home-courier-title">
       <div><p className="home-eyebrow">{copy.courier.eyebrow}</p><h2 id="home-courier-title">{copy.courier.title}</h2>
         <p className="home-courier-description">{copy.courier.description}</p>
-        <Link to={accountPath} className="ui-button ui-button-primary">{user ? copy.courier.accountAction : copy.courier.action}<ArrowRight size={18} aria-hidden="true" /></Link>
+        <Link to={user ? '/me/courier-register' : '/login'} className="ui-button ui-button-primary">{copy.courier.action}<ArrowRight size={18} aria-hidden="true" /></Link>
       </div>
       <div className="home-courier-side"><span className="home-courier-symbol"><Truck size={55} strokeWidth={1.4} aria-hidden="true" /></span>
         <ul>{copy.courier.points.map((point, index) => {

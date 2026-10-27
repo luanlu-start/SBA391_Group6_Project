@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.UUID;
 
 @Entity
 @Table(name = "user_profiles")
@@ -27,4 +29,10 @@ public class UserProfile {
 
     @Column(name = "adult_confirmed_at", nullable = false, columnDefinition = "datetime2(6)")
     private Instant adultConfirmedAt;
+
+    private LocalDate dob;
+    @Column(columnDefinition = "nvarchar(500)") private String bio;
+    @Column(name = "emergency_contact", columnDefinition = "nvarchar(200)") private String emergencyContact;
+    @Column(name = "avatar_storage_key", columnDefinition = "uniqueidentifier") private UUID avatarStorageKey;
+    @Column(name = "avatar_content_type", length = 30) private String avatarContentType;
 }

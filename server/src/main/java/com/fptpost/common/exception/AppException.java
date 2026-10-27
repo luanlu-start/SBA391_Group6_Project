@@ -7,6 +7,8 @@ public class AppException extends RuntimeException {
 
     private final ErrorCode errorCode;
 
+    public long getRetryAfterSeconds() { return 0; }
+
     public AppException(ErrorCode errorCode) {
         super(errorCode.getCode());
         this.errorCode = errorCode;

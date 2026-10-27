@@ -128,6 +128,10 @@ OTP đăng ký và đặt lại mật khẩu được kiểm tra riêng. Reset d
 `tries` lưu cả khi trả lỗi, `used_at` chống sử dụng lại. Khi thành công, cập nhật `users.password_hash`,
 đánh dấu OTP đã dùng và thu hồi toàn bộ `sessions` của tài khoản trong cùng transaction có khóa User.
 
+UC-06 dùng lại các bảng này: khóa User theo `public_id`, kiểm tra mật khẩu hiện tại và phiên sở hữu,
+cập nhật `password_hash`, thu hồi mọi phiên và hết hạn OTP quên mật khẩu còn hiệu lực trong cùng transaction.
+Không thêm cột hoặc bảng; thông báo email bảo mật chỉ gửi sau commit.
+
 UC-04 dùng `sessions` để liệt kê các phiên đang hoạt động và thu hồi theo tài khoản sở hữu.
 Khi refresh, phiên mới giữ thời điểm đăng nhập `created_at`; phiên cũ lưu `replaced_by`
 để thao tác đăng xuất trên danh sách cũ vẫn thu hồi đúng phiên tiếp nối.
@@ -166,5 +170,8 @@ không ghi đè dữ liệu người dùng hoặc gửi email khi seed.
 Repository hiện chọn Hibernate code first, không dùng Flyway; đây là lựa chọn khác
 ADR-10 trong SPEC v1.0. Các tài liệu nguồn được giữ nguyên.
 
-Việc tiếp theo: chốt chiến lược ID, vẽ ERD đầy đủ từ từ điển, xác định quan hệ/index và
-transaction từng UC trước khi tạo entity.
+Chi tiết bản thiết kế hoàn chỉnh, bao gồm sơ đồ ERD trực quan (Mermaid), đặc tả 100% các bảng (bảng hiện có trong code và bảng thiết kế mới), mã nguồn DDL SQL Server / DBML, và các chiến lược xử lý Race Condition, Đối soát Ví - Ký quỹ - Sổ cái (Triple-Reconciliation) và Phân vùng (Partitioning) được trình bày tại:
+👉 **[TÀI LIỆU THIẾT KẾ CƠ SỞ DỮ LIỆU TOÀN DIỆN (DATABASE_DESIGN.md)](DATABASE_DESIGN.md)**
+
+Khởi tạo dữ liệu mẫu tự động được thực hiện qua file `server/src/main/resources/data.sql` với cơ chế `defer-datasource-initialization: true` và `sql.init.mode: always` cấu hình trong `application.yml`.
+
