@@ -12,7 +12,6 @@ import com.fptpost.modules.chat.model.ChatRoom;
 import com.fptpost.modules.chat.repository.ChatMessageRepository;
 import com.fptpost.modules.chat.security.ChatAccessService;
 import com.fptpost.modules.order.dto.OrderResponse;
-import com.fptpost.modules.order.model.OrderStatus;
 import com.fptpost.modules.order.service.OrderService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -42,6 +41,8 @@ public class ChatMessageService {
     private final OrderService orderService;
     private final MongoTemplate mongoTemplate;
     private final ChatMessagePublisher chatMessagePublisher;
+    private final ChatWritePolicy chatWritePolicy;
+
     public ChatMessageResponse sendMessage(
             String roomId,
             UUID userPublicId,
@@ -136,15 +137,10 @@ public class ChatMessageService {
             throw new AppException(ChatErrorCode.CHAT_ACCESS_DENIED);
         }
 
-        if (room.getReadOnlyAt() != null
-                && !now.isBefore(room.getReadOnlyAt())) {
-            throw new AppException(ChatErrorCode.CHAT_ROOM_READ_ONLY);
-        }
+        boolean roomLocked = room.getReadOnlyAt() != null
+                && !now.isBefore(room.getReadOnlyAt());
 
-        boolean ended = order.getStatus() == OrderStatus.COMPLETED
-                || order.getStatus() == OrderStatus.CANCELLED;
-
-        if (ended && room.getReadOnlyAt() == null) {
+        if (roomLocked || chatWritePolicy.isReadOnly(order, now)) {
             throw new AppException(ChatErrorCode.CHAT_ROOM_READ_ONLY);
         }
     }

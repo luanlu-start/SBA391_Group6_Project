@@ -29,4 +29,6 @@ public class ChatRoomResponse {
     Instant lastMessageAt;
 
     Instant readOnlyAt;
+
+    boolean readOnly;
 }
