@@ -10,6 +10,7 @@ build/
 target/
 server/target/
 uploads/
+private-data/
 server/uploads/
 *.local
 *.class
@@ -23,6 +24,9 @@ server/uploads/
 .env.test.local
 .env.production.local
 *.env
+
+# Per-machine Docker Compose overrides
+/compose.override.yaml
 
 # Logs
 logs/
@@ -62,3 +66,6 @@ Thumbs.db
 /server/.classpath
 /server/.project
 /server/.settings/
+
+# VNPay sample JSP project
+vnpay_jsp/

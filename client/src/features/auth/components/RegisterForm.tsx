@@ -46,9 +46,9 @@ export default function RegisterForm() {
 
   return <>
     <form className="register-form" onSubmit={handleSubmit(submit)} noValidate aria-busy={isPending}>
-      {error && <ApiErrorNotice message={error.message} correlationId={error.correlationId} />}
+      {error && <ApiErrorNotice error={error} />}
       {policyError && <div className="ui-stack">
-        <ApiErrorNotice message="Chưa tải được chính sách đăng ký. Vui lòng thử lại." correlationId={policyError.correlationId} />
+        <ApiErrorNotice error={policyError} message="Chưa tải được chính sách đăng ký. Vui lòng thử lại." />
         <Button variant="secondary" size="sm" onClick={() => { clearError(); void reloadPolicies(); }}>Thử lại</Button>
       </div>}
       <fieldset className="register-fieldset" disabled={isPending}>

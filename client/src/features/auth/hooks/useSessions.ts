@@ -44,7 +44,7 @@ export function useSessions(enabled: boolean) {
       const result = await authService.revokeSession(id);
       if (!result.currentSessionRevoked) {
         setSessions(items => items.filter(session => session.id !== id));
-        setNotice('Đã đăng xuất thiết bị được chọn.');
+        setNotice('Đã đăng xuất phiên được chọn. Các phiên khác vẫn hoạt động bình thường.');
         await reload();
       }
       return true;

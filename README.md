@@ -3,17 +3,11 @@
 FPTPost là nền tảng giao hàng tiện đường P2P, kết nối người gửi với người giao,
 hỗ trợ KYC, sàn đơn/chào giá, ký quỹ, theo dõi và thanh toán theo đặc tả của nhóm.
 Repository hiện cung cấp base React/Spring Boot với Product CRUD mẫu, Activity Log mẫu
-và UC-01–04 Identity. UC-46 cung cấp quản trị 109 tham số, lịch sử thay đổi, SQL outbox/Mongo audit
-và mô phỏng biểu phí trong môi trường phát triển. Mô phỏng production cần Pricing provider thật.
+và UC-01–06 đăng ký, xác thực email, đăng nhập, quản lý phiên, khôi phục và đổi mật khẩu Identity. Các UC còn lại được triển khai theo tài liệu của nhóm.
 
-[API quản trị tham số](docs/API.md#uc-46-đã-triển-khai--admin) • [Schema và outbox](docs/DATABASE.md).
-
-UC-60 bổ sung `/admin/audit`: Admin lọc/phân trang, xem chi tiết before/after đã che dữ liệu nhạy cảm,
-truy vết event/IP/correlationId; Mongo index và job retention theo AUDIT_KEEP.
-[API tra cứu audit](docs/API.md#uc-60-đã-triển-khai--admin).
-
-UC-45 bổ sung `/admin/promotions`: tạo/sửa/tạm dừng khuyến mãi, chọn người áp dụng,
-theo dõi lượt dùng và audit. Luồng áp mã vào đơn do UC-44 tích hợp qua module pricing dùng chung.
+UC-46 cung cấp quản trị tham số, lịch sử thay đổi và SQL outbox/Mongo audit.
+UC-60 cung cấp tra cứu nhật ký tại `/admin/audit`; UC-45 quản lý khuyến mãi tại
+`/admin/promotions`. API và schema xem [API](docs/API.md) và [Database](docs/DATABASE.md).
 
 Đọc [thông tin dự án](docs/PROJECT-INFO.md), [63 Use Case](docs/USE-CASES.md) và
 [quy ước code](docs/CONTRIBUTING.md) trước khi bắt đầu chức năng.
@@ -47,7 +41,7 @@ Stack của dự án:
 | DB driver | Microsoft JDBC Driver; MongoDB Java Driver |
 | Quản lý schema | JPA/Hibernate code first; `ddl-auto: update` |
 | Mapping và validation | MapStruct 1.6.3, Jakarta Bean Validation |
-| Email | Spring Mail, template Thymeleaf; cấu hình nhóm dùng Gmail SMTP, Mailpit là profile tùy chọn |
+| Email | Spring Mail, template Thymeleaf; Mailpit cho môi trường phát triển |
 | Xác thực | Spring Security, JWT HS256, refresh token qua cookie HttpOnly |
 | Tài liệu API | OpenAPI, Swagger UI |
 | Kiểm thử | JUnit Jupiter, Mockito, MockMvc, H2 |
@@ -64,13 +58,12 @@ React + TypeScript
   v
 Spring Boot (Controller -> Service -> Repository)
   |
-  +-- Spring Data JPA / Hibernate --> SQL Server 2022 (Product, Identity, Parameters, Outbox)
+  +-- Spring Data JPA / Hibernate --> SQL Server 2022 (Product, Identity)
   |
-  +-- Spring Data MongoDB ---------> MongoDB 7 (Activity Log, Audit)
+  +-- Spring Data MongoDB ---------> MongoDB 7 (Activity Log)
 ```
 
 Nhật ký thao tác Product được ghi vào MongoDB sau khi transaction SQL commit.
-Thay đổi tham số UC-46 ghi history/outbox trong cùng giao dịch SQL; worker chuyển audit sang MongoDB với retry và chống trùng eventId.
 Schema SQL được tạo và cập nhật từ entity bằng Hibernate khi backend khởi động.
 
 ## Cấu trúc dự án
@@ -220,39 +213,54 @@ Yêu cầu Docker Desktop với Linux containers.
 Lần đầu, tạo file cấu hình ở thư mục gốc. Nếu đã có `.env`, giữ file đang dùng:
 
 ```powershell
-if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+Copy-Item .env.example .env
 ```
 
-Điền các giá trị của nhóm vào `.env`: `SQLSERVER_PASSWORD`, `JWT_SECRET`,
-`SMTP_USERNAME`, `SMTP_PASSWORD`, `MAIL_FROM`. Mẫu dùng Gmail SMTP
-`smtp.gmail.com:587`, xác thực và STARTTLS; password SMTP là app password của Gmail.
-Không ghi secrets thật vào `.env.example`. Nếu đã có `.env` của nhóm, dùng file đó.
-Giữ nguyên giá trị `SMTP_PASSWORD` của nhóm, kể cả khoảng trắng nếu có.
-
-Chạy toàn bộ stack:
+Điều chỉnh mật khẩu SQL Server và cổng trong `.env`, sau đó chạy:
 
 ```powershell
 docker compose up --build -d
 ```
 
-Compose mặc định chạy SQL Server 2022 riêng của dự án, MongoDB, backend và frontend.
-Mailpit chỉ chạy khi bật profile `mailpit`. Service `sqlserver-init`
+Compose chạy SQL Server, MongoDB, Mailpit, backend và frontend. Service `sqlserver-init`
 tạo database nếu chưa tồn tại; service này kết thúc với exit code 0 là bình thường.
 Frontend được phục vụ qua Nginx và proxy `/api` tới backend.
 
 | Thành phần | Địa chỉ mặc định |
 | --- | --- |
-| Frontend | http://localhost:15173 |
-| Swagger UI | http://localhost:18080/swagger-ui/index.html |
-| API health | http://localhost:18080/api/v1/health |
-| Actuator health | http://localhost:18080/actuator/health |
-| SQL Server riêng của dự án | localhost,31433 — database `group6_project_db`, user `sa` |
-| MongoDB riêng của dự án | mongodb://localhost:37017/group6_project_db |
-| Gmail SMTP | smtp.gmail.com:587, AUTH + STARTTLS |
+| Frontend | http://localhost:5173 |
+| Swagger UI | http://localhost:8080/swagger-ui/index.html |
+| API health | http://localhost:8080/api/v1/health |
+| Actuator health | http://localhost:8080/actuator/health |
+| Hộp thư Mailpit | http://localhost:8025 |
+| SMTP Mailpit | localhost:1025 |
+| SQL Server | localhost,1433 — database `group6_project_db` |
+| MongoDB | mongodb://localhost:27017/group6_project_db |
 
-Các cổng trên là cổng host từ `.env`. Trong mạng Docker, backend dùng
-`sqlserver:1433`, `mongodb:27017`; HTTP nội bộ backend vẫn ở `8080`.
-SQL Server Windows trên máy không được dùng hoặc thay đổi bởi stack này.
+Địa chỉ sử dụng cổng đã đặt trong `.env` nếu khác mặc định.
+
+Nếu dùng SQL Server đã cài trên Windows, backend trong Docker kết nối qua
+`SQLSERVER_URL=jdbc:sqlserver://host.docker.internal:1433;databaseName=group6_project_db;encrypt=true;trustServerCertificate=true`.
+Đặt `SQLSERVER_USERNAME` và `SQLSERVER_PASSWORD` trong `.env`, tạo database trước khi chạy.
+Để bỏ SQL container khi chạy stack, tạo `compose.override.yaml` riêng cho máy:
+
+```yaml
+services:
+  sqlserver:
+    profiles: [docker-sql]
+  sqlserver-init:
+    profiles: [docker-sql]
+  server:
+    depends_on: !override
+      mongodb:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+```
+
+Docker Compose 2.24.4 trở lên tự đọc file override này cùng `compose.yaml`.
+File override và `.env` không được commit. SSMS dùng `localhost,1433` để xem SQL trên Windows;
+backend chạy trực tiếp ngoài Docker dùng `localhost:1433` thay cho `host.docker.internal:1433`.
 
 ```powershell
 docker compose ps -a
@@ -266,51 +274,33 @@ Compose dùng volume SQL 2022 riêng, không gắn volume `sqlserver-data` của
 Volume cũ vẫn được giữ. Nếu chứa dữ liệu SQL 2025 cần chuyển, xuất/nhập dữ liệu sang
 database SQL 2022; không chạy SQL 2022 trên các file database đã nâng lên SQL 2025.
 
-Với volume SQL đã có dữ liệu, `SQLSERVER_PASSWORD` phải khớp mật khẩu `sa` đang
-đặt trong instance đó. Đổi biến `MSSQL_SA_PASSWORD` không tự đổi password của
-database volume cũ; cần đổi password SQL và đồng bộ `.env` khi chủ động cập nhật.
-
 ### Chạy trên máy để phát triển
 
-Yêu cầu Node.js 21.7.x, JDK 21 và Maven 3.9.x. Launcher portable nằm trong mã nguồn tại
-`scripts/dev.ps1`, ưu tiên toolchain trong `.tools` nếu có, hoặc dùng bản cài trên
-PATH/`JAVA_HOME`. File `.env` gốc là nguồn cấu hình chung cho Docker, launcher và IDE.
-
-Dừng backend/frontend Docker trước khi chạy IDE hoặc terminal cùng cổng, rồi chuẩn bị:
+Yêu cầu Node.js 21.7.x, JDK 21 và Maven trên PATH; đặt `JAVA_HOME` trỏ tới JDK 21.
+Từ thư mục gốc, cài dependencies, khởi động hai database và Mailpit:
 
 ```powershell
-docker compose stop server client
 npm run install:all
-npm run setup:sync
-npm run setup:infra
+npm run docker:db
+docker compose up -d mailpit
 ```
 
-`setup:sync` sinh lại `server/.env` và `client/.env` từ `.env` gốc, gồm JDBC
-`localhost:31433`, Mongo `localhost:37017`, API `localhost:18080` và Vite `15173`.
-Spring Boot ngoài Docker không tự đọc `.env`; launcher nạp env cho tiến trình,
-còn IntelliJ đọc `server/.env` trong run configuration.
-
-Chạy hai ứng dụng bằng terminal:
+Đặt các biến backend theo `server/.env.example` trong terminal hoặc IDE.
+Ví dụ với cổng mặc định:
 
 ```powershell
-npm run dev:local
+$env:SQLSERVER_URL = 'jdbc:sqlserver://localhost:1433;databaseName=group6_project_db;encrypt=true;trustServerCertificate=true'
+$env:SQLSERVER_USERNAME = 'sa'
+$env:SQLSERVER_PASSWORD = '<mat-khau-trong-file-env>'
+$env:MONGODB_URI = 'mongodb://localhost:27017/group6_project_db'
+$env:SMTP_HOST = 'localhost'
+$env:SMTP_PORT = '1025'
+npm run dev
 ```
 
-Hoặc Run **FPTPost Dev** trong IntelliJ sau bước `setup:infra`. Backend dùng
-main class `com.fptpost.Application`, module `sba391-server`, JDK 21, working
-directory `server` và env file `server/.env`; Frontend chạy npm `dev` trong `client`.
-Nếu mở dự án trên máy mới, tạo hai run configurations này hoặc dùng `dev:local`.
-
-```powershell
-npm run setup:check
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev.ps1 -Mode Server
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev.ps1 -Mode Client
-```
-
-Launcher có các mode `Dev`, `Server`, `Client`, `Infra`, `Check`, `Docker`, `Sync`.
-`Check` xem versions/status/health; `Docker` build và chạy stack; `Sync` chỉ đồng bộ
-hai file env cho IDE. Dừng ứng dụng bằng Ctrl+C hoặc Stop trong IDE, rồi
-`docker compose down` nếu muốn dừng hạ tầng; lệnh này giữ dữ liệu volumes.
+Nếu đổi cổng database trong `.env`, sửa URL trên theo cổng đó.
+`npm run dev` chạy đồng thời frontend và backend; có thể chạy riêng bằng
+`npm run dev:client` và `npm run dev:server`.
 
 ## Giao diện dùng chung
 
@@ -338,39 +328,36 @@ Quy ước chi tiết cùng ví dụ nằm trong [hướng dẫn frontend](docs/
 ## Cấu hình
 
 Cấu hình backend nằm trong `server/src/main/resources/application.yml`.
-Compose và `scripts/dev.ps1` đọc `.env` ở thư mục gốc. Chỉnh file này rồi chạy
-`npm run setup:sync` trước khi restart ứng dụng trong IDE. `server/.env` và
-`client/.env` là bản sinh lại; Spring Boot tự chạy ngoài launcher/IDE không tự nạp chúng.
+Compose tự đọc `.env` ở thư mục gốc; Spring Boot chạy ngoài Docker không tự đọc file `.env`.
 
 | Biến | Nơi sử dụng | Ý nghĩa |
 | --- | --- | --- |
-| `FRONTEND_PORT` | Compose/launcher | Cổng host Frontend, mẫu nhóm dùng 15173 |
-| `BACKEND_PORT` | Compose/launcher | Cổng host Backend, mẫu nhóm dùng 18080 |
-| `SQLSERVER_PORT` | Compose/launcher | Cổng host SQL riêng của dự án, 31433 |
-| `MONGO_PORT` | Compose/launcher | Cổng host MongoDB riêng của dự án, 37017 |
-| `MAILPIT_PORT` | Profile Mailpit | Cổng hộp thư tùy chọn, 8025 |
-| `SMTP_HOST`, `SMTP_PORT` | Compose/backend | Mẫu nhóm dùng `smtp.gmail.com`, `587` |
-| `SMTP_USERNAME`, `SMTP_PASSWORD` | Compose/backend | Email Gmail và app password; chỉ lưu trong `.env` thật |
-| `SMTP_AUTH`, `SMTP_STARTTLS` | Compose/backend | Mẫu nhóm dùng `true`, `true` cho Gmail |
+| `FRONTEND_PORT` | Compose | Cổng frontend, mặc định 5173 |
+| `BACKEND_PORT` | Compose | Cổng backend, mặc định 8080 |
+| `SQLSERVER_PORT` | Compose | Cổng SQL Server, mặc định 1433 |
+| `MONGO_PORT` | Compose | Cổng MongoDB, mặc định 27017 |
+| `MAILPIT_PORT` | Compose | Cổng hộp thư Mailpit, mặc định 8025 |
+| `SMTP_PORT` | Compose/backend | Cổng SMTP; local mặc định 1025 |
+| `SMTP_HOST` | Backend | Local dùng localhost; container backend dùng mailpit |
+| `SMTP_USERNAME`, `SMTP_PASSWORD` | Compose/backend | Thông tin đăng nhập SMTP thật; giữ riêng trong `.env` |
+| `SMTP_AUTH`, `SMTP_STARTTLS` | Compose/backend | Bật xác thực và STARTTLS theo yêu cầu nhà cung cấp SMTP |
 | `MAILPIT_SMTP_PORT` | Compose | Cổng SMTP Mailpit local, mặc định 1025; độc lập với cổng SMTP thật |
 | `MAIL_FROM`, `MAIL_FROM_NAME` | Compose/backend | Địa chỉ và tên người gửi email |
 | `MAIL_TEMPLATE_CACHE` | Compose/backend | Cache template email, local mặc định false |
 | `TERMS_VERSION`, `PRIVACY_VERSION` | Backend | Phiên bản điều khoản/chính sách dùng khi đăng ký và lưu consent |
-| `BACKEND_PROFILES` | Compose/launcher | Mẫu nhóm dùng `dev,demo`, nạp Product demo còn thiếu |
+| `BACKEND_PROFILES` | Compose | Profile backend, mặc định `dev` |
 | `JWT_SECRET` | Compose/backend | Khóa JWT Base64 chứa tối thiểu 32 byte ngẫu nhiên; giữ riêng trong `.env` |
 | `AUTH_COOKIE_SECURE` | Compose/backend | `false` cho localhost HTTP; `true` khi chạy production qua HTTPS |
-| `SQLSERVER_PASSWORD` | Compose/backend | Password SQL user `sa`, khác password đăng nhập website |
-| `SQLSERVER_URL`, `SQLSERVER_USERNAME` | Backend | IDE/local dùng `localhost:31433`, user `sa`; container dùng `sqlserver:1433` |
-| `MONGODB_URI` | Backend | IDE/local dùng `localhost:37017`; container dùng `mongodb:27017` |
-| `SERVER_PORT` | Backend | Local sinh từ `BACKEND_PORT` (18080); container nội bộ 8080 |
-| `SPRING_PROFILES_ACTIVE` | Backend | Local sinh từ `BACKEND_PROFILES` (`dev,demo`) |
+| `SQLSERVER_PASSWORD` | Compose/backend | Mật khẩu SQL Server |
+| `SQLSERVER_URL`, `SQLSERVER_USERNAME` | Compose/backend | Kết nối SQL Server; Compose mặc định dùng service `sqlserver`, tài khoản `sa` |
+| `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET` | Compose/backend | Thông tin VNPay Sandbox từ tài khoản merchant; đặt riêng trong `.env` để dùng chức năng thanh toán |
+| `MONGODB_URI` | Backend | Kết nối MongoDB |
+| `SERVER_PORT` | Backend | Cổng HTTP, mặc định 8080 |
+| `SPRING_PROFILES_ACTIVE` | Backend | Profile, mặc định `dev` |
 | `ALLOWED_ORIGINS` | Backend | Danh sách origin được phép |
 | `VITE_API_URL` | Frontend | URL API; Docker build dùng `/api/v1` |
-| `VITE_DEV_PORT` | Vite | Local sinh từ `FRONTEND_PORT` (15173) |
 
 Các file `.env.example` là mẫu cấu hình. File `.env` chứa cấu hình local và không được commit.
-Password SQL, SMTP và JWT nằm trong `.env` gốc, được đồng bộ sang `server/.env`;
-`client/.env` chỉ chứa URL/port frontend.
 
 Nội dung điều khoản và chính sách dữ liệu nằm trong
 [terms.json](server/src/main/resources/policies/terms.json) và
@@ -382,20 +369,10 @@ enum mã lỗi quản lý code/HTTP status, resource quản lý title/detail và
 
 ### Email và template
 
-Mẫu nhóm dùng Gmail SMTP tại `smtp.gmail.com:587`, `SMTP_AUTH=true`,
-`SMTP_STARTTLS=true`; điền Gmail/app password và `MAIL_FROM` trong `.env` thật.
-Sau khi đổi SMTP, recreate Backend Docker hoặc chạy `setup:sync` rồi restart Backend local.
-
-Mailpit là lựa chọn gửi email vào hộp thư local, không phát ra hộp thư thật:
-
-```powershell
-docker compose --profile mailpit up -d mailpit
-```
-
-Đọc Mailpit tại `http://localhost:8025`. Nếu dùng SMTP Mailpit, đặt `SMTP_HOST=mailpit`
-cho Backend container hoặc `SMTP_HOST=localhost` cho Backend local, port `1025`,
-`SMTP_AUTH=false`, `SMTP_STARTTLS=false` và bỏ credentials Gmail trước khi restart.
-Kiểm tra health SMTP chỉ kết nối/xác thực; việc đăng ký qua Gmail sẽ gửi email OTP thật.
+Docker mặc định gửi email vào Mailpit, đọc tại `http://localhost:8025`; Mailpit không gửi
+đến hộp thư thật. Để gửi thật, đặt `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`,
+`SMTP_PASSWORD`, `SMTP_AUTH`, `SMTP_STARTTLS` và `MAIL_FROM` theo nhà cung cấp
+trong `.env`, rồi chạy lại `docker compose up -d`.
 
 Các module dùng chung `common/mail/service/EmailService`, truyền người nhận,
 `EmailTemplateType` và các biến qua `EmailRequest`. Service render template và gửi SMTP;
@@ -407,6 +384,23 @@ Template nằm trong `server/src/main/resources/templates/mail`: giao diện ở
 Sửa template rồi build/restart backend. Thêm loại email bằng ba file HTML/text/subject
 cùng tên và khai báo trong `EmailTemplateType`; dùng `th:text` để escape dữ liệu người dùng.
 Không commit mật khẩu SMTP hoặc log OTP/nội dung email.
+
+### Quên mật khẩu
+
+Tại `/login`, chọn **Quên mật khẩu?** rồi nhập email hoặc SĐT. Hệ thống gửi OTP đến email đã đăng ký;
+nhập mã và mật khẩu mới tại `/reset`. Mã có hiệu lực 5 phút, tối đa 5 lần nhập sai, gửi lại sau 60 giây.
+Đặt lại thành công sẽ đăng xuất mọi phiên cũ và chuyển về trang đăng nhập.
+Phản hồi gửi mã không tiết lộ tài khoản có tồn tại hay không.
+
+Template OTP và thông báo bảo mật nằm trong `templates/mail`, tên `reset-password` và `password-changed`,
+mỗi template có bản HTML/text/subject. Chi tiết API, lỗi và cách xử lý gửi mail xem [tài liệu API](docs/API.md).
+
+### Đổi mật khẩu
+
+Sau khi đăng nhập, vào **Tài khoản → Bảo mật và thiết bị** (`/me/security`).
+Nhập mật khẩu hiện tại, mật khẩu mới và nhập lại mật khẩu mới; mật khẩu mới phải khác mật khẩu hiện tại
+và đáp ứng cùng quy tắc với đăng ký. Đổi thành công sẽ đăng xuất tất cả phiên, vô hiệu OTP quên mật khẩu
+đã cấp và chuyển về trang đăng nhập. Thông báo bảo mật dùng chung template `password-changed` với UC-05.
 
 ## Database và seed data
 
@@ -424,8 +418,7 @@ Xem [quản lý schema code first](docs/DATABASE.md) cho thay đổi dữ liệu
 
 Dữ liệu mẫu nằm trong `server/src/main/resources/demo/products.json`.
 `ProductDemoSeeder` chỉ thêm các UUID mẫu còn thiếu, không ghi đè dữ liệu đã sửa.
-Seeder chạy khi có `demo` và không có `prod`; mẫu cấu hình nhóm `dev,demo` nạp mẫu,
-còn profile `dev` riêng không nạp.
+Seeder chạy khi có `demo` và không có `prod`; mặc định không nạp mẫu.
 
 - Docker: đặt `BACKEND_PROFILES=dev,demo` trong `.env`, rồi chạy lại Compose.
 - Chạy trên máy: đặt `SPRING_PROFILES_ACTIVE=dev,demo` trước khi chạy backend.
@@ -466,6 +459,9 @@ các khác biệt còn lại về response thành công/phân trang được ghi
 | POST | `/api/v1/auth/login` | Đăng nhập bằng email hoặc SĐT |
 | POST | `/api/v1/auth/refresh` | Làm mới JWT và xoay vòng refresh cookie |
 | POST | `/api/v1/auth/logout` | Đăng xuất phiên hiện tại |
+| POST | `/api/v1/auth/password/forgot` | Yêu cầu OTP đặt lại mật khẩu qua email đã đăng ký |
+| POST | `/api/v1/auth/password/reset` | Đặt lại mật khẩu bằng OTP và thu hồi các phiên cũ |
+| POST | `/api/v1/auth/password/change` | UC-06 đổi mật khẩu bằng mật khẩu hiện tại, yêu cầu Bearer JWT |
 | GET | `/api/v1/auth/sessions` | Xem các phiên đang hoạt động của tài khoản |
 | DELETE | `/api/v1/auth/sessions/{id}` | Đăng xuất một phiên/thiết bị của tài khoản |
 | GET | `/api/v1/me` | Thông tin người dùng đang đăng nhập |
@@ -608,8 +604,8 @@ Chỉ đưa phiên bản ổn định từ `develop` vào `main`.
 ## Tài liệu
 
 UC-01–02 có tại `/register` → `/verify`: đăng ký, nhập OTP, gửi lại mã và kích hoạt tài khoản.
-Cấu hình nhóm dùng Gmail SMTP; Mailpit là profile tùy chọn để đọc email local tại
-`http://localhost:8025`. UC-03 có tại `/login` → `/account`, hỗ trợ email/SĐT, JWT và refresh cookie.
+Docker mặc định chạy Mailpit, xem email tại `http://localhost:8025`; có thể cấu hình SMTP thật
+bằng biến môi trường. UC-03 có tại `/login` → `/account`, hỗ trợ email/SĐT, JWT và refresh cookie.
 Xem [tài liệu API](docs/API.md) để tra contract và giới hạn xác thực,
 [tài liệu database](docs/DATABASE.md) để tra schema; cấu hình SMTP nằm trong README này.
 
@@ -629,20 +625,15 @@ Checklist đề gốc cần đối chiếu với các điều chỉnh của gi�
 
 Base có Product CRUD, paging/filter/sort, MapStruct, validation, mã lỗi,
 Swagger, seed demo, nhật ký MongoDB và Docker Compose.
-Identity có UC-01–04: đăng ký, chính sách/consent, OTP email, đăng nhập JWT/refresh rotation, đăng xuất và quản lý phiên;
+Identity có UC-01–06: đăng ký, chính sách/consent, OTP email, đăng nhập JWT/refresh rotation, quản lý phiên, khôi phục và đổi mật khẩu;
 service gửi mail/template dùng chung. Lỗi API dùng Problem Details và correlation ID.
-Frontend có trang chủ, Product, đăng ký, xác thực OTP, đăng nhập, tài khoản, điều khoản/chính sách và trang 404.
+Frontend có trang chủ, Product, đăng ký, xác thực OTP, đăng nhập, quên/đặt lại mật khẩu, tài khoản, điều khoản/chính sách và trang 404.
 Trang chủ `/` theo SCR-01: giới thiệu FPost, cách hoạt động, ví dụ phí giao và đăng ký.
 Phí trên trang chủ là các tình huống tham khảo từ biểu phí dự thảo, chưa gọi API ước tính giá.
 Footer dùng chung có liên kết nhanh, chính sách và thông tin liên hệ. Trang `/legal` tải cùng nội dung chính sách với luồng đăng ký.
 
-UC-46 có `/admin/params`: 109 tham số, sửa đơn/batch, version/history, preview và SQL outbox/Mongo audit.
-Preview dùng Pricing adapter REFERENCE trong dev/demo; chưa tích hợp Pricing/Order/Identity consumers thật.
-
-Các phần Identity còn lại (quên/đổi mật khẩu, hồ sơ/KYC) và các module
+Các phần Identity còn lại (quản lý từng thiết bị, quên/đổi mật khẩu, hồ sơ/KYC) và các module
 order, market, pricing, ledger/payment, tracking, reputation,
-dispute, messaging và các UC admin còn lại cần triển khai theo BR/UC. UC-60 query/UI và retention đã có;
-producer audit cho KYC/Order/Ledger/phân quyền tiếp tục tích hợp tại các UC tương ứng.
-COD, bưu cục/kho và AI/eKYC
+dispute, messaging và admin/audit cần triển khai theo BR/UC. COD, bưu cục/kho và AI/eKYC
 tự động nằm ngoài phạm vi v1.0. Demo thanh toán theo tài liệu dùng sandbox/tiền mô phỏng.
 Tài liệu là dự thảo, không phải chứng nhận các UC đã hoàn thành.

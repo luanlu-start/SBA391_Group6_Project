@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Eye, RefreshCw, Package } from 'lucide-react';
+import { Plus,Search,Eye,RefreshCw,Package,MessageCircle, } from 'lucide-react';
 import type { Order } from '../types/order';
 import { ORDER_STATUS_MAP } from '../types/order';
 import { orderApi } from '../api/orderApi';
@@ -31,7 +31,7 @@ export default function OrdersPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await orderApi.getAll();
+      const response = await orderApi.getMyOrders();
       setOrders(response.data || []);
     } catch (cause) {
       setError(getApiError(cause));
@@ -131,6 +131,21 @@ export default function OrdersPage() {
           >
             Chi tiết
           </Button>
+
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<MessageCircle size={16} />}
+            disabled={order.courierId == null}
+            title={
+              order.courierId == null
+                ? 'Đơn chưa được gán người giao'
+                : 'Mở cuộc trò chuyện của đơn'
+            }
+            onClick={() => navigate(`/orders/${order.id}/chat`)}
+          >
+            Trò chuyện
+          </Button>
         </div>
       ),
     },
@@ -139,9 +154,9 @@ export default function OrdersPage() {
   return (
     <div className="ui-stack">
       <PageHeader
-        title="Danh sách đơn hàng"
+        title="Đơn hàng của tôi"
         eyebrow="Quản lý giao nhận"
-        description="Theo dõi, tra cứu trạng thái và quản lý toàn bộ các đơn hàng trong hệ thống FPTPost."
+        description="Theo dõi, tra cứu trạng thái và quản lý các đơn hàng bạn đã tạo trên FPTPost."
         actions={
           <Button
             icon={<Plus size={18} />}
@@ -195,7 +210,7 @@ export default function OrdersPage() {
       >
         {error ? (
           <div className="ui-card-body ui-stack">
-            <ApiErrorNotice message={error.message} correlationId={error.correlationId} />
+            <ApiErrorNotice error={error} />
             <div>
               <Button variant="secondary" onClick={() => void loadOrders()}>
                 Thử lại

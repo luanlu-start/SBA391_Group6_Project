@@ -48,9 +48,19 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/health", "/actuator/health/**", "/api-docs/**", "/swagger-ui/**",
                                 "/swagger-ui.html", "/api/v1/auth/registration-policies", "/api/v1/auth/csrf", "/uploads/**").permitAll()
                         .requestMatchers("/api/v1/auth/register", "/api/v1/auth/otp/verify", "/api/v1/auth/otp/resend",
-                                "/api/v1/auth/login", "/api/v1/auth/refresh").permitAll()
+                                "/api/v1/auth/login", "/api/v1/auth/refresh",
+                                "/api/v1/auth/password/forgot", "/api/v1/auth/password/reset").permitAll()
+                        .requestMatchers("/api/v1/admin/escrow/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/orders/*/escrow").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/orders/*/payment").hasAnyRole("SENDER", "ADMIN")
                         .requestMatchers("/api/v1/orders/**").permitAll()
-                        .requestMatchers("/api/payment/**", "/api/v1/payment/**").permitAll()
+                        .requestMatchers("/api/v1/wallet/**", "/api/wallet/**").authenticated()
+                        .requestMatchers(
+                                "/api/payment/**",
+                                "/api/v1/payment/**",
+                                "/api/v1/vnpay/**"
+                        ).permitAll()
+                        .requestMatchers(HttpMethod.GET, "/ws/chat").permitAll()
                         .requestMatchers("/actuator/**", "/api/v1/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .exceptionHandling(errors -> errors.authenticationEntryPoint((request, response, exception) ->

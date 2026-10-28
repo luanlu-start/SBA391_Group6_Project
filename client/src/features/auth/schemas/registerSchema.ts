@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { createPasswordSchema } from './passwordSchema';
 
 export function createRegisterSchema(passwordMinLength: number) {
   return z.object({
@@ -6,10 +7,7 @@ export function createRegisterSchema(passwordMinLength: number) {
     email: z.string().trim().min(1, 'Vui lòng nhập email.').max(254, 'Email không được vượt quá 254 ký tự.')
       .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Email không hợp lệ.'),
     phone: z.string().trim().regex(/^(?:0[35789]\d{8}|\+84[35789]\d{8})$/, 'Nhập số di động Việt Nam dạng 09… hoặc +849…'),
-    password: z.string().refine(value => [...value].length >= passwordMinLength
-      && new TextEncoder().encode(value).length <= 72
-      && /\p{Lu}/u.test(value) && /\p{Ll}/u.test(value) && /\p{Nd}/u.test(value),
-    `Mật khẩu cần ít nhất ${passwordMinLength} ký tự, có chữ hoa, chữ thường, chữ số và tối đa 72 byte.`),
+    password: createPasswordSchema(passwordMinLength),
     confirmPassword: z.string().min(1, 'Vui lòng nhập lại mật khẩu.'),
     adultConfirmed: z.boolean().refine(Boolean, 'Bạn cần xác nhận đủ 18 tuổi.'),
     termsAccepted: z.boolean().refine(Boolean, 'Bạn cần đồng ý điều khoản sử dụng.'),

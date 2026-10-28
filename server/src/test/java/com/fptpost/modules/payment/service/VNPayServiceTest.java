@@ -9,7 +9,6 @@ import com.fptpost.modules.payment.dto.VNPayReturnResponse;
 import com.fptpost.modules.payment.model.PaymentStatus;
 import com.fptpost.modules.payment.model.PaymentTransaction;
 import com.fptpost.modules.payment.repository.PaymentTransactionRepository;
-import com.fptpost.modules.payment.service.impl.VNPayServiceImpl;
 import com.fptpost.modules.payment.util.VNPayUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -38,10 +37,19 @@ class VNPayServiceTest {
     @Mock
     private OrderRepository orderRepository;
 
-    private VNPayConfig vnPayConfig;
-    private VNPayServiceImpl vnPayService;
+    @Mock
+    private com.fptpost.modules.payment.repository.WalletRepository walletRepository;
 
-    private static final String SECRET_KEY = "HDMKJXGPKGDZUQJDDBEFKXEIXZYWSNCM";
+    @Mock
+    private com.fptpost.modules.payment.repository.EscrowRepository escrowRepository;
+
+    @Mock
+    private com.fptpost.modules.payment.service.LedgerService ledgerService;
+
+    private VNPayConfig vnPayConfig;
+    private VNPayService vnPayService;
+
+    private static final String SECRET_KEY = "test-only-vnpay-hmac-key-not-for-real-payments";
     private static final String TMN_CODE = "B91MXQ5Y";
 
     @BeforeEach
@@ -53,7 +61,7 @@ class VNPayServiceTest {
         vnPayConfig.setVnp_ReturnUrl("http://localhost:8080/api/payment/vnpay-return");
         vnPayConfig.setTimeoutMinutes(15);
 
-        vnPayService = new VNPayServiceImpl(vnPayConfig, paymentTransactionRepository, Optional.of(orderRepository));
+        vnPayService = new VNPayService(vnPayConfig, paymentTransactionRepository, Optional.of(orderRepository), walletRepository, escrowRepository, ledgerService);
     }
 
     @Test

@@ -33,7 +33,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(AppException.class)
     public ResponseEntity<ApiProblem> handleAppException(AppException exception, HttpServletRequest request) {
         log.warn("API failure code={}", exception.getErrorCode().getCode());
-        return problems.response(exception.getErrorCode(), request, List.of());
+        HttpHeaders headers = new HttpHeaders();
+        if (exception.getRetryAfterSeconds() > 0) headers.set(HttpHeaders.RETRY_AFTER, Long.toString(exception.getRetryAfterSeconds()));
+        return problems.response(exception.getErrorCode(), exception.getErrorCode().getHttpStatus().value(), request, List.of(), headers);
     }
 
     @ExceptionHandler(BindException.class)
@@ -51,15 +53,27 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problems.response(GlobalErrorCode.FORBIDDEN, request, List.of());
     }
 
-    @ExceptionHandler(OptimisticLockingFailureException.class)
-    public ResponseEntity<ApiProblem> handleVersionConflict(HttpServletRequest request) {
-        return problems.response(GlobalErrorCode.RESOURCE_VERSION_CONFLICT, request, List.of());
+    @ExceptionHandler({
+            OptimisticLockingFailureException.class,
+            org.springframework.dao.PessimisticLockingFailureException.class,
+            jakarta.persistence.OptimisticLockException.class,
+            jakarta.persistence.PessimisticLockException.class
+    })
+    public ResponseEntity<ApiProblem> handleLockingFailure(HttpServletRequest request) {
+        String path = request.getRequestURI().substring(request.getContextPath().length());
+        ErrorCode code = path.startsWith("/api/v1/orders/")
+                ? com.fptpost.modules.order.exception.OrderErrorCode.ORDER_NOT_AVAILABLE
+                : GlobalErrorCode.RESOURCE_VERSION_CONFLICT;
+        return problems.response(code, request, List.of());
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiProblem> handleGenericException(Exception exception, HttpServletRequest request) {
-        log.error("API failure code={} exceptionType={}", GlobalErrorCode.INTERNAL_SERVER_ERROR.getCode(),
-                exception.getClass().getSimpleName());
+        log.error("API failure code={} exceptionType={} message={}",
+                GlobalErrorCode.INTERNAL_SERVER_ERROR.getCode(),
+                exception.getClass().getSimpleName(),
+                exception.getMessage(),
+                exception);
         return problems.response(GlobalErrorCode.INTERNAL_SERVER_ERROR, request, List.of());
     }
 

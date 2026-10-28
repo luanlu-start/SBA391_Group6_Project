@@ -161,9 +161,30 @@ DDL `update` thêm cột `bit NOT NULL DEFAULT 0`, các phiên cũ mặc định
 Mongo có `activity_logs` phục vụ ví dụ kỹ thuật. ActivityLog mẫu chưa phải audit_logs
 theo SPEC: chưa có actor, kiểm soát truy cập và đồng bộ outbox đảm bảo.
 
+UC-05 dùng lại `otp_codes` với purpose `PASSWORD_RESET`, không thêm bảng hoặc migration.
+OTP đăng ký và đặt lại mật khẩu được kiểm tra riêng. Reset dùng mã mới nhất theo tài khoản/purpose;
+`tries` lưu cả khi trả lỗi, `used_at` chống sử dụng lại. Khi thành công, cập nhật `users.password_hash`,
+đánh dấu OTP đã dùng và thu hồi toàn bộ `sessions` của tài khoản trong cùng transaction có khóa User.
+
+UC-06 dùng lại các bảng này: khóa User theo `public_id`, kiểm tra mật khẩu hiện tại và phiên sở hữu,
+cập nhật `password_hash`, thu hồi mọi phiên và hết hạn OTP quên mật khẩu còn hiệu lực trong cùng transaction.
+Không thêm cột hoặc bảng; thông báo email bảo mật chỉ gửi sau commit.
+
 UC-04 dùng `sessions` để liệt kê các phiên đang hoạt động và thu hồi theo tài khoản sở hữu.
 Khi refresh, phiên mới giữ thời điểm đăng nhập `created_at`; phiên cũ lưu `replaced_by`
 để thao tác đăng xuất trên danh sách cũ vẫn thu hồi đúng phiên tiếp nối.
+
+Danh sách chỉ gồm các phiên chưa bị thu hồi/thay thế và chưa hết hạn; mặc định tối đa 5 phiên
+hoạt động mỗi tài khoản. `sessions.browser_id` là UUID của cookie nhận diện trình duyệt/profile;
+index `ix_sessions_user_browser` dùng cho cặp tài khoản/trình duyệt. Login và refresh dùng khóa
+theo User để mỗi trình duyệt chỉ có một phiên hoạt động cho cùng tài khoản; login mới thu hồi
+phiên trước. Cột cho phép null để DDL update tương thích dữ liệu cũ; phiên cũ được gắn mã khi
+refresh hoặc thay bằng login mới có refresh cookie. Không gộp dữ liệu cũ theo User-Agent/IP.
+Job dọn dữ liệu chạy mỗi giờ, xóa bản ghi đã hết hạn thêm 7 ngày theo
+`app.authentication.expired-session-retention-days`. Các bản ghi đã xoay token/thu hồi nhưng
+chưa hết hạn được giữ lại để phát hiện việc dùng lại refresh token. Index `ix_sessions_expiry`
+phục vụ truy vấn dọn dữ liệu. Có thể đổi lịch bằng `app.authentication.session-cleanup-cron`
+hoặc đặt `-` để tắt lịch; việc hết hạn và thu hồi phiên vẫn được kiểm tra khi xác thực.
 
 Hibernate `ddl-auto: update` tạo/cập nhật schema từ entity, cấu hình trong một
 `application.yml`. Identity initializer tạo role nền; seed demo riêng theo module/profile,
@@ -187,5 +208,8 @@ không ghi đè dữ liệu người dùng hoặc gửi email khi seed.
 Repository hiện chọn Hibernate code first, không dùng Flyway; đây là lựa chọn khác
 ADR-10 trong SPEC v1.0. Các tài liệu nguồn được giữ nguyên.
 
-Việc tiếp theo: chốt chiến lược ID, vẽ ERD đầy đủ từ từ điển, xác định quan hệ/index và
-transaction từng UC trước khi tạo entity.
+Chi tiết bản thiết kế hoàn chỉnh, bao gồm sơ đồ ERD trực quan (Mermaid), đặc tả 100% các bảng (bảng hiện có trong code và bảng thiết kế mới), mã nguồn DDL SQL Server / DBML, và các chiến lược xử lý Race Condition, Đối soát Ví - Ký quỹ - Sổ cái (Triple-Reconciliation) và Phân vùng (Partitioning) được trình bày tại:
+👉 **[TÀI LIỆU THIẾT KẾ CƠ SỞ DỮ LIỆU TOÀN DIỆN (DATABASE_DESIGN.md)](DATABASE_DESIGN.md)**
+
+Khởi tạo dữ liệu mẫu tự động được thực hiện qua file `server/src/main/resources/data.sql` với cơ chế `defer-datasource-initialization: true` và `sql.init.mode: always` cấu hình trong `application.yml`.
+
