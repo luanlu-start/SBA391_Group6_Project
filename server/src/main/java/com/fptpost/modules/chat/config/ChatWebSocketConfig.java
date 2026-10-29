@@ -31,7 +31,7 @@ public class ChatWebSocketConfig
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-        registry.enableSimpleBroker("/topic/chat-rooms/");
+        registry.enableSimpleBroker("/topic/chat-rooms/", "/queue/");
         registry.setApplicationDestinationPrefixes("/app");
         registry.setPreservePublishOrder(true);
     }

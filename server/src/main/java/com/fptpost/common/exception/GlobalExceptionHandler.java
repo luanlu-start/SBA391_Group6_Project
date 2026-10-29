@@ -10,6 +10,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -46,15 +48,23 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problems.response(GlobalErrorCode.UPSTREAM_UNAVAILABLE, request, List.of());
     }
 
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiProblem> handleAccessDenied(HttpServletRequest request) {
+        return problems.response(GlobalErrorCode.FORBIDDEN, request, List.of());
+    }
+
     @ExceptionHandler({
-            org.springframework.dao.OptimisticLockingFailureException.class,
+            OptimisticLockingFailureException.class,
             org.springframework.dao.PessimisticLockingFailureException.class,
             jakarta.persistence.OptimisticLockException.class,
             jakarta.persistence.PessimisticLockException.class
     })
-    public ResponseEntity<ApiProblem> handleLockingFailure(Exception ex, HttpServletRequest request) {
-        log.warn("Locking conflict on order: {}", ex.getMessage());
-        return problems.response(com.fptpost.modules.order.exception.OrderErrorCode.ORDER_NOT_AVAILABLE, request, List.of());
+    public ResponseEntity<ApiProblem> handleLockingFailure(HttpServletRequest request) {
+        String path = request.getRequestURI().substring(request.getContextPath().length());
+        ErrorCode code = path.startsWith("/api/v1/orders/")
+                ? com.fptpost.modules.order.exception.OrderErrorCode.ORDER_NOT_AVAILABLE
+                : GlobalErrorCode.RESOURCE_VERSION_CONFLICT;
+        return problems.response(code, request, List.of());
     }
 
     @ExceptionHandler(Exception.class)

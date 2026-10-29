@@ -5,6 +5,10 @@ hỗ trợ KYC, sàn đơn/chào giá, ký quỹ, theo dõi và thanh toán theo
 Repository hiện cung cấp base React/Spring Boot với Product CRUD mẫu, Activity Log mẫu
 và UC-01–06 đăng ký, xác thực email, đăng nhập, quản lý phiên, khôi phục và đổi mật khẩu Identity. Các UC còn lại được triển khai theo tài liệu của nhóm.
 
+UC-46 cung cấp quản trị tham số, lịch sử thay đổi và SQL outbox/Mongo audit.
+UC-60 cung cấp tra cứu nhật ký tại `/admin/audit`; UC-45 quản lý khuyến mãi tại
+`/admin/promotions`. API và schema xem [API](docs/API.md) và [Database](docs/DATABASE.md).
+
 Đọc [thông tin dự án](docs/PROJECT-INFO.md), [63 Use Case](docs/USE-CASES.md) và
 [quy ước code](docs/CONTRIBUTING.md) trước khi bắt đầu chức năng.
 

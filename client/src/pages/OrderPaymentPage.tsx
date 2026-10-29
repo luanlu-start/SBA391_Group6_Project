@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { ChangeEvent } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
   CreditCard, 
@@ -98,7 +99,7 @@ export default function OrderPaymentPage() {
     }
   }, [user, id]);
 
-  const handleOrderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleOrderChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     setSelectedOrderId(val);
     if (val) {

@@ -3,7 +3,65 @@
 API chạy được tra cứu trong Swagger UI tại `/swagger-ui/index.html`; OpenAPI runtime
 tại `/api-docs` (đường dẫn đã cấu hình trong application.yml). Danh mục FPTPost dự kiến lấy từ
 [Excel v1.0](sources/fptpost-br-uc-v1.0.xlsx), sheet `10_API`, dòng 5–171,
-và [SPEC](sources/fptpost-spec-v1.0.pdf), mục 6.
+và [SPEC](sources/fptpost-spec-v1.0.pdf), mục 6. Danh mục cũ bên dưới là baseline.
+Nghiệp vụ/phân công hiện tại theo workbook `FPTPost_Dac_ta_BR_UC (1).xlsx` do nhóm cung cấp.
+Các mục UC-45, UC-46 và UC-60 bên dưới mô tả API đã triển khai theo bản đang áp dụng.
+
+## UC-45 đã triển khai — ADMIN
+
+| Method | Đường dẫn | Chức năng |
+| --- | --- | --- |
+| GET | /api/v1/admin/promotions | Tìm mã, lọc trạng thái thực tế, phân trang và lượt dùng thật |
+| POST | /api/v1/admin/promotions | Tạo mã khuyến mãi; HTTP 201 |
+| PUT | /api/v1/admin/promotions/{id} | Sửa/tạm dừng/kích hoạt với expectedVersion |
+| GET | /api/v1/admin/promotions/{id} | Chi tiết; endpoint bổ sung |
+| GET | /api/v1/admin/promotions/target-options | Tìm người áp dụng theo tên/email/UUID; endpoint bổ sung |
+
+`id` là UUID. Giá trị giảm `value` dùng chuỗi thập phân để bảo toàn độ chính xác:
+`FIXED_AMOUNT` là số đồng nguyên dương, tối đa 16 chữ số; `PERCENTAGE` lớn hơn 0,
+tối đa 100 với hai chữ số thập phân. Thời hạn là ISO Instant, gồm mốc bắt đầu và không gồm
+mốc kết thúc. `target=ALL` có danh sách người dùng rỗng; `SELECTED_USERS` có 1–100 UUID.
+Response trả thêm `targetUsers` với nhãn tên/email để chỉnh sửa lựa chọn.
+
+`status` là `ACTIVE` hoặc `PAUSED`; `effectiveStatus` còn phản ánh chưa đến hạn, hết hạn hoặc hết lượt.
+Mã được chuẩn hóa thành chữ hoa và giữ nguyên sau khi tạo; trùng mã/phiên bản cũ trả 409.
+Không giảm giới hạn lượt xuống dưới số lượt đã dùng, không sửa số lượt hay xóa lịch sử qua API.
+Mọi mutation ghi audit trong cùng giao dịch SQL, response no-store và chỉ ADMIN được truy cập.
+
+UC-44 sử dụng snapshot từ `PromotionCatalog` trong module pricing. Luồng áp mã/reserve/redeem
+vào Order/Payment do owner UC-44 tích hợp; quản trị UC-45 chưa thực hiện thao tác đó.
+
+## UC-46 đã triển khai — ADMIN
+
+| Method | Đường dẫn | Chức năng |
+| --- | --- | --- |
+| GET | /api/v1/admin/params | 109 tham số hiện tại, giá trị và phiên bản |
+| PUT | /api/v1/admin/params/{key} | Sửa một giá trị với expectedVersion |
+| PUT | /api/v1/admin/params/batch | Sửa nhiều giá trị nguyên tử; endpoint bổ sung cho ràng buộc liên khóa |
+| GET | /api/v1/admin/params/{key}/history | Lịch sử phân trang; endpoint bổ sung |
+| POST | /api/v1/admin/params/simulate | Preview tham số đề xuất; không ghi dữ liệu |
+
+Request/response thực tế tra trong Swagger/OpenAPI của ứng dụng đang chạy;
+quy ước lỗi xem [API-ERRORS.md](API-ERRORS.md).
+Simulation hiện dùng adapter `REFERENCE` trong dev/demo/test/local; production/staging cần Pricing provider thật.
+
+## UC-60 đã triển khai — ADMIN
+
+`GET /api/v1/admin/audit-logs` trả `ApiResponse<PageResponse<AuditLogResponse>>`.
+Lọc AND theo `actor` (UUID), `action`, `entityType`, `entityId`, `from/to` ISO Instant inclusive;
+`page=0`, `size=20` mặc định, size tối đa 100. Thứ tự `at DESC,eventId DESC`.
+Chi tiết before/after đã mask nằm trong mỗi dòng; response no-store; không có API ghi/xóa.
+Kho Mongo không khả dụng trả `AUDIT_STORE_UNAVAILABLE`/503, khác với query thành công nhưng rỗng.
+Schema, index và retention xem [DATABASE.md](DATABASE.md#index-và-retention-uc-60-đã-triển-khai).
+
+`GET /api/v1/admin/audit-logs/filter-options` cung cấp danh sách để tìm và chọn bộ lọc.
+`field` là `actor`, `action`, `entityType` hoặc `entityId`; `q` tìm chuỗi thông thường
+(tối đa 100 ký tự), `limit` mặc định 30, từ 1 đến 50. Với `entityId`, có thể truyền
+`entityType` để giới hạn mã theo loại đối tượng. Response `data` gồm
+`options: [{value, label, description}]` và `hasMore`; khi còn kết quả, nhập thêm từ khóa.
+Người thực hiện tìm theo tên, email hoặc UUID qua interface đọc của Identity;
+các mã thao tác/đối tượng lấy từ toàn bộ nhật ký đã ghi nhận. UUID lịch sử không còn tài khoản
+vẫn tìm được bằng mã đầy đủ. API chỉ cho ADMIN, trả no-store và không ghi dữ liệu.
 
 ## Endpoint base đã có
 

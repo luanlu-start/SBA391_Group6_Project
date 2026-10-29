@@ -1,6 +1,7 @@
 import { Link, NavLink } from 'react-router-dom';
 import { useState } from 'react';
-import { Menu, Package, PanelsTopLeft, UserRound, Wallet, X } from 'lucide-react';
+import { Menu, Package, PanelsTopLeft, Settings2, ShieldCheck, UserRound, Wallet, X } from 'lucide-react';
+import NotificationBell from '../../features/notifications/NotificationBell';
 import { useAuthentication } from '../../auth/useAuthentication';
 import { useAccountMode } from '../../auth/useAccountMode';
 import { useNavigate } from 'react-router-dom';
@@ -27,8 +28,17 @@ export default function Navbar() {
         {user && (mode === 'SENDER' ? <NavLink to="/sender/orders" className="nav-link" onClick={closeMenu}><Package size={16} aria-hidden="true" />Đơn của tôi</NavLink>
           : <NavLink to="/courier" className="nav-link" onClick={closeMenu}>Người giao</NavLink>)}
         {user && <NavLink to="/wallet" className="nav-link" onClick={closeMenu}><Wallet size={16} aria-hidden="true" />Ví tiền</NavLink>}
+        {user?.roles.some(role => role === 'ADMIN' || role === 'MODERATOR') && <NavLink to="/mod/kyc" className="nav-link navbar-mobile-role" onClick={closeMenu}>
+          <ShieldCheck size={17} aria-hidden="true" />Duyệt KYC</NavLink>}
+        {user?.roles.includes('ADMIN') && <NavLink to="/admin/params" className="nav-link navbar-mobile-role" onClick={closeMenu}>
+          <Settings2 size={17} aria-hidden="true" />Quản trị</NavLink>}
       </nav>
       <div className="navbar-actions ui-row">
+        {user && <NotificationBell />}
+        {user?.roles.some(role => role === 'ADMIN' || role === 'MODERATOR') && <NavLink to="/mod/kyc" className="nav-link navbar-role-action" onClick={closeMenu}>
+          <ShieldCheck size={17} aria-hidden="true" />Duyệt KYC</NavLink>}
+        {user?.roles.includes('ADMIN') && <NavLink to="/admin/params" className="nav-link navbar-role-action" onClick={closeMenu}>
+          <Settings2 size={17} aria-hidden="true" />Quản trị</NavLink>}
         {canSwitch && <select className="ui-control ui-select account-mode-select" aria-label="Chế độ sử dụng" value={mode} onChange={event => {
           const next = event.target.value === 'COURIER' ? 'COURIER' : 'SENDER'; selectMode(next); closeMenu(); navigate(next === 'COURIER' ? '/courier' : '/sender/orders');
         }}><option value="SENDER">Người gửi</option><option value="COURIER">Người giao</option></select>}

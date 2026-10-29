@@ -43,6 +43,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ChangePasswordHttpTest {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
+    @Autowired CourierProfileRepository courierProfiles;
     @Autowired UserRepository users;
     @Autowired UserProfileRepository profiles;
     @Autowired RoleRepository roles;
@@ -72,7 +73,7 @@ class ChangePasswordHttpTest {
             MimeMessage message = invocation.getArgument(0);
             message.saveChanges(); delivered.add(message); return null;
         }).when(mailSender).send(any(MimeMessage.class));
-        sessions.deleteAll(); otps.deleteAll(); profiles.deleteAll(); users.deleteAll();
+        sessions.deleteAll(); otps.deleteAll(); courierProfiles.deleteAll(); profiles.deleteAll(); users.deleteAll();
         user = createUser("change" + number + "@example.com", "+849" + String.format(Locale.ROOT, "%08d", number));
     }
 
