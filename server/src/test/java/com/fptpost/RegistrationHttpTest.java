@@ -49,6 +49,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class RegistrationHttpTest {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
+    @Autowired CourierProfileRepository courierProfiles;
     @Autowired UserRepository users;
     @Autowired RoleRepository roles;
     @Autowired UserProfileRepository profiles;
@@ -69,7 +70,7 @@ class RegistrationHttpTest {
         blacklist.deleteAll();
         otps.deleteAll();
         consents.deleteAll();
-        profiles.deleteAll();
+        courierProfiles.deleteAll(); profiles.deleteAll();
         users.deleteAll();
         initializer.run();
     }

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
+import { getLoginDestination } from '../auth/loginDestination';
 import Alert from '../components/ui/Alert';
 import { useAuthentication } from '../auth/useAuthentication';
 import AuthLayout from '../layouts/AuthLayout';
@@ -7,10 +8,11 @@ import LoginForm from '../features/auth/components/LoginForm';
 
 export default function LoginPage() {
   const { user } = useAuthentication();
-  const state = useLocation().state as { passwordReset?: boolean; passwordChanged?: boolean; contactChanged?: boolean } | null;
+  const location = useLocation();
+  const state = location.state as { passwordReset?: boolean; passwordChanged?: boolean; contactChanged?: boolean } | null;
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
-  if (user) return <Navigate to="/account" replace />;
+  if (user) return <Navigate to={getLoginDestination(location.state)} replace />;
 
   return (
     <AuthLayout>

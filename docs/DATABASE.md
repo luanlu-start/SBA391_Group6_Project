@@ -4,6 +4,44 @@ Nguồn: [Excel v1.0](sources/fptpost-br-uc-v1.0.xlsx), sheet `09_Dữ_liệu`, 
 [SPEC v1.0](sources/fptpost-spec-v1.0.pdf), mục 3–4.
 Đây là từ điển **thiết kế dự kiến**, chưa phải schema đang chạy hoặc ERD hoàn chỉnh.
 
+Nguồn đang áp dụng: workbook `FPTPost_Dac_ta_BR_UC (1).xlsx` do nhóm cung cấp.
+Danh mục cũ bên dưới được giữ để tham chiếu baseline; các mục theo UC mô tả schema hiện tại.
+
+## Schema UC-46
+
+| Bảng / collection | Vai trò hiện tại |
+| --- | --- |
+| SQL system_parameters | 109 key duy nhất; PRM/public UUID; giá trị chuỗi có kiểm tra kiểu; version, effective_from, updated_by |
+| SQL parameter_history | Giá trị trước/sau, actor UUID, thời điểm và version của từng lần sửa |
+| SQL outbox_events | Audit event/payload; trạng thái, lease/claim token, retry và thời điểm xử lý |
+| Mongo audit_logs | Audit append-only; eventId chống trùng, actor, before/after, IP, correlationId, thời gian |
+
+Mutation + history + outbox cùng giao dịch SQL. Worker gọi Mongo bên ngoài giao dịch SQL,
+sau đó xác nhận bằng claim token; mất kết nối được retry, duplicate chỉ chấp nhận khi nội dung sự kiện khớp.
+Seed chỉ thêm key thiếu; không ghi đè giá trị đã chỉnh.
+API hiện tại xem [API.md](API.md#uc-46-đã-triển-khai--admin).
+
+## Index và retention UC-60 đã triển khai
+
+UC-60 đọc trực tiếp `audit_logs`, không nhân bản collection. Unique eventId giữ nguyên index
+tương đương đã tồn tại; thêm sáu compound index cho thời gian, actor, action và đối tượng.
+Không tạo TTL cố định trên audit. Job nội bộ đọc AUDIT_KEEP hiện tại, tính cutoff theo năm lịch UTC,
+loại bỏ từng document có at < cutoff bằng findAndRemove atomic, tối đa 250/lần mặc định.
+Job chạy sau 60 giây rồi mỗi giờ; lỗi/giá trị không an toàn giữ lại bản ghi để thử lại.
+Không có đường dẫn API purge/sửa/xóa, không xóa lịch sử trạng thái SQL hoặc ledger.
+Quy ước tích hợp producer xem [CONTRIBUTING.md](CONTRIBUTING.md);
+payload được che dữ liệu nhạy cảm khi ghi và khi trả về API.
+
+## Schema UC-45
+
+Module pricing sở hữu `promotions`, `promotion_target_users` và `promotion_usages` dùng chung UC-44/45.
+Mã khuyến mãi có unique constraint, version chống ghi đè và thời hạn UTC; giá trị giảm dùng DECIMAL(18,2).
+Lượt dùng là lịch sử append-only, unique theo `order_id` để một đơn không nhận hai mã;
+user được tham chiếu bằng public UUID, Order hiện dùng SQL Long ID.
+Quản trị chỉ đọc số lượt từ bảng sử dụng; không có API sửa/xóa lượt dùng.
+Owner áp mã phải khóa cùng hàng promotion trước khi kiểm tra điều kiện và ghi lượt dùng trong giao dịch SQL.
+Audit create/update được ghi vào outbox cùng transaction với promotion.
+
 ## Phân chia dữ liệu
 
 | Kho | Dữ liệu và vai trò |

@@ -52,6 +52,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class OtpHttpTest {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
+    @Autowired CourierProfileRepository courierProfiles;
     @Autowired UserRepository users;
     @Autowired RoleRepository roles;
     @Autowired UserProfileRepository profiles;
@@ -84,7 +85,7 @@ class OtpHttpTest {
         blacklist.deleteAll();
         otps.deleteAll();
         consents.deleteAll();
-        profiles.deleteAll();
+        courierProfiles.deleteAll(); profiles.deleteAll();
         users.deleteAll();
         if (roles.findByCode("SENDER").isEmpty()) roles.save(Role.builder().code("SENDER").build());
         var payload = Map.of("fullName", "Test OTP", "email", "otp@example.com", "phone", "0901234567",

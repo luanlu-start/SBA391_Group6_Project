@@ -52,9 +52,10 @@ export default function CourierMarketplacePage(): React.ReactElement {
                 keyword: keyword.trim() || undefined,
             });
             const content = res.data.content ?? [];
-            const raw = res.data as any;
-            const totalP = res.data.totalPages ?? raw?.page?.totalPages ?? 1;
-            const totalE = res.data.totalElements ?? raw?.page?.totalElements ?? 0;
+            const raw = res.data as { page?: number | { totalPages?: number; totalElements?: number } };
+            const metadata = typeof raw.page === 'object' ? raw.page : undefined;
+            const totalP = res.data.totalPages ?? metadata?.totalPages ?? 1;
+            const totalE = res.data.totalElements ?? metadata?.totalElements ?? 0;
             setOrders(content);
             setTotalPages(totalP);
             setTotalElements(totalE);
@@ -238,7 +239,7 @@ export default function CourierMarketplacePage(): React.ReactElement {
 
                 <div className="filter-actions">
                     <div className="filter-select-wrapper">
-                        <Select value={sort} onChange={handleSortChange}>
+                        <Select label="Sắp xếp đơn hàng" value={sort} onChange={handleSortChange}>
                             <option value="createdAt,desc">Mới nhất trước</option>
                             <option value="weightKg,asc">Khối lượng: Nhẹ đến nặng</option>
                             <option value="weightKg,desc">Khối lượng: Nặng đến nhẹ</option>
