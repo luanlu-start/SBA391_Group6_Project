@@ -28,7 +28,8 @@ class OrderServiceTest {
     private final OrderRepository repository = mock(OrderRepository.class);
     private final OrderMapper mapper = Mappers.getMapper(OrderMapper.class);
     private final PricingCalculatorService pricingCalculatorService = new PricingCalculatorService(new ObjectMapper());
-    private final OrderService service = new OrderService(repository, mapper, pricingCalculatorService);
+    private final com.fptpost.modules.identity.repository.CourierProfileRepository courierProfileRepository = mock(com.fptpost.modules.identity.repository.CourierProfileRepository.class);
+    private final OrderService service = new OrderService(repository, mapper, pricingCalculatorService, courierProfileRepository);
 
     @Test
     void createOrder_shouldGenerateOrderCodeAndSaveSuccessfully() {

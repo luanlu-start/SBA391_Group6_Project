@@ -23,6 +23,7 @@
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.89.0",
     "react-router-dom": "^6.30.6",
+    "sba391-group6-monolithic-project": "file:..",
     "zod": "^4.6.5"
   },
   "devDependencies": {
