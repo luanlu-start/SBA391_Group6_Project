@@ -57,6 +57,9 @@ public class ChatStompInterceptor implements ChannelInterceptor {
         );
 
         if (command == StompCommand.SUBSCRIBE) {
+            if ("/user/queue/notifications".equals(accessor.getDestination())) {
+                return message;
+            }
             String roomId = requireRoomDestination(
                     accessor.getDestination()
             );

@@ -45,12 +45,13 @@ public class ChatOutboundInterceptor implements ChannelInterceptor {
 
         String destination = accessor.getDestination();
         String prefix = "/topic/chat-rooms/";
+        boolean ownNotifications = ("/queue/notifications-user" + accessor.getSessionId()).equals(destination);
 
-        if (destination == null || !destination.startsWith(prefix)) {
+        if (!ownNotifications && (destination == null || !destination.startsWith(prefix))) {
             return null;
         }
 
-        String roomId = destination.substring(prefix.length());
+        String roomId = ownNotifications ? null : destination.substring(prefix.length());
 
         try {
             Jwt jwt = jwtDecoder.decode(storedJwt.getTokenValue());
@@ -63,7 +64,7 @@ public class ChatOutboundInterceptor implements ChannelInterceptor {
                     UUID.fromString(jwt.getSubject())
             );
 
-            chatAccessService.requireParticipant(roomId, userId);
+            if (!ownNotifications) chatAccessService.requireParticipant(roomId, userId);
 
             return message;
         } catch (JwtException | IllegalArgumentException | AppException exception) {

@@ -2,6 +2,10 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
 import MainLayout from '../layouts/MainLayout';
 import AdminLayout from '../layouts/AdminLayout';
+import ModeratorLayout from '../layouts/ModeratorLayout';
+import KycReviewPage from '../pages/KycReviewPage';
+import NotificationsPage from '../pages/NotificationsPage';
+import NotificationSettingsPage from '../pages/NotificationSettingsPage';
 import HomePage from '../pages/HomePage';
 import ProductsPage from '../pages/ProductsPage';
 import NotFoundPage from '../pages/NotFoundPage';
@@ -51,6 +55,11 @@ export default function AppRoutes() {
       <Route path="/forgot" element={<ForgotPasswordPage />} />
       <Route path="/reset" element={<ResetPasswordPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/mod" element={<ModeratorLayout />}>
+        <Route index element={<Navigate to="kyc" replace />} />
+        <Route path="kyc" element={<KycReviewPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<Navigate to="params" replace />} />
         <Route path="params" element={<AdminParametersPage />} />
@@ -76,6 +85,8 @@ export default function AppRoutes() {
         <Route path="courier/market/:id" element={<CourierOrderDetailPage />} />
         <Route path="verify" element={<VerifyOtpPage />} />
         <Route path="account" element={<AccountPage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="me/notification-settings" element={<NotificationSettingsPage />} />
         <Route path="me/security" element={<SecurityPage />} />
         <Route path="me/profile" element={<ProfilePage />} />
         <Route path="me/addresses" element={<AddressesPage />} />
