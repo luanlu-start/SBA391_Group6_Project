@@ -51,7 +51,7 @@ class ParameterLiveIntegrationTest {
     private static final String DATABASE = "fptpost_uc46_it_" + UUID.randomUUID().toString().replace("-", "");
     private static final String SQL_HOST = "localhost:" + System.getenv().getOrDefault("FPTPOST_UC46_SQL_PORT", "31433");
     private static final String MONGO_HOST = "localhost:" + System.getenv().getOrDefault("FPTPOST_UC46_MONGO_PORT", "37017");
-    private static final String PASSWORD = "Tt1!" + UUID.randomUUID();
+    private static final String PASSWORD = UUID.randomUUID().toString();
     private static final UUID ACTOR = UUID.randomUUID();
     private static boolean created;
 

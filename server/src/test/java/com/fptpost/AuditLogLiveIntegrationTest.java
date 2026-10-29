@@ -53,7 +53,7 @@ class AuditLogLiveIntegrationTest {
     private static final String DATABASE = "fptpost_uc60_it_" + UUID.randomUUID().toString().replace("-", "");
     private static final String SQL_HOST = "localhost:" + System.getenv().getOrDefault("FPTPOST_UC60_SQL_PORT", "31433");
     private static final String MONGO_HOST = "localhost:" + System.getenv().getOrDefault("FPTPOST_UC60_MONGO_PORT", "37017");
-    private static final String PASSWORD = "Tt1!" + UUID.randomUUID();
+    private static final String PASSWORD = UUID.randomUUID().toString();
     private static boolean created;
 
     @DynamicPropertySource
