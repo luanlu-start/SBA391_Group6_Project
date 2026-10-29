@@ -1,6 +1,6 @@
 import axiosClient from './axiosClient';
 import type { ApiResponse } from '../types/api';
-import type { Order, OrderRequest } from '../types/order';
+import type { Order, OrderRequest, PricingEstimateRequest, PricingEstimateResponse } from '../types/order';
 import type { EscrowReleaseResponse, EscrowResponse, OrderPaymentRequest, OrderPaymentResponse } from '../types/payment';
 
 export const orderApi = {
@@ -14,6 +14,10 @@ export const orderApi = {
 
   cancel: (id: number | string, reason?: string) => {
     return axiosClient.post<unknown, ApiResponse<Order>>(`/orders/${id}/cancel`, { reason });
+  },
+
+  estimatePricing: (data: PricingEstimateRequest) => {
+    return axiosClient.post<unknown, ApiResponse<PricingEstimateResponse>>('/orders/pricing/estimate', data);
   },
 
   getAll: () => {
