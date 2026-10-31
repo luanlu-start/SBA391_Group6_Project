@@ -12,12 +12,9 @@ import {
   Image as ImageIcon,
   Pencil,
   XCircle,
-  Navigation,
-  Banknote,
-  Zap,
 } from 'lucide-react';
 import type { Order } from '../types/order';
-import { ORDER_STATUS_MAP, DELIVERY_URGENCY_MAP } from '../types/order';
+import { ORDER_STATUS_MAP } from '../types/order';
 import { orderApi } from '../api/orderApi';
 import type { ApiError } from '../api/ApiError';
 import { getApiError } from '../api/ApiError';
@@ -145,7 +142,20 @@ export default function OrderDetailPage() {
             </Button>
           }
         />
-        {error && <ApiErrorNotice error={error} />}
+        <SectionCard>
+          <div className="ui-stack">
+            {error ? (
+              <ApiErrorNotice error={error} />
+            ) : (
+              <p>Đơn hàng không tồn tại hoặc đã bị gỡ bỏ khỏi hệ thống.</p>
+            )}
+            <div>
+              <Button variant="secondary" onClick={() => navigate('/sender/orders')}>
+                Về trang danh sách đơn
+              </Button>
+            </div>
+          </div>
+        </SectionCard>
       </div>
     );
   }
@@ -155,36 +165,46 @@ export default function OrderDetailPage() {
     tone: 'neutral',
   };
 
-  const isEditable = order.status === 'PENDING';
-  const isCancellable = order.status === 'PENDING' || order.status === 'FINDING_SHIPPER';
+  const canEdit = order.status === 'PENDING';
+  const canCancel = order.status === 'PENDING' || order.status === 'FINDING_SHIPPER';
 
   return (
     <div className="ui-stack">
       <PageHeader
-        title={order.productName}
-        eyebrow={`Mã đơn: ${order.orderCode}`}
+        title={`Vận đơn: ${order.orderCode}`}
+        eyebrow={`Chi tiết đơn hàng #${order.id}`}
+        description={`Đơn được tiếp nhận trên hệ thống lúc ${new Date(order.createdAt).toLocaleString('vi-VN')}`}
         actions={
-          <div className="ui-row" style={{ gap: '8px' }}>
-            {isEditable && (
+          <div className="ui-row" style={{ gap: '12px', alignItems: 'center' }}>
+            <Badge dot tone={statusConfig.tone}>
+              {statusConfig.label}
+            </Badge>
+            {canEdit && (
               <Button
                 variant="secondary"
-                icon={<Pencil size={16} />}
+                size="sm"
+                icon={<Pencil size={15} />}
                 onClick={() => navigate(`/sender/orders/${order.id}/edit`)}
               >
                 Chỉnh sửa đơn
               </Button>
             )}
-            {isCancellable && (
+            {canCancel && (
               <Button
-                variant="danger"
-                icon={<XCircle size={16} />}
-                onClick={() => setIsCancelModalOpen(true)}
+                variant="secondary"
+                size="sm"
+                icon={<XCircle size={15} style={{ color: 'var(--accent-rose, #ffa6b3)' }} />}
+                onClick={() => {
+                  setCancelError(null);
+                  setCancelReason('');
+                  setIsCancelModalOpen(true);
+                }}
               >
                 Hủy đơn hàng
               </Button>
             )}
             <Button
-              variant="secondary"
+              variant="ghost"
               icon={<ArrowLeft size={16} />}
               onClick={() => navigate('/sender/orders')}
             >
@@ -208,14 +228,7 @@ export default function OrderDetailPage() {
                   <MapPin size={16} style={{ color: 'var(--primary)' }} />
                   <span>Điểm lấy hàng:</span>
                 </dt>
-                <dd>
-                  <div>{order.pickupAddress}</div>
-                  {order.pickupLatitude && order.pickupLongitude && (
-                    <small style={{ color: 'var(--text-muted)' }}>
-                      Tọa độ: [{order.pickupLatitude}, {order.pickupLongitude}]
-                    </small>
-                  )}
-                </dd>
+                <dd>{order.pickupAddress}</dd>
               </div>
 
               <div>
@@ -223,14 +236,7 @@ export default function OrderDetailPage() {
                   <MapPin size={16} style={{ color: 'var(--accent-emerald)' }} />
                   <span>Điểm giao hàng:</span>
                 </dt>
-                <dd>
-                  <div>{order.deliveryAddress}</div>
-                  {order.deliveryLatitude && order.deliveryLongitude && (
-                    <small style={{ color: 'var(--text-muted)' }}>
-                      Tọa độ: [{order.deliveryLatitude}, {order.deliveryLongitude}]
-                    </small>
-                  )}
-                </dd>
+                <dd>{order.deliveryAddress}</dd>
               </div>
 
               <div>
@@ -328,11 +334,14 @@ export default function OrderDetailPage() {
                   >
                     <img
                       src={url}
-                      alt={`Ảnh bưu kiện ${idx + 1}`}
+                      alt={`Kiện hàng ${idx + 1}`}
                       style={{
                         width: '100%',
                         height: '100%',
                         objectFit: 'cover',
+                      }}
+                      onError={e => {
+                        (e.target as HTMLImageElement).style.display = 'none';
                       }}
                     />
                   </a>
@@ -342,62 +351,8 @@ export default function OrderDetailPage() {
           )}
         </div>
 
-        {/* Right Column: Order Summary & Pricing */}
+        {/* Right Column: Order Summary & Meta */}
         <div className="ui-stack" style={{ gap: '20px' }}>
-          {/* Cước phí & Khoảng cách (UC-11) */}
-          <SectionCard
-            title="Cước phí & Khoảng cách (UC-11)"
-            description="Ước tính giá cước và cự ly di chuyển"
-          >
-            <div className="ui-summary-list">
-              <div>
-                <dt className="ui-row" style={{ gap: '6px' }}>
-                  <Banknote size={15} style={{ color: '#2563eb' }} />
-                  <span>Cước tạm tính:</span>
-                </dt>
-                <dd style={{ color: '#1d4ed8', fontWeight: 700, fontSize: '1.25rem' }}>
-                  {order.priceSuggested != null
-                    ? `${Number(order.priceSuggested).toLocaleString('vi-VN')} đ`
-                    : 'Chưa có cước'}
-                </dd>
-              </div>
-
-              {order.priceAgreed != null && (
-                <div>
-                  <dt className="ui-row" style={{ gap: '6px' }}>
-                    <Banknote size={15} style={{ color: '#16a34a' }} />
-                    <span>Cước thỏa thuận:</span>
-                  </dt>
-                  <dd style={{ color: '#16a34a', fontWeight: 700 }}>
-                    {Number(order.priceAgreed).toLocaleString('vi-VN')} đ
-                  </dd>
-                </div>
-              )}
-
-              <div>
-                <dt className="ui-row" style={{ gap: '6px' }}>
-                  <Navigation size={15} style={{ color: '#0ea5e9' }} />
-                  <span>Khoảng cách:</span>
-                </dt>
-                <dd>
-                  <strong>{order.distanceKm != null ? `${order.distanceKm} km` : 'Chưa xác định'}</strong>
-                </dd>
-              </div>
-
-              <div>
-                <dt className="ui-row" style={{ gap: '6px' }}>
-                  <Zap size={15} style={{ color: '#d97706' }} />
-                  <span>Gói vận chuyển:</span>
-                </dt>
-                <dd>
-                  {order.urgency
-                    ? (DELIVERY_URGENCY_MAP[order.urgency]?.label || order.urgency)
-                    : 'Tiêu chuẩn'}
-                </dd>
-              </div>
-            </div>
-          </SectionCard>
-
           {/* Card Quản lý chào giá */}
           {(order.status === 'PENDING' || order.status === 'FINDING_SHIPPER') && (
             <SectionCard title="Chào giá từ bưu tá">
@@ -416,6 +371,7 @@ export default function OrderDetailPage() {
               </div>
             </SectionCard>
           )}
+
           <SectionCard title="Trạng thái đơn hàng">
             <div className="ui-stack" style={{ gap: '16px' }}>
               <div className="ui-row" style={{ justifyContent: 'space-between' }}>
@@ -614,37 +570,35 @@ export default function OrderDetailPage() {
         <div className="ui-stack" style={{ gap: '16px' }}>
           {cancelError && <ApiErrorNotice error={cancelError} />}
 
-          <Alert tone="warning" title="Lưu ý quan trọng:">
-            <p style={{ margin: 0, color: '#fef3c7', fontSize: '0.875rem', lineHeight: 1.6 }}>
-              Hành động hủy đơn không thể hoàn tác. Nếu đã thanh toán, tiền sẽ được hoàn trả về ví FPTPost của bạn theo chính sách bồi hoàn.
-            </p>
+          <Alert tone="warning" title="Lưu ý khi hủy đơn">
+            Đơn hàng sau khi hủy sẽ chuyển sang trạng thái <strong>Đã hủy (CANCELLED)</strong> và không thể tiếp tục thực hiện giao dịch hay chỉnh sửa.
           </Alert>
 
           <Input
-            label="Lý do hủy đơn (tùy chọn)"
-            placeholder="Ví dụ: Đổi ý không gửi nữa, nhập sai thông tin..."
+            label="Lý do hủy đơn (Tùy chọn)"
+            placeholder="Ví dụ: Đổi ý không gửi nữa, sai thông tin hàng, tìm được phương án khác..."
             value={cancelReason}
             onChange={e => setCancelReason(e.target.value)}
             disabled={cancelling}
-            maxLength={200}
+            maxLength={255}
           />
 
-          <div className="ui-form-actions" style={{ justifyContent: 'flex-end', marginTop: '8px' }}>
+          <div className="ui-row" style={{ justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
             <Button
               variant="secondary"
               onClick={() => setIsCancelModalOpen(false)}
               disabled={cancelling}
             >
-              Giữ lại đơn
+              Đóng
             </Button>
             <Button
-              variant="danger"
-              icon={<XCircle size={16} />}
+              variant="primary"
+              style={{ background: 'var(--accent-rose, #ffa6b3)', color: '#251207', borderColor: 'transparent' }}
+              onClick={() => void handleConfirmCancel()}
               loading={cancelling}
-              loadingText="Đang xử lý hủy…"
-              onClick={handleConfirmCancel}
+              loadingText="Đang xử lý hủy đơn…"
             >
-              Đồng ý hủy đơn
+              Xác nhận hủy
             </Button>
           </div>
         </div>

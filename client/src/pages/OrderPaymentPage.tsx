@@ -176,6 +176,12 @@ export default function OrderPaymentPage() {
             <Link to="/wallet" className="ui-button ui-button-secondary ui-button-sm">
               <WalletIcon size={15} /> Quản lý Ví
             </Link>
+            <Link to="/courier/market" className="ui-button ui-button-secondary ui-button-sm">
+              <Package size={15} /> Sàn đơn
+            </Link>
+            <Link to="/courier/trips" className="ui-button ui-button-secondary ui-button-sm">
+              <Truck size={15} /> Chuyến đi tiện đường
+            </Link>
           </div>
         }
       />

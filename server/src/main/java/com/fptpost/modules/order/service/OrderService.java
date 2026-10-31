@@ -320,26 +320,26 @@ public class OrderService {
             log.warn("Lỗi truy vấn hồ sơ bưu tá: {}", e.getMessage());
         }
 
-        if (profile == null) {
-            try {
-                CourierProfile newProfile = CourierProfile.builder()
-                        .user(courierUser)
-                        .tier(CourierTier.SILVER)
-                        .trustScore(BigDecimal.valueOf(80))
-                        .completedOrders(10)
-                        .commitmentVersion("1.0")
-                        .registeredAt(Instant.now())
-                        .build();
-                profile = courierProfileRepository.save(newProfile);
-            } catch (Exception e) {
-                profile = CourierProfile.builder()
-                        .user(courierUser)
-                        .tier(CourierTier.SILVER)
-                        .trustScore(BigDecimal.valueOf(80))
-                        .completedOrders(10)
-                        .build();
-            }
-        }
+//        if (profile == null) {
+//            try {
+//                CourierProfile newProfile = CourierProfile.builder()
+//                        .user(courierUser)
+//                        .tier(CourierTier.SILVER)
+//                        .trustScore(BigDecimal.valueOf(80))
+//                        .completedOrders(10)
+//                        .commitmentVersion("1.0")
+//                        .registeredAt(Instant.now())
+//                        .build();
+//                profile = courierProfileRepository.save(newProfile);
+//            } catch (Exception e) {
+//                profile = CourierProfile.builder()
+//                        .user(courierUser)
+//                        .tier(CourierTier.SILVER)
+//                        .trustScore(BigDecimal.valueOf(80))
+//                        .completedOrders(10)
+//                        .build();
+//            }
+//        }
 
         if (profile.getRestrictedUntil() != null && profile.getRestrictedUntil().isAfter(Instant.now())) {
             throw new AppException(OrderErrorCode.COURIER_ACCOUNT_RESTRICTED);
@@ -347,6 +347,7 @@ public class OrderService {
 
         CourierTier tier = profile.getTier() != null ? profile.getTier() : CourierTier.SILVER;
 
+        //hạn mức giá trị bưu phẩm shipper có thể nhận, đang để mặc định 1000000
         BigDecimal highValueThreshold = new BigDecimal("1000000");
         if (order.getDeclaredValue() != null && order.getDeclaredValue().compareTo(highValueThreshold) > 0) {
             if (!tier.isCanAcceptHighValue()) {
