@@ -122,6 +122,7 @@ public class OrderService {
         }
 
         order.setStatus(OrderStatus.CANCELLED);
+        order.setEndedAt(Instant.now());
 
         if (reason != null && !reason.isBlank()) {
             String note = order.getDeliveryNote();
