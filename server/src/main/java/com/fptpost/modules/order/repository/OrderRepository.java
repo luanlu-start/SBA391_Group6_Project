@@ -13,6 +13,11 @@ import java.util.Optional;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
+    List<Order> findByTripIdOrderByCreatedAtDesc(Long tripId);
+
+    @Query("select count(o) from Order o where o.tripId = :tripId and o.status not in ('COMPLETED', 'CANCELLED')")
+    long countActiveOrdersByTripId(@org.springframework.data.repository.query.Param("tripId") Long tripId);
+
     Optional<Order> findByOrderCode(String orderCode);
 
     boolean existsByOrderCode(String orderCode);

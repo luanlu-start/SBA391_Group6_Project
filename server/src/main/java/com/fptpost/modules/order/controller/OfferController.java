@@ -22,11 +22,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Controller cho phân hệ Thương lượng & Chào giá (MKT / NEG)
- * - UC-18: Gửi chào giá, rút chào giá, xem chào giá cá nhân (API-044, API-045, API-046)
- * - UC-19: Xử lý chào giá: Xem danh sách, chấp nhận, từ chối, phản giá (API-047, API-048, API-049, API-050)
- */
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor

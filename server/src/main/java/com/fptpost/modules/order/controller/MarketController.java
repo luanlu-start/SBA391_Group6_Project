@@ -22,10 +22,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
-/**
- * Controller cho phân hệ Sàn đơn & Ghép đơn (Marketplace & Matching - MKT).
- * Phục vụ UC-16 (Duyệt sàn đơn), UC-17 (Nhận đơn theo giá niêm yết).
- */
 @RestController
 @RequestMapping("/api/v1/market")
 @RequiredArgsConstructor

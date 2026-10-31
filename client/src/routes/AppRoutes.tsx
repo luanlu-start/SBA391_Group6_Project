@@ -36,7 +36,9 @@ import OrderDetailPage from '../pages/OrderDetailPage';
 import OrderOffersPage from '../pages/OrderOffersPage';
 import ChatPage from '../pages/ChatPage';
 import CourierOrderDetailPage from "../pages/CourierOrderDetailPage";
-import CourierMarketplacePage from "../pages/CourierMarketplacePage";
+import CourierMarketplacePage from '../pages/CourierMarketplacePage';
+import CreateTripPage from '../pages/CreateTripPage';
+import CourierTripsPage from '../pages/CourierTripsPage';
 
 const UiKitPage = import.meta.env.DEV ? lazy(() => import('../pages/UiKitPage')) : null;
 
@@ -85,6 +87,8 @@ export default function AppRoutes() {
         <Route path="orders/:id/offers" element={<OrderOffersPage />} />
         <Route path="courier/market" element={<CourierMarketplacePage />} />
         <Route path="courier/market/:id" element={<CourierOrderDetailPage />} />
+        <Route path="courier/trips" element={<CourierTripsPage />} />
+        <Route path="courier/trips/new" element={<CreateTripPage />} />
         <Route path="verify" element={<VerifyOtpPage />} />
         <Route path="account" element={<AccountPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
