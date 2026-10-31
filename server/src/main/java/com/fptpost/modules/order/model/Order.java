@@ -38,6 +38,9 @@ public class Order {
     @Column(name = "courier_id")
     private Long courierId;
 
+    @Column(name = "trip_id")
+    private Long tripId;
+
     @Nationalized
     @Column(name = "pickup_address", nullable = false, length = 500, columnDefinition = "nvarchar(500)")
     private String pickupAddress;

@@ -52,14 +52,21 @@ public class TripResponse {
     private TripRecurrence recurrence;
     private TripStatus status;
 
+    private Integer ordersCount;
+    private java.util.List<TripAttachedOrderResponse> attachedOrders;
+
     private Instant createdAt;
     private Instant updatedAt;
 
     public static TripResponse fromEntity(Trip trip) {
-        return fromEntity(trip, null, null);
+        return fromEntity(trip, null, null, null);
     }
 
     public static TripResponse fromEntity(Trip trip, UserProfile profile, CourierProfile courierProfile) {
+        return fromEntity(trip, profile, courierProfile, null);
+    }
+
+    public static TripResponse fromEntity(Trip trip, UserProfile profile, CourierProfile courierProfile, java.util.List<TripAttachedOrderResponse> attachedOrders) {
         if (trip == null) return null;
 
         TripResponseBuilder builder = TripResponse.builder()
@@ -79,6 +86,8 @@ public class TripResponse {
                 .floorPrice(trip.getFloorPrice())
                 .recurrence(trip.getRecurrence())
                 .status(trip.getStatus())
+                .ordersCount(attachedOrders != null ? attachedOrders.size() : 0)
+                .attachedOrders(attachedOrders)
                 .createdAt(trip.getCreatedAt())
                 .updatedAt(trip.getUpdatedAt());
 
