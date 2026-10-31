@@ -1,0 +1,181 @@
+﻿========== server/src/main/java/com/fptpost/modules/chat/security/ChatAccessService.java ==========
+package com.fptpost.modules.chat.security;
+
+import com.fptpost.common.exception.AppException;
+import com.fptpost.modules.chat.exception.ChatErrorCode;
+import com.fptpost.modules.chat.model.ChatRoom;
+import com.fptpost.modules.chat.repository.ChatRoomRepository;
+import com.fptpost.modules.identity.service.AuthenticationService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+public class ChatAccessService {
+
+    private final AuthenticationService authenticationService;
+    private final ChatRoomRepository chatRoomRepository;
+
+    public Long requireActiveUserId(UUID userPublicId) {
+        return authenticationService.requireActiveUserId(userPublicId);
+    }
+
+    public ChatRoom requireParticipant(String roomId, Long userId) {
+        if (userId == null) {
+            throw new AppException(ChatErrorCode.CHAT_ACCESS_DENIED);
+        }
+
+        if (roomId == null || roomId.isBlank()) {
+            throw new AppException(ChatErrorCode.CHAT_ROOM_NOT_FOUND);
+        }
+
+        ChatRoom room = chatRoomRepository.findById(roomId)
+                .orElseThrow(() ->
+                        new AppException(ChatErrorCode.CHAT_ROOM_NOT_FOUND)
+                );
+
+        boolean isSender = userId.equals(room.getSenderId());
+        boolean isCourier = userId.equals(room.getCourierId());
+
+        if (!isSender && !isCourier) {
+            throw new AppException(ChatErrorCode.CHAT_ACCESS_DENIED);
+        }
+
+        return room;
+    }
+}
+
+========== server/src/main/java/com/fptpost/modules/chat/exception/ChatErrorCode.java ==========
+package com.fptpost.modules.chat.exception;
+
+import com.fptpost.common.exception.ErrorCode;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+
+@Getter
+@RequiredArgsConstructor
+public enum ChatErrorCode implements ErrorCode {
+
+    CHAT_ROOM_NOT_FOUND(
+            "CHAT_ROOM_NOT_FOUND",
+            HttpStatus.NOT_FOUND
+    ),
+
+    CHAT_ACCESS_DENIED(
+            "CHAT_ACCESS_DENIED",
+            HttpStatus.FORBIDDEN
+    ),
+
+    CHAT_ROOM_READ_ONLY(
+            "CHAT_ROOM_READ_ONLY",
+            HttpStatus.CONFLICT
+    ),
+
+    CHAT_ORDER_NOT_ASSIGNED(
+            "CHAT_ORDER_NOT_ASSIGNED",
+            HttpStatus.CONFLICT
+    );
+
+    private final String code;
+
+    private final HttpStatus httpStatus;
+}
+
+========== server/src/main/java/com/fptpost/modules/chat/model/ChatRoom.java ==========
+package com.fptpost.modules.chat.model;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+import java.time.Instant;
+
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Document(collection = "chat_rooms")
+@CompoundIndex(
+        name = "chat_room_participants_unique",
+        def = "{'orderId': 1, 'senderId': 1, 'courierId': 1}",
+        unique = true
+)
+public class ChatRoom {
+
+    @Id
+    private String id;
+
+    private Long orderId;
+
+    private Long senderId;
+
+    private Long courierId;
+
+    private Instant createdAt;
+
+    private Instant lastMessageAt;
+
+    private Instant readOnlyAt;
+}
+
+========== server/src/main/java/com/fptpost/modules/chat/dto/request/SendChatMessageRequest.java ==========
+package com.fptpost.modules.chat.dto.request;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
+
+import java.util.UUID;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class SendChatMessageRequest {
+
+    @NotNull
+    UUID clientMessageId;
+
+    @NotBlank
+    @Size(max = 2000)
+    String content;
+}
+
+========== server/src/main/java/com/fptpost/modules/chat/repository/ChatMessageRepository.java ==========
+package com.fptpost.modules.chat.repository;
+
+import com.fptpost.modules.chat.model.ChatMessage;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+import java.util.Optional;
+
+public interface ChatMessageRepository
+        extends MongoRepository<ChatMessage, String> {
+
+    Page<ChatMessage> findByRoomId(String roomId, Pageable pageable);
+
+    Optional<ChatMessage> findByRoomIdAndAuthorIdAndClientMessageId(
+            String roomId,
+            Long authorId,
+            String clientMessageId
+    );
+}
+
