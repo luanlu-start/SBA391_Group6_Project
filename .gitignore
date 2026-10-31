@@ -9,6 +9,9 @@ dist-ssr/
 build/
 target/
 server/target/
+uploads/
+private-data/
+server/uploads/
 *.local
 *.class
 *.jar
@@ -21,6 +24,9 @@ server/target/
 .env.test.local
 .env.production.local
 *.env
+
+# Per-machine Docker Compose overrides
+/compose.override.yaml
 
 # Logs
 logs/
@@ -42,3 +48,24 @@ lerna-debug.log*
 *.sw?
 .DS_Store
 Thumbs.db
+
+# IntelliJ module metadata
+*.iml
+
+# Local toolchains used for build verification
+.tools/
+
+# Temporary files and test outputs
+/tmp/
+/client/.vite/
+/client/coverage/
+/server/coverage/
+*.hprof
+
+# Local Eclipse / Spring Tools metadata
+/server/.classpath
+/server/.project
+/server/.settings/
+
+# VNPay sample JSP project
+vnpay_jsp/
