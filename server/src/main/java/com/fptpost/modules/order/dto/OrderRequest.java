@@ -1,5 +1,6 @@
 package com.fptpost.modules.order.dto;
 
+import com.fptpost.modules.order.model.DeliveryUrgency;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -25,9 +26,17 @@ public class OrderRequest {
     @Size(max = 500, message = "Pickup address must not exceed 500 characters")
     private String pickupAddress;
 
+    private BigDecimal pickupLatitude;
+
+    private BigDecimal pickupLongitude;
+
     @NotBlank(message = "Delivery address is required")
     @Size(max = 500, message = "Delivery address must not exceed 500 characters")
     private String deliveryAddress;
+
+    private BigDecimal deliveryLatitude;
+
+    private BigDecimal deliveryLongitude;
 
     @NotBlank(message = "Receiver name is required")
     @Size(max = 100, message = "Receiver name must not exceed 100 characters")
@@ -54,6 +63,12 @@ public class OrderRequest {
 
     @DecimalMin(value = "0.0", inclusive = true, message = "Declared value must be greater than or equal to 0")
     private BigDecimal declaredValue;
+
+    private BigDecimal priceSuggested;
+
+    private BigDecimal distanceKm;
+
+    private DeliveryUrgency urgency;
 
     @Size(max = 500, message = "Delivery note must not exceed 500 characters")
     private String deliveryNote;

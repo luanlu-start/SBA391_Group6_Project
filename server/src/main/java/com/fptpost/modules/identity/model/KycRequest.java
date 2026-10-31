@@ -6,7 +6,9 @@ import java.time.*;
 import java.util.UUID;
 import com.fptpost.modules.identity.enums.KycStatus;
 
-@Entity @Table(name = "kyc_requests", indexes = {@Index(name = "ix_kyc_user_submitted", columnList = "user_id, submitted_at"), @Index(name = "ix_kyc_identity_status", columnList = "id_number_hash, status")})
+@Entity @Table(name = "kyc_requests", indexes = {@Index(name = "ix_kyc_user_submitted", columnList = "user_id, submitted_at"),
+        @Index(name = "ix_kyc_identity_status", columnList = "id_number_hash, status"),
+        @Index(name = "ix_kyc_review_queue", columnList = "status, submitted_at, id")})
 @Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor
 public class KycRequest {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
@@ -26,5 +28,9 @@ public class KycRequest {
     @Column(name = "reviewed_at", columnDefinition = "datetime2(6)") private Instant reviewedAt;
     @Column(name = "consent_version", nullable = false, length = 50) private String consentVersion;
     @Column(name = "consent_ip", nullable = false, length = 45) private String consentIp;
+    @Column(nullable = false, columnDefinition = "bit default 0") private boolean flagged;
+    @Column(name = "flag_reason", columnDefinition = "nvarchar(500)") private String flagReason;
+    @Column(name = "sla_alerted_hours") private Long slaAlertedHours;
+    @Column(name = "sla_alerted_at", columnDefinition = "datetime2(6)") private Instant slaAlertedAt;
     @Version private long version;
 }

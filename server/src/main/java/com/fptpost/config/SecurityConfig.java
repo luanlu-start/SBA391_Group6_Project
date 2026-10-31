@@ -51,6 +51,7 @@ public class SecurityConfig {
                                 "/api/v1/auth/login", "/api/v1/auth/refresh",
                                 "/api/v1/auth/password/forgot", "/api/v1/auth/password/reset").permitAll()
                         .requestMatchers("/api/v1/admin/escrow/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/mod/**").hasAnyRole("ADMIN", "MODERATOR")
                         .requestMatchers(HttpMethod.GET, "/api/v1/orders/*/escrow").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/v1/orders/*/payment").hasAnyRole("SENDER", "ADMIN")
                         .requestMatchers("/api/v1/orders/**").permitAll()
@@ -61,7 +62,7 @@ public class SecurityConfig {
                                 "/api/v1/vnpay/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/ws/chat").permitAll()
-                        .requestMatchers("/actuator/**").hasRole("ADMIN")
+                        .requestMatchers("/actuator/**", "/api/v1/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .exceptionHandling(errors -> errors.authenticationEntryPoint((request, response, exception) ->
                                 writeProblem(problems, mapper, request, response, GlobalErrorCode.UNAUTHORIZED))

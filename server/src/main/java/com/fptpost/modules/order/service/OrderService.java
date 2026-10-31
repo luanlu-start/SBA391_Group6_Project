@@ -9,12 +9,15 @@ import com.fptpost.modules.identity.model.User;
 import com.fptpost.modules.identity.repository.CourierProfileRepository;
 import com.fptpost.modules.order.dto.OrderRequest;
 import com.fptpost.modules.order.dto.OrderResponse;
+import com.fptpost.modules.order.dto.PricingEstimateRequest;
+import com.fptpost.modules.order.dto.PricingEstimateResponse;
 import com.fptpost.modules.order.dto.response.MarketOrderAcceptResponse;
 import com.fptpost.modules.order.dto.response.MarketplaceOrderDetailResponse;
 import com.fptpost.modules.order.dto.response.MarketplaceOrderResponse;
 import com.fptpost.modules.order.dto.response.OrderDetailResponse;
 import com.fptpost.modules.order.exception.OrderErrorCode;
 import com.fptpost.modules.order.mapper.OrderMapper;
+import com.fptpost.modules.order.model.DeliveryUrgency;
 import com.fptpost.modules.order.model.OrderStatus;
 import com.fptpost.modules.order.model.Order;
 import com.fptpost.modules.order.model.OrderImage;
@@ -46,6 +49,7 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
+    private final PricingCalculatorService pricingCalculatorService;
     private final CourierProfileRepository courierProfileRepository;
 
     @Transactional
@@ -58,6 +62,12 @@ public class OrderService {
         if (senderId != null) {
             order.setSenderId(senderId);
         }
+
+        if (order.getUrgency() == null) {
+            order.setUrgency(request.getUrgency() != null ? request.getUrgency() : DeliveryUrgency.STANDARD);
+        }
+
+        ensurePricingAndDistance(order);
 
         if (request.getImageUrls() != null) {
             for (String imageUrl : request.getImageUrls()) {
@@ -93,6 +103,12 @@ public class OrderService {
 
         orderMapper.updateEntityFromDto(request, order);
 
+        if (order.getUrgency() == null) {
+            order.setUrgency(request.getUrgency() != null ? request.getUrgency() : DeliveryUrgency.STANDARD);
+        }
+
+        ensurePricingAndDistance(order);
+
         if (request.getImageUrls() != null) {
             order.getImages().clear();
             for (String imageUrl : request.getImageUrls()) {
@@ -106,6 +122,29 @@ public class OrderService {
 
         Order updated = orderRepository.save(order);
         return orderMapper.toResponse(updated);
+    }
+
+    private void ensurePricingAndDistance(Order order) {
+        if (order.getPriceSuggested() == null || order.getDistanceKm() == null) {
+            PricingEstimateRequest estimateReq = PricingEstimateRequest.builder()
+                    .pickupLat(order.getPickupLatitude())
+                    .pickupLng(order.getPickupLongitude())
+                    .deliveryLat(order.getDeliveryLatitude())
+                    .deliveryLng(order.getDeliveryLongitude())
+                    .distanceKm(order.getDistanceKm())
+                    .weightKg(order.getWeightKg())
+                    .declaredValue(order.getDeclaredValue())
+                    .urgency(order.getUrgency())
+                    .build();
+
+            PricingEstimateResponse estimate = pricingCalculatorService.estimatePrice(estimateReq);
+            if (order.getDistanceKm() == null) {
+                order.setDistanceKm(estimate.getDistanceKm());
+            }
+            if (order.getPriceSuggested() == null) {
+                order.setPriceSuggested(estimate.getTotalEstimatedPrice());
+            }
+        }
     }
 
     @Transactional
@@ -282,26 +321,26 @@ public class OrderService {
             log.warn("Lỗi truy vấn hồ sơ bưu tá: {}", e.getMessage());
         }
 
-        if (profile == null) {
-            try {
-                CourierProfile newProfile = CourierProfile.builder()
-                        .user(courierUser)
-                        .tier(CourierTier.SILVER)
-                        .trustScore(BigDecimal.valueOf(80))
-                        .completedOrders(10)
-                        .commitmentVersion("1.0")
-                        .registeredAt(Instant.now())
-                        .build();
-                profile = courierProfileRepository.save(newProfile);
-            } catch (Exception e) {
-                profile = CourierProfile.builder()
-                        .user(courierUser)
-                        .tier(CourierTier.SILVER)
-                        .trustScore(BigDecimal.valueOf(80))
-                        .completedOrders(10)
-                        .build();
-            }
-        }
+//        if (profile == null) {
+//            try {
+//                CourierProfile newProfile = CourierProfile.builder()
+//                        .user(courierUser)
+//                        .tier(CourierTier.SILVER)
+//                        .trustScore(BigDecimal.valueOf(80))
+//                        .completedOrders(10)
+//                        .commitmentVersion("1.0")
+//                        .registeredAt(Instant.now())
+//                        .build();
+//                profile = courierProfileRepository.save(newProfile);
+//            } catch (Exception e) {
+//                profile = CourierProfile.builder()
+//                        .user(courierUser)
+//                        .tier(CourierTier.SILVER)
+//                        .trustScore(BigDecimal.valueOf(80))
+//                        .completedOrders(10)
+//                        .build();
+//            }
+//        }
 
         if (profile.getRestrictedUntil() != null && profile.getRestrictedUntil().isAfter(Instant.now())) {
             throw new AppException(OrderErrorCode.COURIER_ACCOUNT_RESTRICTED);
@@ -309,6 +348,7 @@ public class OrderService {
 
         CourierTier tier = profile.getTier() != null ? profile.getTier() : CourierTier.SILVER;
 
+        //hạn mức giá trị bưu phẩm shipper có thể nhận, đang để mặc định 1000000
         BigDecimal highValueThreshold = new BigDecimal("1000000");
         if (order.getDeclaredValue() != null && order.getDeclaredValue().compareTo(highValueThreshold) > 0) {
             if (!tier.isCanAcceptHighValue()) {

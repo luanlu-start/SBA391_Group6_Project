@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus,Search,Eye,RefreshCw,Package,MessageCircle, } from 'lucide-react';
+import { Plus, Search, Eye, RefreshCw, Package, MessageCircle } from 'lucide-react';
 import type { Order } from '../types/order';
 import { ORDER_STATUS_MAP } from '../types/order';
 import { orderApi } from '../api/orderApi';
@@ -101,6 +101,20 @@ export default function OrdersPage() {
           <span className="ui-table-primary">{order.productName}</span>
           <span className="ui-table-secondary">
             {order.quantity} kiện • {order.weightKg} kg
+          </span>
+        </>
+      ),
+    },
+    {
+      key: 'pricing',
+      header: 'Cước phí',
+      render: order => (
+        <>
+          <span className="ui-table-primary" style={{ color: '#1d4ed8', fontWeight: 600 }}>
+            {order.priceSuggested != null ? `${Number(order.priceSuggested).toLocaleString('vi-VN')} đ` : '—'}
+          </span>
+          <span className="ui-table-secondary">
+            {order.distanceKm != null ? `${order.distanceKm} km` : ''}
           </span>
         </>
       ),

@@ -66,6 +66,7 @@
 .home-courier-side li { display: flex; gap: 10px; align-items: center; font-size: .75rem; }
 .home-courier-side li svg { color: var(--text-accent); flex-shrink: 0; }
 .navbar-toggle { display: none; }
+.navbar-mobile-role { display: none; }
 .navbar-dev-link { font-size: .72rem; color: var(--text-muted); padding: 5px 9px; }
 .brand-accent { color: var(--primary); }
 .brand-logo { color: var(--on-primary); }
@@ -92,6 +93,8 @@
   .navbar-actions { gap: 8px; }
 }
 @media (max-width: 600px) {
+  .navbar-actions .navbar-role-action { display: none; }
+  .navbar-links .navbar-mobile-role { display: flex; }
   .app-main-content { padding: 24px 20px; }
   .home-hero { padding-bottom: 36px; gap: 25px; }
   .home-hero h1 { font-size: clamp(2.2rem, 8.5vw, 3rem); }

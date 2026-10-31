@@ -43,6 +43,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AuthenticationHttpTest {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
+    @Autowired CourierProfileRepository courierProfiles;
     @Autowired UserRepository users;
     @Autowired UserProfileRepository profiles;
     @Autowired RoleRepository roles;
@@ -66,7 +67,7 @@ class AuthenticationHttpTest {
         when(identityClock.instant()).thenAnswer(invocation -> now.get());
         authenticationProperties.setExpiredSessionRetentionDays(7);
         authenticationProperties.setCookieSecure(false);
-        sessions.deleteAll(); otps.deleteAll(); profiles.deleteAll(); users.deleteAll();
+        sessions.deleteAll(); otps.deleteAll(); courierProfiles.deleteAll(); profiles.deleteAll(); users.deleteAll();
         new TransactionTemplate(transactions).executeWithoutResult(transaction -> {
             user = users.saveAndFlush(User.builder().publicId(UUID.randomUUID()).email("login@example.com")
                     .phone("+84901234567").passwordHash(encoder.encode("Secret123!"))

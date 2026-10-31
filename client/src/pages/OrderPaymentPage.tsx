@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { ChangeEvent } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
   CreditCard, 
@@ -98,7 +99,7 @@ export default function OrderPaymentPage() {
     }
   }, [user, id]);
 
-  const handleOrderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleOrderChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     setSelectedOrderId(val);
     if (val) {
@@ -174,6 +175,12 @@ export default function OrderPaymentPage() {
           <div className="ui-row">
             <Link to="/wallet" className="ui-button ui-button-secondary ui-button-sm">
               <WalletIcon size={15} /> Quản lý Ví
+            </Link>
+            <Link to="/courier/market" className="ui-button ui-button-secondary ui-button-sm">
+              <Package size={15} /> Sàn đơn
+            </Link>
+            <Link to="/courier/trips" className="ui-button ui-button-secondary ui-button-sm">
+              <Truck size={15} /> Chuyến đi tiện đường
             </Link>
           </div>
         }

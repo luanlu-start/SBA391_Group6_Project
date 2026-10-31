@@ -1,0 +1,5 @@
+.parameter-value { display: block; max-width: 340px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.parameter-description { color: var(--text-secondary); font-size: .8rem; line-height: 1.75; }
+.parameter-changed { color: var(--text-accent); font-weight: 600; }
+.parameter-actor { display: block; max-width: 200px; overflow-wrap: anywhere; font-size: .74rem; }
+.parameter-draft-actions { justify-content: flex-end; }
