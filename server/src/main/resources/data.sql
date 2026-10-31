@@ -568,4 +568,31 @@ IF NOT EXISTS (SELECT 1 FROM blacklist WHERE kind = 'PHONE' AND value_hash = 'e3
            N'Số điện thoại nằm trong danh sách đen lừa đảo bùng hàng', u.id, SYSUTCDATETIME()
     FROM users u WHERE u.email = 'admin@fptpost.vn';
 
+-- ----------------------------------------------------------------------------------------------
+-- 14. BẢNG LOẠI HÀNG HÓA ITEM_CATEGORIES (DB-012)
+-- ----------------------------------------------------------------------------------------------
+IF NOT EXISTS (SELECT 1 FROM item_categories WHERE code = 'DOCUMENTS')
+    INSERT INTO item_categories (code, name, description, is_prohibited, requires_review, active, created_at, updated_at)
+    VALUES ('DOCUMENTS', N'Tài liệu & Hồ sơ', N'Tài liệu, hợp đồng, chứng từ, hóa đơn, bằng cấp và thư từ văn phòng.', 0, 0, 1, SYSUTCDATETIME(), SYSUTCDATETIME());
+
+IF NOT EXISTS (SELECT 1 FROM item_categories WHERE code = 'ELECTRONICS')
+    INSERT INTO item_categories (code, name, description, is_prohibited, requires_review, active, created_at, updated_at)
+    VALUES ('ELECTRONICS', N'Thiết bị điện tử & Công nghệ', N'Điện thoại, laptop, linh kiện máy bay/máy tính, phụ kiện công nghệ.', 0, 0, 1, SYSUTCDATETIME(), SYSUTCDATETIME());
+
+IF NOT EXISTS (SELECT 1 FROM item_categories WHERE code = 'CLOTHING')
+    INSERT INTO item_categories (code, name, description, is_prohibited, requires_review, active, created_at, updated_at)
+    VALUES ('CLOTHING', N'Quần áo & Thời trang', N'Quần áo, giày dép, túi xách, phụ kiện thời trang các loại.', 0, 0, 1, SYSUTCDATETIME(), SYSUTCDATETIME());
+
+IF NOT EXISTS (SELECT 1 FROM item_categories WHERE code = 'FOOD_DRY')
+    INSERT INTO item_categories (code, name, description, is_prohibited, requires_review, active, created_at, updated_at)
+    VALUES ('FOOD_DRY', N'Thực phẩm đóng gói & Đồ khô', N'Thực phẩm có hạn sử dụng dài, đồ khô đóng gói kín, không có mùi.', 0, 0, 1, SYSUTCDATETIME(), SYSUTCDATETIME());
+
+IF NOT EXISTS (SELECT 1 FROM item_categories WHERE code = 'FRAGILE')
+    INSERT INTO item_categories (code, name, description, is_prohibited, requires_review, active, created_at, updated_at)
+    VALUES ('FRAGILE', N'Đồ dễ vỡ & Thủy tinh', N'Đồ gốm sứ, thủy tinh, mỹ phẩm chai lọ, cần chèn bọc chống sốc cẩn thận.', 0, 0, 1, SYSUTCDATETIME(), SYSUTCDATETIME());
+
+IF NOT EXISTS (SELECT 1 FROM item_categories WHERE code = 'OTHER')
+    INSERT INTO item_categories (code, name, description, is_prohibited, requires_review, active, created_at, updated_at)
+    VALUES ('OTHER', N'Hàng hóa thông thường khác', N'Các loại hàng hóa tiêu dùng thông thường khác không thuộc danh mục cấm.', 0, 0, 1, SYSUTCDATETIME(), SYSUTCDATETIME());
+
 PRINT '--> [FPTPOST] Data seed script completed successfully!';
