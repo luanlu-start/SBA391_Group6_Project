@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { getMapTileConfig } from '../../../utils/mapConfig';
 
 export default function AddressMap({ lat, lng, onPick }: { lat: number; lng: number; onPick: (lat: number, lng: number) => void }) {
   const container = useRef<HTMLDivElement>(null), map = useRef<L.Map | null>(null), marker = useRef<L.CircleMarker | null>(null);
@@ -8,8 +9,10 @@ export default function AddressMap({ lat, lng, onPick }: { lat: number; lng: num
   useEffect(() => { callback.current = onPick; }, [onPick]);
   useEffect(() => {
     if (!container.current) return;
-    const instance = L.map(container.current).setView([10.0299, 105.7705], 13); map.current = instance;
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors', maxZoom: 19 }).addTo(instance);
+    const instance = L.map(container.current).setView([10.0299, 105.7705], 13);
+    map.current = instance;
+    const tileConfig = getMapTileConfig();
+    L.tileLayer(tileConfig.url, tileConfig.options).addTo(instance);
     instance.on('click', (event: L.LeafletMouseEvent) => callback.current(event.latlng.lat, event.latlng.lng));
     const timer = window.setTimeout(() => instance.invalidateSize(), 100);
     return () => { window.clearTimeout(timer); instance.remove(); map.current = null; marker.current = null; };

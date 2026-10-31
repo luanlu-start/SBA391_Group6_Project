@@ -107,7 +107,7 @@ export default function OrdersPage() {
     },
     {
       key: 'pricing',
-      header: 'Cước phí (UC-11)',
+      header: 'Cước phí',
       render: order => (
         <>
           <span className="ui-table-primary" style={{ color: '#1d4ed8', fontWeight: 600 }}>

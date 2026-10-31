@@ -568,4 +568,35 @@ IF NOT EXISTS (SELECT 1 FROM blacklist WHERE kind = 'PHONE' AND value_hash = 'e3
            N'Số điện thoại nằm trong danh sách đen lừa đảo bùng hàng', u.id, SYSUTCDATETIME()
     FROM users u WHERE u.email = 'admin@fptpost.vn';
 
+-- ----------------------------------------------------------------------------------------------
+-- 14. BẢNG CHUYẾN ĐI TRIPS (DB-020)
+-- ----------------------------------------------------------------------------------------------
+IF NOT EXISTS (SELECT 1 FROM trips WHERE origin_address LIKE N'%Đại học FPT, Hòa Lạc%')
+    INSERT INTO trips (
+        courier_id, origin_address, origin_lat, origin_lng, dest_address, dest_lat, dest_lng,
+        distance_km, estimated_duration_minutes, depart_at, vehicle_type, capacity_kg,
+        floor_price, recurrence, note, status, created_at, updated_at, version
+    )
+    SELECT
+        u.id, N'Đại học FPT, Hòa Lạc, Thạch Thất, Hà Nội', 21.0130, 105.5250,
+        N'Tòa nhà Keangnam Landmark 72, Nam Từ Liêm, Hà Nội', 21.0173, 105.7840,
+        32.50, 45, DATEADD(hour, 4, SYSUTCDATETIME()), 'MOTORBIKE', 12.00,
+        25000.00, 'DAILY', N'Tiện đường về trung tâm qua Đại lộ Thăng Long, nhận kiện hàng dưới 12kg',
+        'SCHEDULED', SYSUTCDATETIME(), SYSUTCDATETIME(), 0
+    FROM users u WHERE u.email = 'courier@fptpost.vn';
+
+IF NOT EXISTS (SELECT 1 FROM trips WHERE origin_address LIKE N'%Làng Đại học Thủ Đức%')
+    INSERT INTO trips (
+        courier_id, origin_address, origin_lat, origin_lng, dest_address, dest_lat, dest_lng,
+        distance_km, estimated_duration_minutes, depart_at, vehicle_type, capacity_kg,
+        floor_price, recurrence, note, status, created_at, updated_at, version
+    )
+    SELECT
+        u.id, N'Làng Đại học Thủ Đức, TP. Hồ Chí Minh', 10.8700, 106.8030,
+        N'Tòa nhà Bitexco, Quận 1, TP. Hồ Chí Minh', 10.7716, 106.7042,
+        18.20, 35, DATEADD(hour, 6, SYSUTCDATETIME()), 'MOTORBIKE', 8.00,
+        20000.00, 'WEEKDAYS', N'Chuyến đi làm hằng ngày từ Thủ Đức sang Quận 1, nhận tài liệu và quà nhỏ',
+        'SCHEDULED', SYSUTCDATETIME(), SYSUTCDATETIME(), 0
+    FROM users u WHERE u.email = 'courier2@fptpost.vn';
+
 PRINT '--> [FPTPOST] Data seed script completed successfully!';
