@@ -124,6 +124,28 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success("Orders retrieved successfully", orders));
     }
 
+    @GetMapping("/assigned-to-me")
+    @PreAuthorize("hasRole('COURIER')")
+    @Operation(
+            summary = "Danh sách đơn hàng được phân công cho Courier",
+            description = "Chỉ trả về các đơn được phân công cho Courier đang đăng nhập"
+    )
+    public ResponseEntity<ApiResponse<List<OrderResponse>>> getAssignedOrders(
+            @AuthenticationPrincipal Jwt jwt) {
+
+        Long courierId = resolveUserId(jwt);
+
+        List<OrderResponse> orders =
+                orderService.getOrdersByCourierId(courierId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Assigned orders retrieved successfully",
+                        orders
+                )
+        );
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Xem chi tiết đơn hàng", description = "Lấy thông tin chi tiết của một đơn hàng theo ID")
     public ResponseEntity<ApiResponse<OrderResponse>> getOrderById(@PathVariable Long id) {

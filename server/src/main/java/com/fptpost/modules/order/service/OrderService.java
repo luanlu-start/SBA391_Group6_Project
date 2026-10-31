@@ -161,6 +161,7 @@ public class OrderService {
         }
 
         order.setStatus(OrderStatus.CANCELLED);
+        order.setEndedAt(Instant.now());
 
         if (reason != null && !reason.isBlank()) {
             String note = order.getDeliveryNote();
@@ -194,6 +195,15 @@ public class OrderService {
                 .map(orderMapper::toResponse)
                 .toList();
     }
+
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getOrdersByCourierId(Long courierId) {
+        return orderRepository.findByCourierIdOrderByCreatedAtDesc(courierId)
+                .stream()
+                .map(orderMapper::toResponse)
+                .toList();
+    }
+
 
     @Transactional
     public List<String> uploadOrderImages(List<MultipartFile> files) {

@@ -38,6 +38,8 @@ import CourierOrderDetailPage from "../pages/CourierOrderDetailPage";
 import CourierMarketplacePage from '../pages/CourierMarketplacePage';
 import CreateTripPage from '../pages/CreateTripPage';
 import CourierTripsPage from '../pages/CourierTripsPage';
+import RequireRole from './RequireRole';
+import CourierAssignedOrdersPage from '../pages/CourierAssignedOrdersPage';
 
 const UiKitPage = import.meta.env.DEV ? lazy(() => import('../pages/UiKitPage')) : null;
 
@@ -70,6 +72,12 @@ export default function AppRoutes() {
         <Route path="*" element={<NotFoundPage />} />
       </Route>
       <Route path="/" element={<MainLayout />}>
+      <Route element={<RequireRole allowedRoles={['COURIER']} />}>
+        <Route
+          path="courier/orders"
+          element={<CourierAssignedOrdersPage />}
+        />
+      </Route>
         <Route index element={<HomePage />} />
         <Route path="products" element={<ProductsPage />} />
         <Route path="wallet" element={<WalletPage />} />
@@ -77,11 +85,13 @@ export default function AppRoutes() {
         <Route path="orders/:id/payment" element={<OrderPaymentPage />} />
         <Route path="payment/vnpay-return" element={<VNPayReturnPage />} />
         <Route path="vnpay-return" element={<VNPayReturnPage />} />
-        <Route path="sender/orders" element={<OrdersPage />} />
-        <Route path="sender/orders/new" element={<CreateOrderPage />} />
-        <Route path="sender/orders/:id/edit" element={<EditOrderPage />} />
-        <Route path="sender/orders/:id" element={<OrderDetailPage />} />
-        <Route path="sender/orders/:id/offers" element={<OrderOffersPage />} />
+        <Route element={<RequireRole allowedRoles={['SENDER']} />}>
+          <Route path="sender/orders" element={<OrdersPage />} />
+          <Route path="sender/orders/new" element={<CreateOrderPage />} />
+          <Route path="sender/orders/:id/edit" element={<EditOrderPage />} />
+          <Route path="sender/orders/:id" element={<OrderDetailPage />} />
+          <Route path="sender/orders/:id/offers" element={<OrderOffersPage />} />
+        </Route>
         <Route path="orders/:id/offers" element={<OrderOffersPage />} />
         <Route path="courier/market" element={<CourierMarketplacePage />} />
         <Route path="courier/market/:id" element={<CourierOrderDetailPage />} />
@@ -98,6 +108,7 @@ export default function AppRoutes() {
         <Route path="me/courier-register" element={<CourierRegisterPage />} />
         <Route path="courier" element={<CourierPage />} />
         <Route path="legal" element={<LegalPage />} />
+        <Route path="orders/:orderId/chat" element={<ChatPage />} />
         <Route path="*" element={<NotFoundPage />} />
         <Route path="orders/:orderId/chat" element={<ChatPage />} />
       </Route>
