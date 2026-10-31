@@ -26,45 +26,39 @@ export default function TripRouteMap({
   routePolyline,
 }: TripRouteMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const originMarkerRef = useRef<L.Marker | null>(null);
-  const destMarkerRef = useRef<L.Marker | null>(null);
-  const routeLineGlowRef = useRef<L.Polyline | null>(null);
-  const routeLineRef = useRef<L.Polyline | null>(null);
+  const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
   const [calculatingRoute, setCalculatingRoute] = useState(false);
 
-  // Initialize Map
+  // 1. Initialize Map
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
+    if (!containerRef.current) return;
 
-    const oLat = originLat != null ? Number(originLat) : 10.0299;
-    const oLng = originLng != null ? Number(originLng) : 105.7705;
+    const oLat = originLat != null && !isNaN(Number(originLat)) ? Number(originLat) : 10.0299;
+    const oLng = originLng != null && !isNaN(Number(originLng)) ? Number(originLng) : 105.7705;
 
     const map = L.map(containerRef.current, {
       zoomControl: true,
       attributionControl: true,
     }).setView([oLat, oLng], 13);
-    mapRef.current = map;
 
-    // Dark Mode Tile Config
-    const tileConfig = getMapTileConfig(true);
+    // Free Google Maps / OpenStreetMap Tile Layer
+    const tileConfig = getMapTileConfig();
     L.tileLayer(tileConfig.url, tileConfig.options).addTo(map);
 
-    // Initial resize
-    const timer = setTimeout(() => {
-      map.invalidateSize();
-    }, 150);
+    setMapInstance(map);
 
-    // Watch container resize (crucial for modal tabs / drawer transitions)
+    // Container resize observer for smooth tab transitions
     let resizeObserver: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
+    if (typeof ResizeObserver !== 'undefined') {
       resizeObserver = new ResizeObserver(() => {
-        if (mapRef.current) {
-          mapRef.current.invalidateSize();
-        }
+        map.invalidateSize();
       });
       resizeObserver.observe(containerRef.current);
     }
+
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 150);
 
     return () => {
       clearTimeout(timer);
@@ -72,14 +66,13 @@ export default function TripRouteMap({
         resizeObserver.disconnect();
       }
       map.remove();
-      mapRef.current = null;
+      setMapInstance(null);
     };
   }, []);
 
-  // Map Click Listener (when selecting points)
+  // 2. Map Click Listener for picking mode
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !onSelectPoint || !activePickingMode) return;
+    if (!mapInstance || !onSelectPoint || !activePickingMode) return;
 
     const handleClick = async (e: L.LeafletMouseEvent) => {
       const lat = Number(e.latlng.lat.toFixed(6));
@@ -108,23 +101,24 @@ export default function TripRouteMap({
       onSelectPoint(activePickingMode, lat, lng, addressText);
     };
 
-    map.on('click', handleClick);
+    mapInstance.on('click', handleClick);
     return () => {
-      map.off('click', handleClick);
+      mapInstance.off('click', handleClick);
     };
-  }, [activePickingMode, onSelectPoint]);
+  }, [mapInstance, activePickingMode, onSelectPoint]);
 
-  // Update Markers & Route
+  // 3. Render Route and Markers
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
+    if (!mapInstance) return;
 
     const oLat = originLat != null && !isNaN(Number(originLat)) ? Number(originLat) : null;
     const oLng = originLng != null && !isNaN(Number(originLng)) ? Number(originLng) : null;
     const dLat = destinationLat != null && !isNaN(Number(destinationLat)) ? Number(destinationLat) : null;
     const dLng = destinationLng != null && !isNaN(Number(destinationLng)) ? Number(destinationLng) : null;
 
-    // Helper to create HTML pin icons
+    // Use a fresh layer group for this render cycle (100% clean, no leaks)
+    const layerGroup = L.layerGroup().addTo(mapInstance);
+
     const createPinIcon = (type: 'origin' | 'destination') => {
       return L.divIcon({
         className: 'trip-custom-marker-wrapper',
@@ -141,83 +135,71 @@ export default function TripRouteMap({
       });
     };
 
-    // 1. Origin Marker (Green Pin)
+    // Add Origin Marker
     if (oLat != null && oLng != null) {
-      if (!originMarkerRef.current) {
-        originMarkerRef.current = L.marker([oLat, oLng], {
-          icon: createPinIcon('origin'),
-          zIndexOffset: 1000,
-        }).addTo(map);
+      const originMarker = L.marker([oLat, oLng], {
+        icon: createPinIcon('origin'),
+        zIndexOffset: 1000,
+      }).addTo(layerGroup);
 
-        originMarkerRef.current.bindTooltip('Điểm xuất phát', {
-          permanent: true,
-          direction: 'top',
-          offset: [0, -28],
-          className: 'trip-map-tooltip origin',
-        });
-      } else {
-        originMarkerRef.current.setLatLng([oLat, oLng]);
-      }
-    } else if (originMarkerRef.current) {
-      originMarkerRef.current.remove();
-      originMarkerRef.current = null;
+      originMarker.bindTooltip('Điểm xuất phát', {
+        permanent: true,
+        direction: 'top',
+        offset: [0, -28],
+        className: 'trip-map-tooltip origin',
+      });
     }
 
-    // 2. Destination Marker (FPT Orange Pin)
+    // Add Destination Marker
     if (dLat != null && dLng != null) {
-      if (!destMarkerRef.current) {
-        destMarkerRef.current = L.marker([dLat, dLng], {
-          icon: createPinIcon('destination'),
-          zIndexOffset: 1000,
-        }).addTo(map);
+      const destMarker = L.marker([dLat, dLng], {
+        icon: createPinIcon('destination'),
+        zIndexOffset: 1000,
+      }).addTo(layerGroup);
 
-        destMarkerRef.current.bindTooltip('Điểm đến', {
-          permanent: true,
-          direction: 'top',
-          offset: [0, -28],
-          className: 'trip-map-tooltip destination',
-        });
-      } else {
-        destMarkerRef.current.setLatLng([dLat, dLng]);
-      }
-    } else if (destMarkerRef.current) {
-      destMarkerRef.current.remove();
-      destMarkerRef.current = null;
+      destMarker.bindTooltip('Điểm đến', {
+        permanent: true,
+        direction: 'top',
+        offset: [0, -28],
+        className: 'trip-map-tooltip destination',
+      });
     }
 
-    // Helper to draw dual-layer glowing polyline
-    const drawPolylines = (coords: [number, number][]) => {
-      if (routeLineGlowRef.current) {
-        routeLineGlowRef.current.setLatLngs(coords);
-      } else {
-        routeLineGlowRef.current = L.polyline(coords, {
-          color: '#f37021',
-          weight: 8,
-          opacity: 0.35,
-          lineCap: 'round',
-          lineJoin: 'round',
-        }).addTo(map);
-      }
+    // Helper to draw dual-stroke high-contrast route
+    const drawRouteOnMap = (coords: [number, number][]) => {
+      // Background Glow
+      L.polyline(coords, {
+        color: '#f37021',
+        weight: 8,
+        opacity: 0.35,
+        lineCap: 'round',
+        lineJoin: 'round',
+      }).addTo(layerGroup);
 
-      if (routeLineRef.current) {
-        routeLineRef.current.setLatLngs(coords);
-      } else {
-        routeLineRef.current = L.polyline(coords, {
-          color: '#ff8a42',
-          weight: 4,
-          opacity: 0.95,
-          lineCap: 'round',
-          lineJoin: 'round',
-        }).addTo(map);
-      }
+      // Core Line
+      L.polyline(coords, {
+        color: '#ff8a42',
+        weight: 4,
+        opacity: 0.95,
+        lineCap: 'round',
+        lineJoin: 'round',
+      }).addTo(layerGroup);
 
       const bounds = L.latLngBounds(coords);
-      map.fitBounds(bounds, { padding: [45, 45], maxZoom: 16 });
+      mapInstance.invalidateSize();
+      mapInstance.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+
+      setTimeout(() => {
+        if (mapInstance) {
+          mapInstance.invalidateSize();
+          mapInstance.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+        }
+      }, 200);
     };
 
-    // 3. Draw Route if both points exist
+    // Draw route if both points exist
     if (oLat != null && oLng != null && dLat != null && dLng != null) {
-      // Check if pre-calculated routePolyline is provided
+      // 1. Try saved routePolyline
       if (routePolyline) {
         try {
           const parsed = JSON.parse(routePolyline);
@@ -232,7 +214,6 @@ export default function TripRouteMap({
           }
 
           if (rawCoordinates && rawCoordinates.length > 0) {
-            // GeoJSON coordinates are [longitude, latitude] -> Leaflet requires [latitude, longitude]
             const coords: [number, number][] = rawCoordinates.map((c) => {
               if (c[0] > 90 || c[0] < -90) {
                 return [c[1], c[0]]; // [lng, lat] -> [lat, lng]
@@ -240,15 +221,18 @@ export default function TripRouteMap({
               return [c[0], c[1]];
             });
 
-            drawPolylines(coords);
-            return;
+            drawRouteOnMap(coords);
+            return () => {
+              layerGroup.remove();
+            };
           }
         } catch {
-          // Fall through to OSRM fetch
+          // Fall through to OSRM
         }
       }
 
-      // Fetch from OSRM
+      // 2. Fetch driving route from OSRM
+      let isCancelled = false;
       setCalculatingRoute(true);
 
       const fetchRoute = async () => {
@@ -256,9 +240,9 @@ export default function TripRouteMap({
           const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${oLng},${oLat};${dLng},${dLat}?overview=full&geometries=geojson`;
           const response = await fetch(osrmUrl);
 
-          if (response.ok) {
+          if (!isCancelled && response.ok) {
             const data = await response.json();
-            if (data?.routes?.[0]) {
+            if (data?.routes?.[0]?.geometry?.coordinates) {
               const route = data.routes[0];
               const distKm = Number((route.distance / 1000).toFixed(1));
               const durMin = Math.round(route.duration / 60);
@@ -266,7 +250,7 @@ export default function TripRouteMap({
                 (c: [number, number]) => [c[1], c[0]]
               );
 
-              drawPolylines(coordinates);
+              drawRouteOnMap(coordinates);
 
               if (onRouteCalculated) {
                 onRouteCalculated(distKm, durMin, JSON.stringify(route.geometry));
@@ -276,53 +260,49 @@ export default function TripRouteMap({
           }
           throw new Error('OSRM routing unavailable');
         } catch {
-          // Direct straight-line fallback with dashed styling
-          const coords: [number, number][] = [
-            [oLat, oLng],
-            [dLat, dLng],
-          ];
+          if (!isCancelled) {
+            // Direct fallback connection
+            const coords: [number, number][] = [
+              [oLat, oLng],
+              [dLat, dLng],
+            ];
 
-          if (routeLineGlowRef.current) {
-            routeLineGlowRef.current.remove();
-            routeLineGlowRef.current = null;
-          }
-
-          if (routeLineRef.current) {
-            routeLineRef.current.setLatLngs(coords);
-          } else {
-            routeLineRef.current = L.polyline(coords, {
+            L.polyline(coords, {
               color: '#f37021',
               weight: 4,
               dashArray: '8, 8',
               opacity: 0.9,
-            }).addTo(map);
-          }
+            }).addTo(layerGroup);
 
-          const bounds = L.latLngBounds(coords);
-          map.fitBounds(bounds, { padding: [45, 45], maxZoom: 15 });
+            const bounds = L.latLngBounds(coords);
+            mapInstance.invalidateSize();
+            mapInstance.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+          }
         } finally {
-          setCalculatingRoute(false);
+          if (!isCancelled) {
+            setCalculatingRoute(false);
+          }
         }
       };
 
       fetchRoute();
+
+      return () => {
+        isCancelled = true;
+        layerGroup.remove();
+      };
     } else {
-      // Clear route lines if incomplete points
-      if (routeLineGlowRef.current) {
-        routeLineGlowRef.current.remove();
-        routeLineGlowRef.current = null;
-      }
-      if (routeLineRef.current) {
-        routeLineRef.current.remove();
-        routeLineRef.current = null;
-      }
+      // Only 1 point or none
       if (oLat != null && oLng != null) {
-        map.setView([oLat, oLng], 14);
+        mapInstance.setView([oLat, oLng], 14);
       } else if (dLat != null && dLng != null) {
-        map.setView([dLat, dLng], 14);
+        mapInstance.setView([dLat, dLng], 14);
       }
+      return () => {
+        layerGroup.remove();
+      };
     }
-  }, [originLat, originLng, destinationLat, destinationLng, routePolyline]);
+  }, [mapInstance, originLat, originLng, destinationLat, destinationLng, routePolyline]);
 
   return (
     <div className="trip-map-wrapper">
