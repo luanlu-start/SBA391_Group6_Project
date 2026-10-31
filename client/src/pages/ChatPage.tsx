@@ -111,6 +111,17 @@ function OrderConversation({ orderId }: { orderId: string }) {
 }
 
 function ConversationPanel({ room }: { room: ChatRoom }) {
+    const [currentTime, setCurrentTime] = useState(() => Date.now());
+
+    useEffect(() => {
+      if (!room.readOnlyAt || room.readOnly) return;
+
+      const timer = window.setInterval(() => {
+        setCurrentTime(Date.now());
+      }, 1000);
+
+      return () => window.clearInterval(timer);
+    }, [room.readOnlyAt, room.readOnly]);
   const chat = useChatMessages(room.id);
 
   const socket = useChatSocket({
@@ -136,16 +147,27 @@ function ConversationPanel({ room }: { room: ChatRoom }) {
     error: 'Kết nối gặp lỗi',
   }[socket.status];
 
-  const readOnly = room.readOnlyAt !== null
-    && Date.now() >= Date.parse(room.readOnlyAt);
+  const deadline = room.readOnlyAt
+    ? Date.parse(room.readOnlyAt)
+    : null;
+
+  const readOnly =
+    room.readOnly ||
+    (deadline !== null
+      && Number.isFinite(deadline)
+      && currentTime >= deadline);
 
   async function submit(values: ChatMessageFormValues) {
+    if (readOnly) return;
+
     if (await chat.sendMessage(values.content)) {
       reset({ content: '' });
     }
   }
 
   async function retry() {
+    if (readOnly) return;
+
     if (await chat.retryMessage()) {
       reset({ content: '' });
     }
