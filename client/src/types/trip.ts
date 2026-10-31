@@ -4,6 +4,32 @@ export type TripRecurrence = 'NONE' | 'DAILY' | 'WEEKDAYS' | 'WEEKENDS' | 'WEEKL
 
 export type TripStatus = 'SCHEDULED' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
 
+export interface TripAttachedOrder {
+  id: number;
+  orderCode: string;
+  senderId?: number;
+  pickupAddress: string;
+  pickupLatitude?: number;
+  pickupLongitude?: number;
+  deliveryAddress: string;
+  deliveryLatitude?: number;
+  deliveryLongitude?: number;
+  productName: string;
+  quantity?: number;
+  weightKg?: number;
+  declaredValue?: number;
+  priceSuggested?: number;
+  priceAgreed?: number;
+  distanceKm?: number;
+  urgency?: string;
+  deliveryNote?: string;
+  status: string;
+  receiverName?: string;
+  receiverPhone?: string;
+  createdAt?: string;
+  detourKm?: number;
+}
+
 export interface Trip {
   id: number;
   courierId?: number;
@@ -27,11 +53,30 @@ export interface Trip {
   floorPrice?: number;
   recurrence: TripRecurrence;
   status: TripStatus;
+  ordersCount?: number;
+  attachedOrders?: TripAttachedOrder[];
   createdAt: string;
   updatedAt?: string;
 }
 
 export interface TripCreateRequest {
+  origin: string;
+  originLat: number;
+  originLng: number;
+  destination: string;
+  destinationLat: number;
+  destinationLng: number;
+  departAt: string;
+  vehicleType: VehicleType;
+  capacityKg: number;
+  floorPrice?: number;
+  recurrence?: TripRecurrence;
+  routePolyline?: string;
+  distanceKm?: number;
+  estimatedDurationMinutes?: number;
+}
+
+export interface TripUpdateRequest {
   origin: string;
   originLat: number;
   originLng: number;

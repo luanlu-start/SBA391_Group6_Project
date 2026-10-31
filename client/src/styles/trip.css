@@ -447,18 +447,72 @@
   z-index: 1;
 }
 
-/* Giới hạn z-index của Leaflet controls và panes để không vượt quá stacking context */
-.trip-map-wrapper .leaflet-pane {
-  z-index: 10 !important;
+/* Custom Pin Markers for Origin & Destination */
+.trip-custom-marker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.trip-map-wrapper .leaflet-top,
-.trip-map-wrapper .leaflet-bottom {
-  z-index: 20 !important;
+.trip-marker-pin {
+  width: 26px;
+  height: 26px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
 }
 
-.trip-map-wrapper .leaflet-control {
-  z-index: 20 !important;
+.trip-marker-pin.origin {
+  background-color: #10b981;
+  border: 2px solid #ecfdf5;
+}
+
+.trip-marker-pin.destination {
+  background-color: #f37021;
+  border: 2px solid #fff;
+}
+
+.trip-marker-inner {
+  width: 9px;
+  height: 9px;
+  background-color: #fff;
+  border-radius: 50%;
+  transform: rotate(45deg);
+}
+
+.trip-marker-pulse {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  animation: marker-pulse 2s infinite ease-out;
+  pointer-events: none;
+}
+
+.trip-marker-pulse.origin {
+  background-color: rgba(16, 185, 129, 0.4);
+}
+
+.trip-marker-pulse.destination {
+  background-color: rgba(243, 112, 33, 0.4);
+}
+
+@keyframes marker-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
 }
 
 .trip-map-hint-banner,
@@ -913,4 +967,381 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+/* ==========================================================================
+   Trip Details & Management Modal / Enhanced Controls (Dark Mode)
+   ========================================================================== */
+
+.trip-card-attached-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: rgba(96, 165, 250, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.25);
+  color: #60a5fa;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--radius-full, 999px);
+}
+
+.trip-card-attached-badge.has-orders {
+  background-color: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #34d399;
+}
+
+.trip-card-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.trip-card-sub-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid var(--border-subtle, #333d4c);
+  background-color: var(--bg-secondary, #181e27);
+  color: var(--text-secondary, #b0bdd2);
+  cursor: pointer;
+  transition: all var(--transition-fast, 0.15s ease);
+}
+
+.trip-card-sub-btn:hover:not(:disabled) {
+  background-color: var(--bg-tertiary, #242d39);
+  color: var(--text-primary, #f1f4fb);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.trip-card-sub-btn.pause {
+  color: #f5cb76;
+  border-color: rgba(245, 203, 118, 0.3);
+  background-color: rgba(245, 203, 118, 0.08);
+}
+
+.trip-card-sub-btn.pause:hover:not(:disabled) {
+  background-color: rgba(245, 203, 118, 0.18);
+  color: #ffd88a;
+}
+
+.trip-card-sub-btn.complete {
+  color: #6cdeb4;
+  border-color: rgba(108, 222, 180, 0.3);
+  background-color: rgba(108, 222, 180, 0.08);
+}
+
+.trip-card-sub-btn.complete:hover:not(:disabled) {
+  background-color: rgba(108, 222, 180, 0.18);
+  color: #8af0ca;
+}
+
+.trip-card-sub-btn.danger {
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.3);
+  background-color: rgba(239, 68, 68, 0.08);
+}
+
+.trip-card-sub-btn.danger:hover:not(:disabled) {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
+/* Modal Styling */
+.trip-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.trip-modal-container {
+  background-color: var(--bg-card, #181e27);
+  border: 1px solid var(--border-subtle, #333d4c);
+  border-radius: var(--radius-lg, 16px);
+  width: 100%;
+  max-width: 860px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  color: var(--text-primary, #f1f4fb);
+  overflow: hidden;
+}
+
+.trip-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border-subtle, #333d4c);
+  background-color: var(--bg-secondary, #181e27);
+}
+
+.trip-modal-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-primary, #f1f4fb);
+}
+
+.trip-modal-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #8e9eb8);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--radius-sm, 6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast, 0.15s ease);
+}
+
+.trip-modal-close-btn:hover {
+  background-color: var(--bg-tertiary, #242d39);
+  color: var(--text-primary, #f1f4fb);
+}
+
+.trip-modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.trip-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-subtle, #333d4c);
+  background-color: var(--bg-secondary, #181e27);
+}
+
+/* Modal Tabs */
+.trip-modal-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-subtle, #333d4c);
+  margin-bottom: 20px;
+  padding-bottom: 8px;
+}
+
+.trip-modal-tab {
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #8e9eb8);
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: var(--radius-md, 10px);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all var(--transition-fast, 0.15s ease);
+}
+
+.trip-modal-tab:hover {
+  color: var(--text-primary, #f1f4fb);
+  background-color: var(--bg-tertiary, #242d39);
+}
+
+.trip-modal-tab.active {
+  background-color: rgba(243, 112, 33, 0.15);
+  color: var(--primary, #f37021);
+  font-weight: 600;
+  border: 1px solid rgba(243, 112, 33, 0.3);
+}
+
+.tab-badge {
+  background-color: var(--bg-tertiary, #242d39);
+  color: var(--text-secondary, #b0bdd2);
+  font-size: 0.75rem;
+  padding: 2px 7px;
+  border-radius: var(--radius-full, 999px);
+  font-weight: 600;
+}
+
+.trip-modal-tab.active .tab-badge {
+  background-color: var(--primary, #f37021);
+  color: #fff;
+}
+
+/* Orders List inside Modal */
+.trip-orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.trip-order-item-card {
+  background-color: var(--bg-primary, #101319);
+  border: 1px solid var(--border-subtle, #333d4c);
+  border-radius: var(--radius-md, 10px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color var(--transition-fast, 0.15s ease);
+}
+
+.trip-order-item-card:hover {
+  border-color: rgba(243, 112, 33, 0.35);
+}
+
+.order-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.order-code-badge {
+  font-family: var(--font-mono, monospace);
+  font-weight: 600;
+  color: var(--text-accent, #ffb17d);
+  font-size: 0.85rem;
+}
+
+.order-status-pill {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--radius-full, 999px);
+  background-color: var(--bg-tertiary, #242d39);
+  color: var(--text-secondary, #b0bdd2);
+}
+
+.order-item-product {
+  font-weight: 600;
+  color: var(--text-primary, #f1f4fb);
+  font-size: 0.95rem;
+}
+
+.order-route-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--text-secondary, #b0bdd2);
+}
+
+.order-route-point {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.order-point-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+
+.order-point-dot.origin {
+  background-color: #10b981;
+}
+
+.order-point-dot.dest {
+  background-color: #f37021;
+}
+
+.order-item-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 10px;
+  margin-top: 4px;
+  font-size: 0.84rem;
+}
+
+.order-price-tag {
+  font-weight: 700;
+  color: #34d399;
+}
+
+.order-detour-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #60a5fa;
+  font-weight: 500;
+  font-size: 0.78rem;
+  background-color: rgba(96, 165, 246, 0.1);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+/* Edit Modal Form Grid */
+.trip-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .trip-edit-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.trip-modal-btn {
+  padding: 8px 16px;
+  border-radius: var(--radius-md, 10px);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all var(--transition-fast, 0.15s ease);
+}
+
+.trip-modal-btn.secondary {
+  background-color: var(--bg-tertiary, #242d39);
+  color: var(--text-secondary, #b0bdd2);
+  border: 1px solid var(--border-subtle, #333d4c);
+}
+
+.trip-modal-btn.secondary:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary, #f1f4fb);
+}
+
+.trip-modal-btn.primary {
+  background-color: var(--primary, #f37021);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(243, 112, 33, 0.25);
+}
+
+.trip-modal-btn.primary:hover:not(:disabled) {
+  background-color: var(--primary-hover, #ff8a42);
+}
+
+.trip-modal-btn.primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

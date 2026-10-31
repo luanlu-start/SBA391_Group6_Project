@@ -8,13 +8,24 @@ export interface MapTileConfig {
   };
 }
 
-export function getMapTileConfig(): MapTileConfig {
-  const provider = (import.meta.env.VITE_MAPS_PROVIDER || 'google').toLowerCase();
+export function getMapTileConfig(isDarkMode = true): MapTileConfig {
+  const provider = (import.meta.env.VITE_MAPS_PROVIDER || '').toLowerCase();
   const apiKey = (import.meta.env.VITE_MAPS_API_KEY || '').trim();
+
+  // If dark mode is preferred and no explicit light provider requested
+  if (isDarkMode && provider !== 'osm' && provider !== 'google') {
+    return {
+      url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+      options: {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        maxZoom: 19,
+        subdomains: ['a', 'b', 'c', 'd'],
+      },
+    };
+  }
 
   switch (provider) {
     case 'geoapify': {
-      // Free Geoapify demo/fallback key if none provided
       const key = apiKey || '6c478a5e0d37446bb38258dc7117830b';
       return {
         url: `https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}.png?apiKey=${key}`,
@@ -38,6 +49,17 @@ export function getMapTileConfig(): MapTileConfig {
     case 'voyager':
       return {
         url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+        options: {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+          maxZoom: 19,
+          subdomains: ['a', 'b', 'c', 'd'],
+        },
+      };
+
+    case 'dark':
+    case 'carto-dark':
+      return {
+        url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
         options: {
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
           maxZoom: 19,
