@@ -13,7 +13,9 @@ import {
     Send,
     RotateCcw,
     XCircle,
+    MessageCircle,
 } from 'lucide-react';
+
 import { marketPlaceOrderApi } from '../api/marketPlaceOrderApi';
 import { offerApi } from '../api/offerApi';
 import type { MarketplaceOrderDetail, MarketOrderAcceptResponse } from '../types/order';
@@ -287,9 +289,22 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                             </p>
                         </div>
                     </div>
-                    <Button variant="secondary" onClick={() => navigate('/courier/market')}>
-                        Tiếp tục tìm đơn
-                    </Button>
+                    <div className="ui-row" style={{ gap: '10px', flexWrap: 'wrap' }}>
+                        <Button
+                            variant="primary"
+                            icon={<MessageCircle size={18} />}
+                            onClick={() => navigate(`/orders/${id}/chat`)}
+                        >
+                            Nhắn tin với người gửi
+                        </Button>
+
+                        <Button
+                            variant="secondary"
+                            onClick={() => navigate('/courier/market')}
+                        >
+                            Tiếp tục tìm đơn
+                        </Button>
+                    </div>
                 </div>
             )}
 

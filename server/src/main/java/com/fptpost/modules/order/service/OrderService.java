@@ -196,6 +196,15 @@ public class OrderService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getOrdersByCourierId(Long courierId) {
+        return orderRepository.findByCourierIdOrderByCreatedAtDesc(courierId)
+                .stream()
+                .map(orderMapper::toResponse)
+                .toList();
+    }
+
+
     @Transactional
     public List<String> uploadOrderImages(List<MultipartFile> files) {
         if (files == null || files.isEmpty()) {
