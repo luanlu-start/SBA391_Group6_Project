@@ -10,6 +10,7 @@ import ApiErrorNotice from '../components/ApiErrorNotice';
 import PageHeader from '../components/ui/PageHeader';
 import SectionCard from '../components/ui/SectionCard';
 import Button from '../components/ui/Button';
+import ConfirmPickupPanel from '../components/order/ConfirmPickupPanel';
 
 export default function CourierAssignedOrdersPage() {
   const navigate = useNavigate();
@@ -80,6 +81,14 @@ export default function CourierAssignedOrdersPage() {
                   <p>{order.productName}</p>
                   <p>Trạng thái: {order.status}</p>
                 </div>
+
+                {/* UC-25: Xác nhận lấy hàng bằng QR và ảnh */}
+                {order.status === 'SHIPPER_ASSIGNED' && (
+                  <ConfirmPickupPanel
+                    orderId={order.id}
+                    onSuccess={() => void loadOrders()}
+                  />
+                )}
 
                 <Button
                   variant="primary"
