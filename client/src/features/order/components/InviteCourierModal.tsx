@@ -6,7 +6,6 @@ import {
     Star,
     Send,
     Clock,
-    CheckCircle2,
     Truck,
 } from 'lucide-react';
 import Modal from '../../../components/ui/Modal';
@@ -91,6 +90,7 @@ export default function InviteCourierModal({
     // Toggle favorite
     const handleToggleFavorite = async (courierId: number, e: React.MouseEvent) => {
         e.stopPropagation();
+        setError(null);
         try {
             await invitationApi.toggleFavorite(courierId);
             // Refresh both
@@ -100,6 +100,7 @@ export default function InviteCourierModal({
             );
         } catch (err) {
             console.error('Lỗi khi thay đổi trạng thái yêu thích', err);
+            setError(getApiError(err));
         }
     };
 
@@ -171,10 +172,7 @@ export default function InviteCourierModal({
                 {error && <ApiErrorNotice error={error} />}
                 {successMsg && (
                     <Alert tone="success" title="Thành công">
-                        <div className="ui-row" style={{ alignItems: 'center', gap: '8px' }}>
-                            <CheckCircle2 size={16} />
-                            <span>{successMsg}</span>
-                        </div>
+                        {successMsg}
                     </Alert>
                 )}
 
@@ -452,22 +450,27 @@ export default function InviteCourierModal({
                                             </div>
 
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => handleToggleFavorite(courier.courierId, e)}
-                                                    title={courier.isFavorite ? 'Bỏ yêu thích' : 'Lưu vào yêu thích'}
-                                                    style={{
-                                                        background: 'none',
-                                                        border: 'none',
-                                                        cursor: 'pointer',
-                                                        color: courier.isFavorite ? 'var(--accent-rose)' : 'var(--text-muted)',
-                                                        padding: '6px',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                    }}
-                                                >
-                                                    <Heart size={18} fill={courier.isFavorite ? 'currentColor' : 'none'} />
-                                                </button>
+                                                {(() => {
+                                                    const isFav = Boolean(courier.isFavorite ?? (courier as unknown as { favorite?: boolean }).favorite);
+                                                    return (
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => handleToggleFavorite(courier.courierId, e)}
+                                                            title={isFav ? 'Bỏ yêu thích' : 'Lưu vào yêu thích'}
+                                                            style={{
+                                                                background: 'none',
+                                                                border: 'none',
+                                                                cursor: 'pointer',
+                                                                color: isFav ? 'var(--accent-rose)' : 'var(--text-muted)',
+                                                                padding: '6px',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                            }}
+                                                        >
+                                                            <Heart size={18} fill={isFav ? 'currentColor' : 'none'} />
+                                                        </button>
+                                                    );
+                                                })()}
                                                 <input
                                                     type="radio"
                                                     name="selectedCourier"

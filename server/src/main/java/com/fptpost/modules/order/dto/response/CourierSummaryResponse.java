@@ -1,5 +1,6 @@
 package com.fptpost.modules.order.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fptpost.modules.identity.enums.CourierTier;
 import com.fptpost.modules.identity.enums.VehicleType;
 import lombok.AllArgsConstructor;
@@ -24,5 +25,7 @@ public class CourierSummaryResponse {
     private BigDecimal trustScore;
     private int completedOrders;
     private List<String> areas;
+
+    @JsonProperty("isFavorite")
     private boolean isFavorite;
 }

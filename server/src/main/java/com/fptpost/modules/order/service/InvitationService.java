@@ -298,17 +298,21 @@ public class InvitationService implements IInvitationService {
             throw new AppException(GlobalErrorCode.UNAUTHORIZED);
         }
 
+        User sender = senderUser.getId() != null
+                ? userRepository.findById(senderUser.getId()).orElse(senderUser)
+                : senderUser;
+
         User courier = userRepository.findById(courierId)
                 .orElseThrow(() -> new AppException(OrderErrorCode.COURIER_NOT_FOUND));
 
-        Optional<FavoriteCourier> existing = favoriteCourierRepository.findBySenderIdAndCourierId(senderUser.getId(), courierId);
+        Optional<FavoriteCourier> existing = favoriteCourierRepository.findBySenderIdAndCourierId(sender.getId(), courierId);
         if (existing.isPresent()) {
             favoriteCourierRepository.delete(existing.get());
             return null; // Đã bỏ yêu thích
         }
 
         FavoriteCourier favorite = FavoriteCourier.builder()
-                .sender(senderUser)
+                .sender(sender)
                 .courier(courier)
                 .note(note != null ? note.trim() : null)
                 .build();
@@ -387,7 +391,7 @@ public class InvitationService implements IInvitationService {
                     .tier(profile.getTier() != null ? profile.getTier() : CourierTier.NEW)
                     .trustScore(profile.getTrustScore() != null ? profile.getTrustScore() : BigDecimal.valueOf(50))
                     .completedOrders(profile.getCompletedOrders())
-                    .areas(profile.getAreas())
+                    .areas(safeGetAreas(profile))
                     .isFavorite(isFav)
                     .build();
         });
@@ -488,10 +492,25 @@ public class InvitationService implements IInvitationService {
                 .tier(cp != null && cp.getTier() != null ? cp.getTier() : CourierTier.NEW)
                 .trustScore(cp != null ? cp.getTrustScore() : BigDecimal.valueOf(50))
                 .completedOrders(cp != null ? cp.getCompletedOrders() : 0)
-                .areas(cp != null ? cp.getAreas() : Collections.emptyList())
+                .areas(safeGetAreas(cp))
                 .note(fav.getNote())
                 .createdAt(fav.getCreatedAt())
                 .build();
+    }
+
+    private List<String> safeGetAreas(CourierProfile cp) {
+        if (cp == null) {
+            return Collections.emptyList();
+        }
+        try {
+            List<String> rawAreas = cp.getAreas();
+            if (rawAreas != null && !rawAreas.isEmpty()) {
+                return new ArrayList<>(rawAreas);
+            }
+        } catch (Exception e) {
+            log.warn("Không thể tải danh sách khu vực của courier profile: {}", e.getMessage());
+        }
+        return Collections.emptyList();
     }
 
     private String resolveFullName(User user) {
