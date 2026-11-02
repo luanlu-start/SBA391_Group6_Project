@@ -6,6 +6,7 @@ export interface ChatRoom {
   createdAt: string;
   lastMessageAt: string | null;
   readOnlyAt: string | null;
+  readOnly: boolean;
 }
 
 export interface ChatMessage {

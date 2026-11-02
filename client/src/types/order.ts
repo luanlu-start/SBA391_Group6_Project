@@ -102,6 +102,7 @@ export interface MarketplaceOrderDetail {
   maskedReceiverPhone: string;
   productName: string;
   productDescription?: string | null;
+  categoryId?: number | null;
   quantity: number;
   weightKg: number;
   declaredValue?: number | null;
@@ -147,6 +148,7 @@ export interface Order {
   receiverPhone: string;
   productName: string;
   productDescription?: string | null;
+  categoryId?: number | null;
   quantity: number;
   weightKg: number;
   declaredValue?: number | null;
@@ -177,6 +179,7 @@ export interface OrderRequest {
   receiverPhone: string;
   productName: string;
   productDescription?: string;
+  categoryId?: number;
   quantity: number;
   weightKg: number;
   declaredValue?: number;

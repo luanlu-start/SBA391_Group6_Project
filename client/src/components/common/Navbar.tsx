@@ -38,7 +38,11 @@ export default function Navbar() {
           )}
           {user && !isCourierAccount && (
             <>
-              <NavLink to="/sender/orders" className="nav-link" onClick={closeMenu}>
+              <NavLink
+                to={mode === 'COURIER' ? '/courier/orders' : '/sender/orders'}
+                className="nav-link"
+                onClick={closeMenu}
+              >
                 Đơn của tôi
               </NavLink>
               <NavLink to="/orders/payment" className="nav-link" onClick={closeMenu}>

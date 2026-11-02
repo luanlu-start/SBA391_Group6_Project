@@ -12,7 +12,7 @@ import com.fptpost.modules.order.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
-
+import java.util.Objects;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -24,6 +24,7 @@ public class ChatRoomService {
     private final ChatAccessService chatAccessService;
     private final ChatMapper chatMapper;
     private final OrderService orderService;
+    private final ChatWritePolicy chatWritePolicy;
 
     public ChatRoomResponse openRoom(Long orderId, UUID userPublicId) {
         Long userId = chatAccessService.requireActiveUserId(userPublicId);
@@ -48,14 +49,48 @@ public class ChatRoomService {
                 )
                 .orElseGet(() -> createRoom(order));
 
-        return chatMapper.toRoomResponse(room);
+        return toResponseWithWritePolicy(room, order);
     }
 
     public ChatRoomResponse getRoom(String roomId, UUID userPublicId) {
         Long userId = chatAccessService.requireActiveUserId(userPublicId);
         ChatRoom room = chatAccessService.requireParticipant(roomId, userId);
 
-        return chatMapper.toRoomResponse(room);
+        OrderResponse order = orderService.getOrderById(room.getOrderId());
+        return toResponseWithWritePolicy(room, order);
+    }
+
+    private ChatRoomResponse toResponseWithWritePolicy(
+            ChatRoom room,
+            OrderResponse order
+    ) {
+        Instant now = Instant.now();
+        Instant orderDeadline = chatWritePolicy.getReadOnlyAt(order);
+        Instant effectiveDeadline = room.getReadOnlyAt();
+
+        // Áp dụng mốc sớm hơn nếu phòng đã có hạn khóa riêng.
+        if (orderDeadline != null
+                && (effectiveDeadline == null
+                || orderDeadline.isBefore(effectiveDeadline))) {
+            effectiveDeadline = orderDeadline;
+        }
+
+        boolean participantsChanged =
+                !Objects.equals(room.getSenderId(), order.getSenderId())
+                        || !Objects.equals(room.getCourierId(), order.getCourierId());
+
+        boolean deadlineReached = effectiveDeadline != null
+                && !now.isBefore(effectiveDeadline);
+
+        ChatRoomResponse response = chatMapper.toRoomResponse(room);
+        response.setReadOnlyAt(effectiveDeadline);
+        response.setReadOnly(
+                participantsChanged
+                        || deadlineReached
+                        || chatWritePolicy.isReadOnly(order, now)
+        );
+
+        return response;
     }
 
     private ChatRoom createRoom(OrderResponse order) {

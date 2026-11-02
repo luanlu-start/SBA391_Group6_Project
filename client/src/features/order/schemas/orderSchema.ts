@@ -26,6 +26,7 @@ export const orderSchema = z.object({
     .min(9, 'Số điện thoại người nhận cần ít nhất 9 ký tự.')
     .max(20, 'Số điện thoại không được vượt quá 20 ký tự.')
     .regex(/^[0-9+() -]+$/, 'Số điện thoại không hợp lệ.'),
+  categoryId: z.string().optional(),
   productName: z
     .string()
     .trim()

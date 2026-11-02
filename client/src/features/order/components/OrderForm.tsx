@@ -17,6 +17,9 @@ import Textarea from '../../../components/ui/Textarea';
 import Button from '../../../components/ui/Button';
 import ApiErrorNotice from '../../../components/ApiErrorNotice';
 import Select from '../../../components/ui/Select';
+import Alert from '../../../components/ui/Alert';
+import { categoryApi } from '../../../api/categoryApi';
+import type { ItemCategory } from '../../../types/category';
 import { profileService } from '../../../services/profileService';
 import type { SavedAddress } from '../../../types/profile';
 import MapPickerModal from './MapPickerModal';
@@ -61,6 +64,14 @@ export default function OrderForm({ initialData, onSuccess, onCancel }: OrderFor
   const [pricingError, setPricingError] = useState<string | null>(null);
 
   const userId = user?.id;
+  const [categories, setCategories] = useState<ItemCategory[]>([]);
+  useEffect(() => {
+    let active = true;
+    categoryApi.getActiveList()
+      .then(res => { if (active && res.data) setCategories(res.data); })
+      .catch(err => console.error('Lá»—i táº£i danh má»¥c loáº¡i hÃ ng:', err));
+    return () => { active = false; };
+  }, []);
   useEffect(() => {
     if (!userId) return;
     let active = true;
@@ -87,6 +98,7 @@ export default function OrderForm({ initialData, onSuccess, onCancel }: OrderFor
       deliveryLongitude: initialData?.deliveryLongitude ?? null,
       receiverName: initialData?.receiverName || '',
       receiverPhone: initialData?.receiverPhone || '',
+      categoryId: initialData?.categoryId != null ? String(initialData.categoryId) : '',
       productName: initialData?.productName || '',
       productDescription: initialData?.productDescription || '',
       quantity: initialData ? String(initialData.quantity) : '1',
@@ -101,6 +113,8 @@ export default function OrderForm({ initialData, onSuccess, onCancel }: OrderFor
   const weightKgWatch = watch('weightKg');
   const declaredValueWatch = watch('declaredValue');
   const urgencyWatch = watch('urgency');
+  const categoryIdWatch = watch('categoryId');
+  const selectedCategory = categories.find((c) => String(c.id) === String(categoryIdWatch));
 
   // Tự động tính toán khoảng cách và giá cước theo thời gian thực (UC-11)
   useEffect(() => {
@@ -228,6 +242,7 @@ export default function OrderForm({ initialData, onSuccess, onCancel }: OrderFor
         receiverPhone: values.receiverPhone.trim(),
         productName: values.productName.trim(),
         productDescription: values.productDescription?.trim() || undefined,
+        categoryId: values.categoryId ? Number(values.categoryId) : undefined,
         quantity: Number(values.quantity),
         weightKg: Number(values.weightKg),
         declaredValue: values.declaredValue ? Number(values.declaredValue) : 0,
@@ -438,6 +453,29 @@ export default function OrderForm({ initialData, onSuccess, onCancel }: OrderFor
           <legend>3. Hàng hóa & Gói dịch vụ</legend>
           <p className="ui-form-description">Chi tiết vật phẩm, khối lượng và gói dịch vụ vận chuyển.</p>
           <div className="ui-form-grid">
+            <Select
+                label="Loại hàng hóa"
+                fieldClassName="ui-span-full"
+                hint="Chọn danh mục phân loại phù hợp cho hàng hóa của bạn."
+                {...register('categoryId')}
+                error={errors.categoryId?.message}
+              >
+                <option value="">-- Chọn danh mục loại hàng --</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name} {cat.isProhibited ? '⚠️ [Hàng cấm]' : ''}
+                  </option>
+                ))}
+              </Select>
+
+              {selectedCategory?.isProhibited && (
+                <div className="ui-span-full">
+                  <Alert tone="danger">
+                    <strong>Cảnh báo:</strong> "{selectedCategory.name}" thuộc danh mục hàng cấm vận chuyển. Bưu tá có quyền từ chối tiếp nhận kiện hàng này.
+                  </Alert>
+                </div>
+              )}
+
             <Input
               label="Tên hàng hóa"
               placeholder="Tài liệu, Điện thoại, Quần áo..."
