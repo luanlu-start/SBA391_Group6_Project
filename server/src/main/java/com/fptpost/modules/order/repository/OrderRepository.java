@@ -25,7 +25,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     boolean existsByCategoryId(Long categoryId);
 
     java.util.List<Order> findBySenderIdOrderByCreatedAtDesc(Long senderId);
-
+    List<Order> findByCourierIdOrderByCreatedAtDesc(Long courierId);
     @Query("""
         select o
         from Order o

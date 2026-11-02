@@ -43,5 +43,6 @@ public class OrderResponse {
     private OrderStatus status;
     private Instant createdAt;
     private Instant updatedAt;
+    private Instant endedAt;
     private List<String> imageUrls;
 }

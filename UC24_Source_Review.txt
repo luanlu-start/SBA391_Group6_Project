@@ -1,0 +1,631 @@
+﻿========== server/src/main/java/com/fptpost/modules/chat/service/ChatWritePolicy.java ==========
+package com.fptpost.modules.chat.service;
+
+import com.fptpost.modules.order.dto.OrderResponse;
+import com.fptpost.modules.order.model.OrderStatus;
+import org.springframework.stereotype.Component;
+
+import java.time.Duration;
+import java.time.Instant;
+
+@Component
+public class ChatWritePolicy {
+
+    public boolean isEnded(OrderResponse order) {
+        return order.getStatus() == OrderStatus.COMPLETED
+                || order.getStatus() == OrderStatus.CANCELLED;
+    }
+
+    public Instant getReadOnlyAt(OrderResponse order) {
+        if (!isEnded(order) || order.getEndedAt() == null) {
+            return null;
+        }
+
+        return order.getEndedAt().plus(Duration.ofHours(48));
+    }
+
+    public boolean isReadOnly(OrderResponse order, Instant now) {
+        if (!isEnded(order)) {
+            return false;
+        }
+
+        Instant readOnlyAt = getReadOnlyAt(order);
+
+        // Đơn đã kết thúc nhưng thiếu mốc thời gian:
+        // giữ trạng thái khóa, không tự cấp thêm 48 giờ.
+        return readOnlyAt == null || !now.isBefore(readOnlyAt);
+    }
+}
+
+========== server/src/main/java/com/fptpost/modules/chat/service/ChatRoomService.java ==========
+package com.fptpost.modules.chat.service;
+
+import com.fptpost.common.exception.AppException;
+import com.fptpost.modules.chat.dto.response.ChatRoomResponse;
+import com.fptpost.modules.chat.exception.ChatErrorCode;
+import com.fptpost.modules.chat.mapper.ChatMapper;
+import com.fptpost.modules.chat.model.ChatRoom;
+import com.fptpost.modules.chat.repository.ChatRoomRepository;
+import com.fptpost.modules.chat.security.ChatAccessService;
+import com.fptpost.modules.order.dto.OrderResponse;
+import com.fptpost.modules.order.service.OrderService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.stereotype.Service;
+import java.util.Objects;
+import java.time.Instant;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+public class ChatRoomService {
+
+    private final ChatRoomRepository chatRoomRepository;
+    private final ChatAccessService chatAccessService;
+    private final ChatMapper chatMapper;
+    private final OrderService orderService;
+    private final ChatWritePolicy chatWritePolicy;
+
+    public ChatRoomResponse openRoom(Long orderId, UUID userPublicId) {
+        Long userId = chatAccessService.requireActiveUserId(userPublicId);
+        OrderResponse order = orderService.getOrderById(orderId);
+
+        boolean isSender = userId.equals(order.getSenderId());
+        boolean isCourier = userId.equals(order.getCourierId());
+
+        if (!isSender && !isCourier) {
+            throw new AppException(ChatErrorCode.CHAT_ACCESS_DENIED);
+        }
+
+        if (order.getCourierId() == null) {
+            throw new AppException(ChatErrorCode.CHAT_ORDER_NOT_ASSIGNED);
+        }
+
+        ChatRoom room = chatRoomRepository
+                .findByOrderIdAndSenderIdAndCourierId(
+                        order.getId(),
+                        order.getSenderId(),
+                        order.getCourierId()
+                )
+                .orElseGet(() -> createRoom(order));
+
+        return toResponseWithWritePolicy(room, order);
+    }
+
+    public ChatRoomResponse getRoom(String roomId, UUID userPublicId) {
+        Long userId = chatAccessService.requireActiveUserId(userPublicId);
+        ChatRoom room = chatAccessService.requireParticipant(roomId, userId);
+
+        OrderResponse order = orderService.getOrderById(room.getOrderId());
+        return toResponseWithWritePolicy(room, order);
+    }
+
+    private ChatRoomResponse toResponseWithWritePolicy(
+            ChatRoom room,
+            OrderResponse order
+    ) {
+        Instant now = Instant.now();
+        Instant orderDeadline = chatWritePolicy.getReadOnlyAt(order);
+        Instant effectiveDeadline = room.getReadOnlyAt();
+
+        // Áp dụng mốc sớm hơn nếu phòng đã có hạn khóa riêng.
+        if (orderDeadline != null
+                && (effectiveDeadline == null
+                || orderDeadline.isBefore(effectiveDeadline))) {
+            effectiveDeadline = orderDeadline;
+        }
+
+        boolean participantsChanged =
+                !Objects.equals(room.getSenderId(), order.getSenderId())
+                        || !Objects.equals(room.getCourierId(), order.getCourierId());
+
+        boolean deadlineReached = effectiveDeadline != null
+                && !now.isBefore(effectiveDeadline);
+
+        ChatRoomResponse response = chatMapper.toRoomResponse(room);
+        response.setReadOnlyAt(effectiveDeadline);
+        response.setReadOnly(
+                participantsChanged
+                        || deadlineReached
+                        || chatWritePolicy.isReadOnly(order, now)
+        );
+
+        return response;
+    }
+
+    private ChatRoom createRoom(OrderResponse order) {
+        ChatRoom room = ChatRoom.builder()
+                .orderId(order.getId())
+                .senderId(order.getSenderId())
+                .courierId(order.getCourierId())
+                .createdAt(Instant.now())
+                .build();
+
+        try {
+            return chatRoomRepository.insert(room);
+        } catch (DuplicateKeyException exception) {
+            // Hai bên có thể mở cùng một phòng đồng thời.
+            return chatRoomRepository
+                    .findByOrderIdAndSenderIdAndCourierId(
+                            order.getId(),
+                            order.getSenderId(),
+                            order.getCourierId()
+                    )
+                    .orElseThrow(() -> exception);
+        }
+    }
+}
+
+========== server/src/main/java/com/fptpost/modules/chat/service/ChatMessageService.java ==========
+package com.fptpost.modules.chat.service;
+
+import com.fptpost.common.exception.AppException;
+import com.fptpost.common.exception.GlobalErrorCode;
+import com.fptpost.common.response.PageResponse;
+import com.fptpost.modules.chat.dto.request.SendChatMessageRequest;
+import com.fptpost.modules.chat.dto.response.ChatMessageResponse;
+import com.fptpost.modules.chat.exception.ChatErrorCode;
+import com.fptpost.modules.chat.mapper.ChatMapper;
+import com.fptpost.modules.chat.model.ChatMessage;
+import com.fptpost.modules.chat.model.ChatRoom;
+import com.fptpost.modules.chat.repository.ChatMessageRepository;
+import com.fptpost.modules.chat.security.ChatAccessService;
+import com.fptpost.modules.order.dto.OrderResponse;
+import com.fptpost.modules.order.service.OrderService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
+
+import java.time.Instant;
+import java.util.Objects;
+import java.util.UUID;
+
+@Service
+@Validated
+@RequiredArgsConstructor
+public class ChatMessageService {
+
+    private final ChatMessageRepository chatMessageRepository;
+    private final ChatAccessService chatAccessService;
+    private final ChatMapper chatMapper;
+    private final OrderService orderService;
+    private final MongoTemplate mongoTemplate;
+    private final ChatMessagePublisher chatMessagePublisher;
+    private final ChatWritePolicy chatWritePolicy;
+
+    public ChatMessageResponse sendMessage(
+            String roomId,
+            UUID userPublicId,
+            @NotNull @Valid SendChatMessageRequest request
+    ) {
+        Long userId = chatAccessService.requireActiveUserId(userPublicId);
+        ChatRoom room = chatAccessService.requireParticipant(roomId, userId);
+
+        String clientMessageId = request.getClientMessageId().toString();
+        String content = request.getContent().strip();
+
+        ChatMessage existing = chatMessageRepository
+                .findByRoomIdAndAuthorIdAndClientMessageId(
+                        roomId, userId, clientMessageId
+                )
+                .orElse(null);
+
+        if (existing != null) {
+            return resolveRetry(existing, content);
+        }
+
+        Instant now = Instant.now();
+        requireWritable(room, now);
+
+        ChatMessage message = ChatMessage.builder()
+                .roomId(roomId)
+                .authorId(userId)
+                .clientMessageId(clientMessageId)
+                .content(content)
+                .createdAt(now)
+                .build();
+
+        ChatMessage saved;
+
+        try {
+            saved = chatMessageRepository.insert(message);
+        } catch (DuplicateKeyException exception) {
+            ChatMessage duplicate = chatMessageRepository
+                    .findByRoomIdAndAuthorIdAndClientMessageId(
+                            roomId, userId, clientMessageId
+                    )
+                    .orElseThrow(() -> exception);
+
+            return resolveRetry(duplicate, content);
+        }
+
+        updateLastMessageAt(saved);
+
+        ChatMessageResponse response = chatMapper.toMessageResponse(saved);
+        chatMessagePublisher.publish(response);
+
+        return response;
+    }
+
+    public PageResponse<ChatMessageResponse> getHistory(
+            String roomId,
+            UUID userPublicId,
+            int page,
+            int size
+    ) {
+        Long userId = chatAccessService.requireActiveUserId(userPublicId);
+        chatAccessService.requireParticipant(roomId, userId);
+
+        if (page < 0 || size < 1 || size > 100) {
+            throw new AppException(GlobalErrorCode.INVALID_REQUEST);
+        }
+
+        PageRequest pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(
+                        Sort.Order.desc("createdAt"),
+                        Sort.Order.desc("id")
+                )
+        );
+
+        return PageResponse.from(
+                chatMessageRepository.findByRoomId(roomId, pageable)
+                        .map(chatMapper::toMessageResponse)
+        );
+    }
+
+    private void requireWritable(ChatRoom room, Instant now) {
+        OrderResponse order = orderService.getOrderById(room.getOrderId());
+
+        boolean sameSender =
+                Objects.equals(room.getSenderId(), order.getSenderId());
+        boolean sameCourier =
+                Objects.equals(room.getCourierId(), order.getCourierId());
+
+        if (!sameSender || !sameCourier) {
+            throw new AppException(ChatErrorCode.CHAT_ACCESS_DENIED);
+        }
+
+        boolean roomLocked = room.getReadOnlyAt() != null
+                && !now.isBefore(room.getReadOnlyAt());
+
+        if (roomLocked || chatWritePolicy.isReadOnly(order, now)) {
+            throw new AppException(ChatErrorCode.CHAT_ROOM_READ_ONLY);
+        }
+    }
+
+    private ChatMessageResponse resolveRetry(
+            ChatMessage existing,
+            String content
+    ) {
+        if (!Objects.equals(existing.getContent(), content)) {
+            throw new AppException(GlobalErrorCode.INVALID_REQUEST);
+        }
+
+        updateLastMessageAt(existing);
+
+        ChatMessageResponse response = chatMapper.toMessageResponse(existing);
+        chatMessagePublisher.publish(response);
+
+        return response;
+    }
+
+    private void updateLastMessageAt(ChatMessage message) {
+        Query query = Query.query(
+                Criteria.where("_id").is(message.getRoomId())
+        );
+
+        Update update = new Update()
+                .max("lastMessageAt", message.getCreatedAt());
+
+        mongoTemplate.updateFirst(query, update, ChatRoom.class);
+    }
+}
+
+========== client/src/pages/ChatPage.tsx ==========
+import { useEffect, useState } from 'react';
+import { Link, Navigate, useParams } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { chatApi } from '../api/chatApi';
+import { useAuthentication } from '../auth/useAuthentication';
+import Alert from '../components/ui/Alert';
+import Button from '../components/ui/Button';
+import EmptyState from '../components/ui/EmptyState';
+import PageHeader from '../components/ui/PageHeader';
+import SectionCard from '../components/ui/SectionCard';
+import Textarea from '../components/ui/Textarea';
+import { useChatMessages } from '../features/chat/hooks/useChatMessages';
+import { useChatSocket } from '../features/chat/hooks/useChatSocket';
+import {
+  chatMessageSchema,
+  type ChatMessageFormValues,
+} from '../features/chat/schemas/chatMessageSchema';
+import type { ChatRoom } from '../types/chat';
+import '../styles/chat.css';
+
+export default function ChatPage() {
+  const { orderId } = useParams();
+  const { user, initializing } = useAuthentication();
+
+  if (initializing) {
+    return <Alert>Đang kiểm tra phiên đăng nhập…</Alert>;
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!orderId) {
+    return <Alert tone="danger">Không xác định được đơn hàng.</Alert>;
+  }
+
+  return (
+    <OrderConversation
+      key={`${user.id}:${orderId}`}
+      orderId={orderId}
+    />
+  );
+}
+
+function OrderConversation({ orderId }: { orderId: string }) {
+  const [room, setRoom] = useState<ChatRoom | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    setLoading(true);
+    setError(null);
+    setRoom(null);
+
+    chatApi.openRoom(orderId)
+      .then((response) => {
+        if (!cancelled) setRoom(response.data);
+      })
+      .catch((cause: unknown) => {
+        if (!cancelled) {
+          setError(
+            cause instanceof Error
+              ? cause.message
+              : 'Không thể mở cuộc trò chuyện.',
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [orderId, attempt]);
+
+  return (
+    <div className="chat-page">
+      <PageHeader
+        eyebrow="Trao đổi giao nhận"
+        title={`Trò chuyện đơn #${orderId}`}
+        description="Trao đổi thông tin lấy hàng và giao hàng trong cùng đơn."
+        actions={<Link to="/">Về trang chủ</Link>}
+      />
+
+      {loading && <Alert>Đang mở cuộc trò chuyện…</Alert>}
+
+      {error && (
+        <Alert
+          tone="danger"
+          action={
+            <Button
+              variant="secondary"
+              onClick={() => setAttempt((value) => value + 1)}
+            >
+              Thử lại
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
+      )}
+
+      {room && <ConversationPanel key={room.id} room={room} />}
+    </div>
+  );
+}
+
+function ConversationPanel({ room }: { room: ChatRoom }) {
+  const chat = useChatMessages(room.id);
+
+  const socket = useChatSocket({
+    roomId: room.id,
+    onMessage: chat.receiveMessage,
+    onConnected: chat.refreshHistory,
+  });
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<ChatMessageFormValues>({
+    resolver: zodResolver(chatMessageSchema),
+    defaultValues: { content: '' },
+  });
+
+  const statusLabel = {
+    disconnected: 'Mất kết nối thời gian thực',
+    connecting: 'Đang kết nối…',
+    connected: 'Đã kết nối thời gian thực',
+    error: 'Kết nối gặp lỗi',
+  }[socket.status];
+
+  const readOnly = room.readOnlyAt !== null
+    && Date.now() >= Date.parse(room.readOnlyAt);
+
+  async function submit(values: ChatMessageFormValues) {
+    if (await chat.sendMessage(values.content)) {
+      reset({ content: '' });
+    }
+  }
+
+  async function retry() {
+    if (await chat.retryMessage()) {
+      reset({ content: '' });
+    }
+  }
+
+  return (
+    <SectionCard title="Tin nhắn" description={statusLabel}>
+      <div className="chat-panel">
+        {socket.status !== 'connected' && (
+          <Alert
+            tone="warning"
+            action={
+              <Button variant="secondary" onClick={socket.reconnect}>
+                Kết nối lại
+              </Button>
+            }
+          >
+            {socket.error
+              || 'Tin mới sẽ được đồng bộ khi kết nối được khôi phục.'}
+          </Alert>
+        )}
+
+        {chat.historyError && (
+          <Alert
+            tone="danger"
+            action={
+              <Button
+                variant="secondary"
+                onClick={() => void chat.refreshHistory()}
+              >
+                Tải lại lịch sử
+              </Button>
+            }
+          >
+            {chat.historyError}
+          </Alert>
+        )}
+
+        {chat.hasMore && (
+          <Button
+            variant="secondary"
+            loading={chat.loading}
+            onClick={() => void chat.loadOlder()}
+          >
+            Xem tin nhắn cũ
+          </Button>
+        )}
+
+        {chat.loading && <p role="status">Đang tải tin nhắn…</p>}
+
+        <div
+          className="chat-history"
+          role="region"
+          aria-label="Lịch sử trò chuyện"
+          tabIndex={0}
+        >
+          {!chat.loading && !chat.historyError
+            && chat.messages.length === 0 && (
+              <EmptyState
+                title="Chưa có tin nhắn"
+                description="Gửi lời chào để bắt đầu trao đổi về đơn hàng."
+              />
+            )}
+
+          {chat.messages.map((message) => {
+            const fromSender = message.authorId === room.senderId;
+
+            return (
+              <article
+                key={message.id}
+                className={`chat-message ${
+                  fromSender ? 'chat-message-sender' : 'chat-message-courier'
+                }`}
+              >
+                <strong className="chat-message-author">
+                  {fromSender ? 'Người gửi hàng' : 'Người giao hàng'}
+                </strong>
+
+                <p className="chat-message-content">{message.content}</p>
+
+                <time dateTime={message.createdAt}>
+                  {new Date(message.createdAt).toLocaleString('vi-VN')}
+                </time>
+              </article>
+            );
+          })}
+        </div>
+
+        {readOnly && (
+          <Alert>Cuộc trò chuyện đã chuyển sang chế độ chỉ đọc.</Alert>
+        )}
+
+        {chat.sendError && (
+          <Alert tone="danger">{chat.sendError}</Alert>
+        )}
+
+        {chat.failedMessage && (
+          <Alert
+            tone="warning"
+            action={
+              <Button
+                loading={chat.sending}
+                disabled={readOnly}
+                onClick={() => void retry()}
+              >
+                Gửi lại tin nhắn
+              </Button>
+            }
+          >
+            Tin chưa được xác nhận:
+            <span className="chat-pending-content">
+              {chat.failedMessage.content}
+            </span>
+          </Alert>
+        )}
+
+        <form
+          className="chat-composer"
+          onSubmit={handleSubmit(submit)}
+          noValidate
+        >
+          <Textarea
+            label="Nội dung tin nhắn"
+            placeholder="Nhập thông tin cần trao đổi…"
+            hint="Tối đa 2.000 ký tự."
+            rows={3}
+            maxLength={2000}
+            disabled={readOnly || chat.sending || !!chat.failedMessage}
+            error={errors.content?.message}
+            {...register('content')}
+          />
+
+          <div className="chat-composer-actions">
+            <Button
+              type="submit"
+              loading={chat.sending}
+              loadingText="Đang gửi…"
+              disabled={readOnly || !!chat.failedMessage}
+            >
+              Gửi tin nhắn
+            </Button>
+          </div>
+        </form>
+      </div>
+    </SectionCard>
+  );
+}
+

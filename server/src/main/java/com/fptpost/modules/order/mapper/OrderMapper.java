@@ -29,6 +29,8 @@ public interface OrderMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "images", ignore = true)
+    @Mapping(target = "endedAt", ignore = true)
+
     Order toEntity(OrderRequest request);
 
     @Mapping(target = "id", ignore = true)

@@ -32,6 +32,12 @@ export const orderApi = {
     return axiosClient.get<unknown, ApiResponse<Order>>(`/orders/${id}`);
   },
 
+  getAssignedToMe: () => {
+    return axiosClient.get<unknown, ApiResponse<Order[]>>(
+      '/orders/assigned-to-me'
+    );
+  },
+
   uploadImages: (files: File[]) => {
     const formData = new FormData();
     files.forEach(file => {
