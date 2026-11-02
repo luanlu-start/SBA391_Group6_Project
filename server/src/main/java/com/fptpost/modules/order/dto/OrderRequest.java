@@ -53,6 +53,8 @@ public class OrderRequest {
     @Size(max = 1000, message = "Product description must not exceed 1000 characters")
     private String productDescription;
 
+    private Long categoryId;
+
     @NotNull(message = "Quantity is required")
     @Min(value = 1, message = "Quantity must be at least 1")
     private Integer quantity;

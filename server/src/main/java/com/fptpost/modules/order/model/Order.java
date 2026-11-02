@@ -76,6 +76,9 @@ public class Order {
     @Column(name = "product_description", length = 1000, columnDefinition = "nvarchar(1000)")
     private String productDescription;
 
+    @Column(name = "category_id")
+    private Long categoryId;
+
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
 
