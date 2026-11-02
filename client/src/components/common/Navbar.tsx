@@ -15,6 +15,8 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = () => setMenuOpen(false);
 
+  const isCourierAccount = !!user?.roles.includes('COURIER') && mode === 'COURIER';
+
   return (
     <header className="navbar-container">
       <div className="navbar-content">
@@ -24,13 +26,17 @@ export default function Navbar() {
         </Link>
         <nav id="main-navigation" className={`navbar-links${menuOpen ? ' is-open' : ''}`} aria-label="Điều hướng chính">
           <NavLink to="/" end className="nav-link" onClick={closeMenu}>{copy.navigation.home}</NavLink>
-          <NavLink to="/courier/market" className="nav-link" onClick={closeMenu}>
-            <Package size={15} aria-hidden="true" /> Sàn đơn
-          </NavLink>
-          <NavLink to="/courier/trips" className="nav-link" onClick={closeMenu}>
-            <Navigation size={15} aria-hidden="true" /> Chuyến đi
-          </NavLink>
-          {user && (
+          {isCourierAccount && (
+            <>
+              <NavLink to="/courier/market" className="nav-link" onClick={closeMenu}>
+                <Package size={15} aria-hidden="true" /> Sàn đơn
+              </NavLink>
+              <NavLink to="/courier/trips" className="nav-link" onClick={closeMenu}>
+                <Navigation size={15} aria-hidden="true" /> Chuyến đi
+              </NavLink>
+            </>
+          )}
+          {user && !isCourierAccount && (
             <>
               <NavLink to="/sender/orders" className="nav-link" onClick={closeMenu}>
                 Đơn của tôi
@@ -38,10 +44,12 @@ export default function Navbar() {
               <NavLink to="/orders/payment" className="nav-link" onClick={closeMenu}>
                 <CreditCard size={15} aria-hidden="true" /> Ký quỹ
               </NavLink>
-              <NavLink to="/wallet" className="nav-link" onClick={closeMenu}>
-                <Wallet size={15} aria-hidden="true" /> Ví tiền
-              </NavLink>
             </>
+          )}
+          {user && (
+            <NavLink to="/wallet" className="nav-link" onClick={closeMenu}>
+              <Wallet size={15} aria-hidden="true" /> Ví tiền
+            </NavLink>
           )}
           <Link to="/#how-it-works" className="nav-link" onClick={closeMenu}>{copy.navigation.how}</Link>
           <Link to="/#shipping-prices" className="nav-link" onClick={closeMenu}>{copy.navigation.pricing}</Link>
