@@ -28,6 +28,8 @@ export interface TripAttachedOrder {
   receiverPhone?: string;
   createdAt?: string;
   detourKm?: number;
+  matchScore?: number;
+  matchReasons?: string[];
 }
 
 export interface Trip {
