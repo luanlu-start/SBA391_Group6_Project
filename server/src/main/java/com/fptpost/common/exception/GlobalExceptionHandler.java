@@ -1,0 +1,99 @@
+package com.fptpost.common.exception;
+
+import com.fptpost.common.mail.exception.EmailDeliveryException;
+import com.fptpost.common.response.ApiProblem;
+import com.fptpost.common.response.FieldViolation;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.validation.BindException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.ServletWebRequest;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+
+import java.util.Comparator;
+import java.util.List;
+
+@RestControllerAdvice
+@RequiredArgsConstructor
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private final ProblemResponseFactory problems;
+
+    @ExceptionHandler(AppException.class)
+    public ResponseEntity<ApiProblem> handleAppException(AppException exception, HttpServletRequest request) {
+        log.warn("API failure code={}", exception.getErrorCode().getCode());
+        HttpHeaders headers = new HttpHeaders();
+        if (exception.getRetryAfterSeconds() > 0) headers.set(HttpHeaders.RETRY_AFTER, Long.toString(exception.getRetryAfterSeconds()));
+        return problems.response(exception.getErrorCode(), exception.getErrorCode().getHttpStatus().value(), request, List.of(), headers);
+    }
+
+    @ExceptionHandler(BindException.class)
+    public ResponseEntity<ApiProblem> handleBindingErrors(BindException exception, HttpServletRequest request) {
+        return problems.response(GlobalErrorCode.INVALID_REQUEST, request, violations(exception));
+    }
+
+    @ExceptionHandler(EmailDeliveryException.class)
+    public ResponseEntity<ApiProblem> handleEmailFailure(HttpServletRequest request) {
+        return problems.response(GlobalErrorCode.UPSTREAM_UNAVAILABLE, request, List.of());
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiProblem> handleAccessDenied(HttpServletRequest request) {
+        return problems.response(GlobalErrorCode.FORBIDDEN, request, List.of());
+    }
+
+    @ExceptionHandler({
+            OptimisticLockingFailureException.class,
+            org.springframework.dao.PessimisticLockingFailureException.class,
+            jakarta.persistence.OptimisticLockException.class,
+            jakarta.persistence.PessimisticLockException.class
+    })
+    public ResponseEntity<ApiProblem> handleLockingFailure(HttpServletRequest request) {
+        String path = request.getRequestURI().substring(request.getContextPath().length());
+        ErrorCode code = path.startsWith("/api/v1/orders/")
+                ? com.fptpost.modules.order.exception.OrderErrorCode.ORDER_NOT_AVAILABLE
+                : GlobalErrorCode.RESOURCE_VERSION_CONFLICT;
+        return problems.response(code, request, List.of());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiProblem> handleGenericException(Exception exception, HttpServletRequest request) {
+        log.error("API failure code={} exceptionType={} message={}",
+                GlobalErrorCode.INTERNAL_SERVER_ERROR.getCode(),
+                exception.getClass().getSimpleName(),
+                exception.getMessage(),
+                exception);
+        return problems.response(GlobalErrorCode.INTERNAL_SERVER_ERROR, request, List.of());
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleExceptionInternal(Exception exception, Object body, HttpHeaders headers,
+                                                              HttpStatusCode status, WebRequest webRequest) {
+        HttpServletRequest request = ((ServletWebRequest) webRequest).getRequest();
+        List<FieldViolation> errors = List.of();
+        if (exception instanceof MethodArgumentNotValidException invalid) {
+            errors = violations(invalid);
+        } else if (exception instanceof MethodArgumentTypeMismatchException mismatch) {
+            errors = List.of(problems.violation(mismatch.getName(), "TYPE_MISMATCH"));
+        }
+        var response = problems.response(GlobalErrorCode.forStatus(status.value()), status.value(), request, errors, headers);
+        return new ResponseEntity<>(response.getBody(), response.getHeaders(), response.getStatusCode());
+    }
+
+    private List<FieldViolation> violations(BindException exception) {
+        return exception.getBindingResult().getFieldErrors().stream().map(problems::violation)
+                .sorted(Comparator.comparing(FieldViolation::getField).thenComparing(FieldViolation::getCode))
+                .toList();
+    }
+}

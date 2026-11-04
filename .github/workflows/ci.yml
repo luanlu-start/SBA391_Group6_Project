@@ -1,0 +1,35 @@
+name: Application checks
+
+on:
+  pull_request:
+  push:
+    branches: [develop, 'feature/**', 'fix/**', 'docs/**', 'chore/**']
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Backend tests
+        run: mvn -B -f server/pom.xml test -Daudit.outbox.enabled=false
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '21.7.3'
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - run: npm ci --prefix client
+      - run: npm run typecheck --prefix client
+      - run: npm run lint --prefix client
+      - run: npm run build:client

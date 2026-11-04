@@ -1,0 +1,1092 @@
+[
+  {
+    "prmId": "PRM-001",
+    "key": "OTP_TTL",
+    "group": "Tài khoản & Bảo mật",
+    "name": "Thời hạn hiệu lực OTP",
+    "valueType": "INTEGER",
+    "defaultValue": "5",
+    "unit": "phút",
+    "description": "Thời gian OTP đăng ký/đặt lại mật khẩu còn hiệu lực."
+  },
+  {
+    "prmId": "PRM-002",
+    "key": "OTP_MAX_TRIES",
+    "group": "Tài khoản & Bảo mật",
+    "name": "Số lần nhập sai OTP tối đa",
+    "valueType": "INTEGER",
+    "defaultValue": "5",
+    "unit": "lần",
+    "description": "Vượt quá thì OTP bị vô hiệu, phải yêu cầu gửi lại."
+  },
+  {
+    "prmId": "PRM-003",
+    "key": "OTP_RESEND",
+    "group": "Tài khoản & Bảo mật",
+    "name": "Khoảng cách tối thiểu giữa 2 lần gửi OTP",
+    "valueType": "INTEGER",
+    "defaultValue": "60",
+    "unit": "giây",
+    "description": "Chống spam SMS/email."
+  },
+  {
+    "prmId": "PRM-004",
+    "key": "LOGIN_MAX_FAIL",
+    "group": "Tài khoản & Bảo mật",
+    "name": "Số lần đăng nhập sai liên tiếp tối đa",
+    "valueType": "INTEGER",
+    "defaultValue": "5",
+    "unit": "lần",
+    "description": "Vượt quá thì khóa đăng nhập tạm thời."
+  },
+  {
+    "prmId": "PRM-005",
+    "key": "LOGIN_LOCK",
+    "group": "Tài khoản & Bảo mật",
+    "name": "Thời gian khóa đăng nhập tạm thời",
+    "valueType": "INTEGER",
+    "defaultValue": "15",
+    "unit": "phút",
+    "description": "Áp dụng khi vượt LOGIN_MAX_FAIL."
+  },
+  {
+    "prmId": "PRM-006",
+    "key": "JWT_ACCESS",
+    "group": "Tài khoản & Bảo mật",
+    "name": "Thời hạn Access Token",
+    "valueType": "INTEGER",
+    "defaultValue": "15",
+    "unit": "phút",
+    "description": "JWT truy cập ngắn hạn."
+  },
+  {
+    "prmId": "PRM-007",
+    "key": "JWT_REFRESH",
+    "group": "Tài khoản & Bảo mật",
+    "name": "Thời hạn Refresh Token",
+    "valueType": "INTEGER",
+    "defaultValue": "7",
+    "unit": "ngày",
+    "description": "Refresh token xoay vòng (rotation)."
+  },
+  {
+    "prmId": "PRM-008",
+    "key": "PWD_MIN",
+    "group": "Tài khoản & Bảo mật",
+    "name": "Độ dài mật khẩu tối thiểu",
+    "valueType": "INTEGER",
+    "defaultValue": "8",
+    "unit": "ký tự",
+    "description": "Kèm ít nhất 1 chữ hoa, 1 chữ thường, 1 chữ số."
+  },
+  {
+    "prmId": "PRM-009",
+    "key": "MAX_DEVICES",
+    "group": "Tài khoản & Bảo mật",
+    "name": "Số thiết bị đăng nhập đồng thời tối đa",
+    "valueType": "INTEGER",
+    "defaultValue": "5",
+    "unit": "thiết bị",
+    "description": "Thiết bị cũ nhất bị đăng xuất khi vượt."
+  },
+  {
+    "prmId": "PRM-010",
+    "key": "RATE_API",
+    "group": "Tài khoản & Bảo mật",
+    "name": "Giới hạn gọi API",
+    "valueType": "INTEGER",
+    "defaultValue": "100",
+    "unit": "request/phút/người dùng",
+    "description": "Vượt quá trả HTTP 429."
+  },
+  {
+    "prmId": "PRM-011",
+    "key": "RATE_AUTH",
+    "group": "Tài khoản & Bảo mật",
+    "name": "Giới hạn gọi API xác thực",
+    "valueType": "INTEGER",
+    "defaultValue": "10",
+    "unit": "request/phút/IP",
+    "description": "Áp dụng cho đăng nhập, đăng ký, OTP, quên mật khẩu."
+  },
+  {
+    "prmId": "PRM-012",
+    "key": "MAX_WEIGHT",
+    "group": "Đơn hàng",
+    "name": "Khối lượng tối đa mỗi đơn",
+    "valueType": "DECIMAL",
+    "defaultValue": "20",
+    "unit": "kg",
+    "description": "Phù hợp xe máy/xe khách; hàng nặng hơn không nhận."
+  },
+  {
+    "prmId": "PRM-013",
+    "key": "MAX_SIDE",
+    "group": "Đơn hàng",
+    "name": "Cạnh dài nhất tối đa",
+    "valueType": "DECIMAL",
+    "defaultValue": "80",
+    "unit": "cm",
+    "description": "Giới hạn kích thước kiện hàng."
+  },
+  {
+    "prmId": "PRM-014",
+    "key": "SIZE_S",
+    "group": "Đơn hàng",
+    "name": "Ngưỡng cạnh dài của cỡ Nhỏ",
+    "valueType": "DECIMAL",
+    "defaultValue": "30",
+    "unit": "cm",
+    "description": "Cạnh dài ≤ ngưỡng này là cỡ Nhỏ."
+  },
+  {
+    "prmId": "PRM-015",
+    "key": "SIZE_M",
+    "group": "Đơn hàng",
+    "name": "Ngưỡng cạnh dài của cỡ Vừa",
+    "valueType": "DECIMAL",
+    "defaultValue": "50",
+    "unit": "cm",
+    "description": "Cạnh dài > SIZE_S và ≤ ngưỡng này là cỡ Vừa; lớn hơn là cỡ Lớn."
+  },
+  {
+    "prmId": "PRM-016",
+    "key": "MAX_DECLARED",
+    "group": "Đơn hàng",
+    "name": "Giá trị khai báo tối đa mỗi đơn",
+    "valueType": "INTEGER",
+    "defaultValue": "3000000",
+    "unit": "VND",
+    "description": "Giới hạn rủi ro giai đoạn pilot."
+  },
+  {
+    "prmId": "PRM-017",
+    "key": "HIGH_VALUE",
+    "group": "Đơn hàng",
+    "name": "Ngưỡng 'hàng giá trị cao'",
+    "valueType": "INTEGER",
+    "defaultValue": "1000000",
+    "unit": "VND",
+    "description": "Đơn vượt ngưỡng chỉ người giao hạng Bạc trở lên và đã xác minh mới được nhận."
+  },
+  {
+    "prmId": "PRM-018",
+    "key": "MAX_PHOTOS",
+    "group": "Đơn hàng",
+    "name": "Số ảnh tối đa mỗi đơn",
+    "valueType": "INTEGER",
+    "defaultValue": "5",
+    "unit": "ảnh",
+    "description": "Ảnh hàng hóa lúc tạo đơn."
+  },
+  {
+    "prmId": "PRM-019",
+    "key": "MAX_PHOTO_MB",
+    "group": "Đơn hàng",
+    "name": "Dung lượng tối đa mỗi ảnh",
+    "valueType": "DECIMAL",
+    "defaultValue": "5",
+    "unit": "MB",
+    "description": "Định dạng JPG/PNG/WEBP."
+  },
+  {
+    "prmId": "PRM-020",
+    "key": "OPEN_DEFAULT",
+    "group": "Đơn hàng",
+    "name": "Thời gian mở nhận đơn mặc định",
+    "valueType": "INTEGER",
+    "defaultValue": "24",
+    "unit": "giờ",
+    "description": "Sau thời gian này đơn tự hết hạn nếu chưa có người giao."
+  },
+  {
+    "prmId": "PRM-021",
+    "key": "OPEN_MAX",
+    "group": "Đơn hàng",
+    "name": "Thời gian mở nhận đơn tối đa",
+    "valueType": "INTEGER",
+    "defaultValue": "7",
+    "unit": "ngày",
+    "description": "Người gửi có thể tăng tối đa."
+  },
+  {
+    "prmId": "PRM-022",
+    "key": "PICKUP_GRACE",
+    "group": "Đơn hàng",
+    "name": "Thời gian châm chước lấy hàng",
+    "valueType": "INTEGER",
+    "defaultValue": "30",
+    "unit": "phút",
+    "description": "Quá giờ hẹn lấy + châm chước mà chưa lấy thì xử lý quá hạn."
+  },
+  {
+    "prmId": "PRM-023",
+    "key": "PAY_HOLD",
+    "group": "Đơn hàng",
+    "name": "Thời gian giữ chỗ chờ ký quỹ",
+    "valueType": "INTEGER",
+    "defaultValue": "15",
+    "unit": "phút",
+    "description": "Sau khi chọn người giao, người gửi phải ký quỹ trong thời gian này."
+  },
+  {
+    "prmId": "PRM-024",
+    "key": "MAX_OPEN",
+    "group": "Đơn hàng",
+    "name": "Số đơn đang mở tối đa của một người gửi",
+    "valueType": "INTEGER",
+    "defaultValue": "10",
+    "unit": "đơn",
+    "description": "Chống spam sàn đơn."
+  },
+  {
+    "prmId": "PRM-025",
+    "key": "CONTACT_TRIES",
+    "group": "Đơn hàng",
+    "name": "Số lần liên hệ người nhận trước khi coi là giao thất bại",
+    "valueType": "TEXT",
+    "defaultValue": "3 lần gọi trong 30 phút",
+    "unit": null,
+    "description": "Người giao phải có bằng chứng cuộc gọi/tin nhắn trong ứng dụng."
+  },
+  {
+    "prmId": "PRM-026",
+    "key": "BASE_FARE",
+    "group": "Giá & Phí",
+    "name": "Phí giao cơ bản",
+    "valueType": "INTEGER",
+    "defaultValue": "10000",
+    "unit": "VND",
+    "description": "Áp dụng cho BASE_KM km đầu tiên."
+  },
+  {
+    "prmId": "PRM-027",
+    "key": "BASE_KM",
+    "group": "Giá & Phí",
+    "name": "Quãng đường tính phí cơ bản",
+    "valueType": "DECIMAL",
+    "defaultValue": "2",
+    "unit": "km",
+    "description": "Km đầu tiên nằm trong phí cơ bản."
+  },
+  {
+    "prmId": "PRM-028",
+    "key": "PER_KM",
+    "group": "Giá & Phí",
+    "name": "Đơn giá mỗi km tiếp theo",
+    "valueType": "INTEGER",
+    "defaultValue": "3500",
+    "unit": "VND/km",
+    "description": "Từ sau BASE_KM đến LONG_KM."
+  },
+  {
+    "prmId": "PRM-029",
+    "key": "LONG_KM",
+    "group": "Giá & Phí",
+    "name": "Ngưỡng quãng đường dài",
+    "valueType": "DECIMAL",
+    "defaultValue": "50",
+    "unit": "km",
+    "description": "Vượt ngưỡng áp dụng đơn giá PER_KM_LONG cho phần vượt."
+  },
+  {
+    "prmId": "PRM-030",
+    "key": "PER_KM_LONG",
+    "group": "Giá & Phí",
+    "name": "Đơn giá mỗi km phần quãng đường dài",
+    "valueType": "INTEGER",
+    "defaultValue": "2000",
+    "unit": "VND/km",
+    "description": "Áp dụng cho phần vượt LONG_KM."
+  },
+  {
+    "prmId": "PRM-031",
+    "key": "W_FEE_2",
+    "group": "Giá & Phí",
+    "name": "Phụ phí khối lượng >2–5 kg",
+    "valueType": "INTEGER",
+    "defaultValue": "5000",
+    "unit": "VND",
+    "description": "Dưới hoặc bằng 2 kg: 0đ."
+  },
+  {
+    "prmId": "PRM-032",
+    "key": "W_FEE_3",
+    "group": "Giá & Phí",
+    "name": "Phụ phí khối lượng >5–10 kg",
+    "valueType": "INTEGER",
+    "defaultValue": "12000",
+    "unit": "VND",
+    "description": null
+  },
+  {
+    "prmId": "PRM-033",
+    "key": "W_FEE_4",
+    "group": "Giá & Phí",
+    "name": "Phụ phí khối lượng >10–20 kg",
+    "valueType": "INTEGER",
+    "defaultValue": "25000",
+    "unit": "VND",
+    "description": null
+  },
+  {
+    "prmId": "PRM-034",
+    "key": "SIZE_FEE_M",
+    "group": "Giá & Phí",
+    "name": "Phụ phí cỡ Vừa",
+    "valueType": "INTEGER",
+    "defaultValue": "5000",
+    "unit": "VND",
+    "description": "Cỡ Nhỏ: 0đ."
+  },
+  {
+    "prmId": "PRM-035",
+    "key": "SIZE_FEE_L",
+    "group": "Giá & Phí",
+    "name": "Phụ phí cỡ Lớn",
+    "valueType": "INTEGER",
+    "defaultValue": "10000",
+    "unit": "VND",
+    "description": null
+  },
+  {
+    "prmId": "PRM-036",
+    "key": "URGENT_MULT",
+    "group": "Giá & Phí",
+    "name": "Hệ số giao gấp (trong 2 giờ)",
+    "valueType": "DECIMAL",
+    "defaultValue": "1.5",
+    "unit": "lần",
+    "description": "Nhân vào phí giao."
+  },
+  {
+    "prmId": "PRM-037",
+    "key": "SAMEDAY_MULT",
+    "group": "Giá & Phí",
+    "name": "Hệ số giao trong ngày",
+    "valueType": "DECIMAL",
+    "defaultValue": "1.2",
+    "unit": "lần",
+    "description": "Nhân vào phí giao."
+  },
+  {
+    "prmId": "PRM-038",
+    "key": "MIN_FARE",
+    "group": "Giá & Phí",
+    "name": "Phí giao tối thiểu",
+    "valueType": "INTEGER",
+    "defaultValue": "10000",
+    "unit": "VND",
+    "description": "Sàn giá của mọi đơn."
+  },
+  {
+    "prmId": "PRM-039",
+    "key": "BID_MIN",
+    "group": "Giá & Phí",
+    "name": "Biên dưới giá chào",
+    "valueType": "DECIMAL",
+    "defaultValue": "0.7",
+    "unit": "% giá gợi ý",
+    "description": "Chào giá/phản giá phải ≥ biên này."
+  },
+  {
+    "prmId": "PRM-040",
+    "key": "BID_MAX",
+    "group": "Giá & Phí",
+    "name": "Biên trên giá chào",
+    "valueType": "DECIMAL",
+    "defaultValue": "1.5",
+    "unit": "% giá gợi ý",
+    "description": "Chào giá/phản giá phải ≤ biên này."
+  },
+  {
+    "prmId": "PRM-041",
+    "key": "BID_TTL",
+    "group": "Giá & Phí",
+    "name": "Thời hạn hiệu lực chào giá",
+    "valueType": "INTEGER",
+    "defaultValue": "120",
+    "unit": "phút",
+    "description": "Chào giá tự hết hạn."
+  },
+  {
+    "prmId": "PRM-042",
+    "key": "FEE_NEW",
+    "group": "Giá & Phí",
+    "name": "Hoa hồng hạng Tân binh",
+    "valueType": "DECIMAL",
+    "defaultValue": "0.08",
+    "unit": "% phí giao",
+    "description": "Thu từ người giao, tính trên phí giao."
+  },
+  {
+    "prmId": "PRM-043",
+    "key": "FEE_BRONZE",
+    "group": "Giá & Phí",
+    "name": "Hoa hồng hạng Đồng",
+    "valueType": "DECIMAL",
+    "defaultValue": "0.07",
+    "unit": "% phí giao",
+    "description": null
+  },
+  {
+    "prmId": "PRM-044",
+    "key": "FEE_SILVER",
+    "group": "Giá & Phí",
+    "name": "Hoa hồng hạng Bạc",
+    "valueType": "DECIMAL",
+    "defaultValue": "0.06",
+    "unit": "% phí giao",
+    "description": null
+  },
+  {
+    "prmId": "PRM-045",
+    "key": "FEE_GOLD",
+    "group": "Giá & Phí",
+    "name": "Hoa hồng hạng Vàng",
+    "valueType": "DECIMAL",
+    "defaultValue": "0.05",
+    "unit": "% phí giao",
+    "description": null
+  },
+  {
+    "prmId": "PRM-046",
+    "key": "FEE_DIAMOND",
+    "group": "Giá & Phí",
+    "name": "Hoa hồng hạng Kim cương",
+    "valueType": "DECIMAL",
+    "defaultValue": "0.04",
+    "unit": "% phí giao",
+    "description": null
+  },
+  {
+    "prmId": "PRM-047",
+    "key": "INS_RATE",
+    "group": "Giá & Phí",
+    "name": "Phí bảo hiểm tùy chọn",
+    "valueType": "DECIMAL",
+    "defaultValue": "0.01",
+    "unit": "% giá trị khai báo",
+    "description": "Người gửi trả nếu chọn bảo hiểm."
+  },
+  {
+    "prmId": "PRM-048",
+    "key": "INS_MIN",
+    "group": "Giá & Phí",
+    "name": "Phí bảo hiểm tối thiểu",
+    "valueType": "INTEGER",
+    "defaultValue": "2000",
+    "unit": "VND",
+    "description": null
+  },
+  {
+    "prmId": "PRM-049",
+    "key": "FUND_SHARE",
+    "group": "Giá & Phí",
+    "name": "Tỷ lệ trích hoa hồng vào Quỹ bảo đảm",
+    "valueType": "DECIMAL",
+    "defaultValue": "0.1",
+    "unit": "% hoa hồng",
+    "description": "Cộng thêm toàn bộ phí bảo hiểm."
+  },
+  {
+    "prmId": "PRM-050",
+    "key": "CANCEL_RATE",
+    "group": "Giá & Phí",
+    "name": "Phí hủy đơn sau khi có người giao",
+    "valueType": "DECIMAL",
+    "defaultValue": "0.1",
+    "unit": "% phí giao",
+    "description": "Người gửi hủy sau khi ký quỹ và trước khi lấy hàng."
+  },
+  {
+    "prmId": "PRM-051",
+    "key": "CANCEL_MIN",
+    "group": "Giá & Phí",
+    "name": "Phí hủy tối thiểu",
+    "valueType": "INTEGER",
+    "defaultValue": "5000",
+    "unit": "VND",
+    "description": null
+  },
+  {
+    "prmId": "PRM-052",
+    "key": "RETURN_FEE",
+    "group": "Giá & Phí",
+    "name": "Phí hoàn hàng khi giao thất bại do người gửi/người nhận",
+    "valueType": "DECIMAL",
+    "defaultValue": "0.5",
+    "unit": "% phí giao",
+    "description": "Thu thêm từ người gửi, trả cho người giao."
+  },
+  {
+    "prmId": "PRM-053",
+    "key": "ROUND_FEE",
+    "group": "Giá & Phí",
+    "name": "Bước làm tròn lên của phí giao",
+    "valueType": "INTEGER",
+    "defaultValue": "500",
+    "unit": "VND",
+    "description": "Phí giao làm tròn lên bội số của giá trị này."
+  },
+  {
+    "prmId": "PRM-054",
+    "key": "NEGO_ROUNDS",
+    "group": "Giá & Phí",
+    "name": "Số vòng phản giá tối đa cho một chào giá",
+    "valueType": "INTEGER",
+    "defaultValue": "3",
+    "unit": "vòng",
+    "description": null
+  },
+  {
+    "prmId": "PRM-055",
+    "key": "WITHHOLD",
+    "group": "Giá & Phí",
+    "name": "Tỷ lệ khấu trừ thuế trên doanh thu người giao",
+    "valueType": "DECIMAL",
+    "defaultValue": "0",
+    "unit": "% doanh thu",
+    "description": "Mặc định 0% trong đồ án; cấu hình theo quy định thuế hiện hành khi thương mại hóa."
+  },
+  {
+    "prmId": "PRM-056",
+    "key": "MIN_TOPUP",
+    "group": "Ví & Thanh toán",
+    "name": "Số tiền nạp tối thiểu",
+    "valueType": "INTEGER",
+    "defaultValue": "20000",
+    "unit": "VND",
+    "description": "Mỗi giao dịch nạp."
+  },
+  {
+    "prmId": "PRM-057",
+    "key": "MAX_TOPUP",
+    "group": "Ví & Thanh toán",
+    "name": "Số tiền nạp tối đa mỗi giao dịch",
+    "valueType": "INTEGER",
+    "defaultValue": "10000000",
+    "unit": "VND",
+    "description": "Còn phụ thuộc hạn mức của ngân hàng/VNPay."
+  },
+  {
+    "prmId": "PRM-058",
+    "key": "MAX_BALANCE",
+    "group": "Ví & Thanh toán",
+    "name": "Số dư ví tối đa",
+    "valueType": "INTEGER",
+    "defaultValue": "20000000",
+    "unit": "VND",
+    "description": "Kiểm soát rủi ro pháp lý và gian lận."
+  },
+  {
+    "prmId": "PRM-059",
+    "key": "MIN_WITHDRAW",
+    "group": "Ví & Thanh toán",
+    "name": "Số tiền rút tối thiểu",
+    "valueType": "INTEGER",
+    "defaultValue": "100000",
+    "unit": "VND",
+    "description": "Số dư khả dụng phải ≥ ngưỡng này mới được rút."
+  },
+  {
+    "prmId": "PRM-060",
+    "key": "MAX_WITHDRAW",
+    "group": "Ví & Thanh toán",
+    "name": "Số tiền rút tối đa mỗi lần",
+    "valueType": "INTEGER",
+    "defaultValue": "10000000",
+    "unit": "VND",
+    "description": null
+  },
+  {
+    "prmId": "PRM-061",
+    "key": "MAX_WD_DAY",
+    "group": "Ví & Thanh toán",
+    "name": "Tổng số tiền rút tối đa mỗi ngày",
+    "valueType": "INTEGER",
+    "defaultValue": "20000000",
+    "unit": "VND",
+    "description": "Mỗi người dùng."
+  },
+  {
+    "prmId": "PRM-062",
+    "key": "FREE_WD",
+    "group": "Ví & Thanh toán",
+    "name": "Số lần rút miễn phí mỗi tháng",
+    "valueType": "INTEGER",
+    "defaultValue": "4",
+    "unit": "lần",
+    "description": "Từ lần thứ 5 tính phí."
+  },
+  {
+    "prmId": "PRM-063",
+    "key": "WD_FEE",
+    "group": "Ví & Thanh toán",
+    "name": "Phí rút tiền từ lần thứ 5 trong tháng",
+    "valueType": "INTEGER",
+    "defaultValue": "5000",
+    "unit": "VND",
+    "description": null
+  },
+  {
+    "prmId": "PRM-064",
+    "key": "WD_SLA",
+    "group": "Ví & Thanh toán",
+    "name": "Thời hạn xử lý yêu cầu rút tiền",
+    "valueType": "INTEGER",
+    "defaultValue": "1",
+    "unit": "ngày làm việc",
+    "description": "Tính từ khi yêu cầu hợp lệ."
+  },
+  {
+    "prmId": "PRM-065",
+    "key": "DUAL_APPROVE",
+    "group": "Ví & Thanh toán",
+    "name": "Ngưỡng bắt buộc hai cấp duyệt",
+    "valueType": "INTEGER",
+    "defaultValue": "5000000",
+    "unit": "VND",
+    "description": "Yêu cầu rút ≥ ngưỡng cần 2 Admin khác nhau duyệt (maker–checker)."
+  },
+  {
+    "prmId": "PRM-066",
+    "key": "BANK_COOLDOWN",
+    "group": "Ví & Thanh toán",
+    "name": "Thời gian chờ sau khi thêm/đổi tài khoản ngân hàng",
+    "valueType": "INTEGER",
+    "defaultValue": "24",
+    "unit": "giờ",
+    "description": "Chưa được rút về tài khoản mới trong thời gian này."
+  },
+  {
+    "prmId": "PRM-067",
+    "key": "VNPAY_EXPIRE",
+    "group": "Ví & Thanh toán",
+    "name": "Thời hạn liên kết thanh toán VNPay",
+    "valueType": "INTEGER",
+    "defaultValue": "15",
+    "unit": "phút",
+    "description": "Đặt vào tham số hết hạn của giao dịch VNPay."
+  },
+  {
+    "prmId": "PRM-068",
+    "key": "VNPAY_TIMEOUT",
+    "group": "Ví & Thanh toán",
+    "name": "Timeout gọi API VNPay",
+    "valueType": "INTEGER",
+    "defaultValue": "10",
+    "unit": "giây",
+    "description": "Thử lại tối đa 2 lần với truy vấn/hoàn tiền."
+  },
+  {
+    "prmId": "PRM-069",
+    "key": "RELEASE_DELAY",
+    "group": "Ví & Thanh toán",
+    "name": "Độ trễ giải ngân sau khi người nhận xác nhận",
+    "valueType": "INTEGER",
+    "defaultValue": "2",
+    "unit": "giờ",
+    "description": "Cửa sổ để phát hiện sự cố nhanh trước khi tiền chuyển cho người giao."
+  },
+  {
+    "prmId": "PRM-070",
+    "key": "AUTO_RELEASE",
+    "group": "Ví & Thanh toán",
+    "name": "Thời gian tự giải ngân khi không có xác nhận của người nhận",
+    "valueType": "INTEGER",
+    "defaultValue": "24",
+    "unit": "giờ",
+    "description": "Áp dụng khi giao không có OTP/QR và không có khiếu nại."
+  },
+  {
+    "prmId": "PRM-071",
+    "key": "DISPUTE_WINDOW",
+    "group": "Ví & Thanh toán",
+    "name": "Thời hạn khiếu nại sau khi giao",
+    "valueType": "INTEGER",
+    "defaultValue": "48",
+    "unit": "giờ",
+    "description": "Quá hạn không tiếp nhận khiếu nại (trừ trường hợp Admin cho phép)."
+  },
+  {
+    "prmId": "PRM-072",
+    "key": "RECONCILE_AT",
+    "group": "Ví & Thanh toán",
+    "name": "Giờ chạy đối soát hằng ngày",
+    "valueType": "INTEGER",
+    "defaultValue": "2",
+    "unit": "giờ (02:00)",
+    "description": "Đối soát giao dịch ngày hôm trước."
+  },
+  {
+    "prmId": "PRM-073",
+    "key": "IDEM_TTL",
+    "group": "Ví & Thanh toán",
+    "name": "Thời hạn lưu khóa idempotency",
+    "valueType": "INTEGER",
+    "defaultValue": "24",
+    "unit": "giờ",
+    "description": "Chống xử lý lặp giao dịch tiền."
+  },
+  {
+    "prmId": "PRM-074",
+    "key": "TRUST_INIT",
+    "group": "Uy tín & Hạng",
+    "name": "Điểm uy tín khởi tạo",
+    "valueType": "INTEGER",
+    "defaultValue": "50",
+    "unit": "điểm",
+    "description": "Thang 0–100."
+  },
+  {
+    "prmId": "PRM-075",
+    "key": "W_ONTIME",
+    "group": "Uy tín & Hạng",
+    "name": "Trọng số tỷ lệ giao đúng hạn",
+    "valueType": "DECIMAL",
+    "defaultValue": "0.35",
+    "unit": "%",
+    "description": null
+  },
+  {
+    "prmId": "PRM-076",
+    "key": "W_RATING",
+    "group": "Uy tín & Hạng",
+    "name": "Trọng số điểm đánh giá trung bình",
+    "valueType": "DECIMAL",
+    "defaultValue": "0.3",
+    "unit": "%",
+    "description": null
+  },
+  {
+    "prmId": "PRM-077",
+    "key": "W_COMPLETE",
+    "group": "Uy tín & Hạng",
+    "name": "Trọng số tỷ lệ hoàn thành đơn đã nhận",
+    "valueType": "DECIMAL",
+    "defaultValue": "0.2",
+    "unit": "%",
+    "description": null
+  },
+  {
+    "prmId": "PRM-078",
+    "key": "W_COMPLAINT",
+    "group": "Uy tín & Hạng",
+    "name": "Trọng số khiếu nại (điểm trừ)",
+    "valueType": "DECIMAL",
+    "defaultValue": "0.15",
+    "unit": "%",
+    "description": "Tỷ lệ khiếu nại bị xử thua càng cao, điểm càng thấp."
+  },
+  {
+    "prmId": "PRM-079",
+    "key": "TIER_BRONZE",
+    "group": "Uy tín & Hạng",
+    "name": "Điều kiện lên hạng Đồng",
+    "valueType": "TEXT",
+    "defaultValue": "≥ 55 điểm & ≥ 5 đơn",
+    "unit": null,
+    "description": null
+  },
+  {
+    "prmId": "PRM-080",
+    "key": "TIER_SILVER",
+    "group": "Uy tín & Hạng",
+    "name": "Điều kiện lên hạng Bạc",
+    "valueType": "TEXT",
+    "defaultValue": "≥ 70 điểm & ≥ 20 đơn",
+    "unit": null,
+    "description": null
+  },
+  {
+    "prmId": "PRM-081",
+    "key": "TIER_GOLD",
+    "group": "Uy tín & Hạng",
+    "name": "Điều kiện lên hạng Vàng",
+    "valueType": "TEXT",
+    "defaultValue": "≥ 85 điểm & ≥ 60 đơn",
+    "unit": null,
+    "description": null
+  },
+  {
+    "prmId": "PRM-082",
+    "key": "TIER_DIAMOND",
+    "group": "Uy tín & Hạng",
+    "name": "Điều kiện lên hạng Kim cương",
+    "valueType": "TEXT",
+    "defaultValue": "≥ 95 điểm & ≥ 150 đơn",
+    "unit": null,
+    "description": null
+  },
+  {
+    "prmId": "PRM-083",
+    "key": "CONC_TIER",
+    "group": "Uy tín & Hạng",
+    "name": "Số đơn đang giao đồng thời tối đa theo hạng",
+    "valueType": "TEXT",
+    "defaultValue": "Tân binh 3 / Đồng 5 / Bạc 8 / Vàng 12 / Kim cương 15",
+    "unit": null,
+    "description": null
+  },
+  {
+    "prmId": "PRM-084",
+    "key": "VALUE_TIER",
+    "group": "Uy tín & Hạng",
+    "name": "Tổng giá trị khai báo đang giữ tối đa theo hạng",
+    "valueType": "TEXT",
+    "defaultValue": "Tân binh 3 / Đồng 6 / Bạc 10 / Vàng 15 / Kim cương 20 (triệu đồng)",
+    "unit": null,
+    "description": null
+  },
+  {
+    "prmId": "PRM-085",
+    "key": "TRUST_RESTRICT",
+    "group": "Uy tín & Hạng",
+    "name": "Ngưỡng hạn chế nhận đơn",
+    "valueType": "INTEGER",
+    "defaultValue": "30",
+    "unit": "điểm",
+    "description": "Điểm dưới ngưỡng: chỉ nhận đơn giá trị thấp."
+  },
+  {
+    "prmId": "PRM-086",
+    "key": "TRUST_REVIEW",
+    "group": "Uy tín & Hạng",
+    "name": "Ngưỡng chuyển Admin xem xét khóa",
+    "valueType": "INTEGER",
+    "defaultValue": "20",
+    "unit": "điểm",
+    "description": null
+  },
+  {
+    "prmId": "PRM-087",
+    "key": "REVIEW_WINDOW",
+    "group": "Uy tín & Hạng",
+    "name": "Thời hạn gửi đánh giá sau khi hoàn tất",
+    "valueType": "INTEGER",
+    "defaultValue": "7",
+    "unit": "ngày",
+    "description": null
+  },
+  {
+    "prmId": "PRM-088",
+    "key": "CANCEL_LIMIT",
+    "group": "Uy tín & Hạng",
+    "name": "Số lần người giao hủy tối đa trong 30 ngày",
+    "valueType": "INTEGER",
+    "defaultValue": "3",
+    "unit": "lần",
+    "description": "Vượt quá bị tạm khóa nhận đơn."
+  },
+  {
+    "prmId": "PRM-089",
+    "key": "CANCEL_BAN",
+    "group": "Uy tín & Hạng",
+    "name": "Thời gian tạm khóa nhận đơn do hủy quá nhiều",
+    "valueType": "INTEGER",
+    "defaultValue": "3",
+    "unit": "ngày",
+    "description": null
+  },
+  {
+    "prmId": "PRM-090",
+    "key": "CANCEL_PENALTY",
+    "group": "Uy tín & Hạng",
+    "name": "Điểm trừ mỗi lần người giao hủy sau khi nhận",
+    "valueType": "INTEGER",
+    "defaultValue": "5",
+    "unit": "điểm",
+    "description": null
+  },
+  {
+    "prmId": "PRM-091",
+    "key": "GPS_INTERVAL",
+    "group": "Theo dõi & Vận hành",
+    "name": "Chu kỳ gửi vị trí GPS",
+    "valueType": "INTEGER",
+    "defaultValue": "15",
+    "unit": "giây",
+    "description": "Khi người giao đang ở trạng thái Đã lấy hàng/Đang giao và ứng dụng ở foreground."
+  },
+  {
+    "prmId": "PRM-092",
+    "key": "TRACK_TTL",
+    "group": "Theo dõi & Vận hành",
+    "name": "Thời gian lưu điểm vị trí chi tiết",
+    "valueType": "INTEGER",
+    "defaultValue": "12",
+    "unit": "tháng",
+    "description": "MongoDB TTL index."
+  },
+  {
+    "prmId": "PRM-093",
+    "key": "CHAT_TTL",
+    "group": "Theo dõi & Vận hành",
+    "name": "Thời gian lưu tin nhắn chat",
+    "valueType": "INTEGER",
+    "defaultValue": "12",
+    "unit": "tháng",
+    "description": null
+  },
+  {
+    "prmId": "PRM-094",
+    "key": "DELIVERY_OTP_LEN",
+    "group": "Theo dõi & Vận hành",
+    "name": "Độ dài OTP giao hàng",
+    "valueType": "INTEGER",
+    "defaultValue": "6",
+    "unit": "chữ số",
+    "description": "Gửi cho người nhận."
+  },
+  {
+    "prmId": "PRM-095",
+    "key": "DELIVERY_OTP_FAIL",
+    "group": "Theo dõi & Vận hành",
+    "name": "Số lần nhập sai OTP giao hàng tối đa",
+    "valueType": "INTEGER",
+    "defaultValue": "5",
+    "unit": "lần",
+    "description": "Quá số lần: khóa nhập OTP 30 phút, hướng dẫn liên hệ Hỗ trợ."
+  },
+  {
+    "prmId": "PRM-096",
+    "key": "DELIVERY_OTP_LOCK",
+    "group": "Theo dõi & Vận hành",
+    "name": "Thời gian khóa nhập OTP giao hàng khi nhập sai quá số lần",
+    "valueType": "INTEGER",
+    "defaultValue": "30",
+    "unit": "phút",
+    "description": null
+  },
+  {
+    "prmId": "PRM-097",
+    "key": "QR_TTL",
+    "group": "Theo dõi & Vận hành",
+    "name": "Thời hạn mã QR bàn giao",
+    "valueType": "INTEGER",
+    "defaultValue": "10",
+    "unit": "phút",
+    "description": "Mã QR có chữ ký, tự làm mới."
+  },
+  {
+    "prmId": "PRM-098",
+    "key": "NOTIF_RETRY",
+    "group": "Theo dõi & Vận hành",
+    "name": "Số lần thử lại gửi thông báo",
+    "valueType": "INTEGER",
+    "defaultValue": "3",
+    "unit": "lần",
+    "description": "Email/SMS gửi lỗi."
+  },
+  {
+    "prmId": "PRM-099",
+    "key": "MATCH_DETOUR",
+    "group": "Theo dõi & Vận hành",
+    "name": "Độ lệch tuyến tối đa khi ghép đơn–chuyến",
+    "valueType": "DECIMAL",
+    "defaultValue": "3",
+    "unit": "km",
+    "description": "Khoảng cách từ điểm lấy/giao đến đường đi của chuyến."
+  },
+  {
+    "prmId": "PRM-100",
+    "key": "MATCH_TOPN",
+    "group": "Theo dõi & Vận hành",
+    "name": "Số gợi ý ghép tối đa",
+    "valueType": "INTEGER",
+    "defaultValue": "10",
+    "unit": "gợi ý",
+    "description": null
+  },
+  {
+    "prmId": "PRM-101",
+    "key": "BATCH_MAX",
+    "group": "Theo dõi & Vận hành",
+    "name": "Số đơn gộp tối đa cho một lượt giao",
+    "valueType": "INTEGER",
+    "defaultValue": "5",
+    "unit": "đơn",
+    "description": null
+  },
+  {
+    "prmId": "PRM-102",
+    "key": "RELAY_MAX",
+    "group": "Theo dõi & Vận hành",
+    "name": "Số chặng tối đa của đơn giao tiếp sức",
+    "valueType": "INTEGER",
+    "defaultValue": "3",
+    "unit": "chặng",
+    "description": null
+  },
+  {
+    "prmId": "PRM-103",
+    "key": "KYC_SLA",
+    "group": "Theo dõi & Vận hành",
+    "name": "Thời hạn duyệt hồ sơ xác minh",
+    "valueType": "INTEGER",
+    "defaultValue": "24",
+    "unit": "giờ làm việc",
+    "description": null
+  },
+  {
+    "prmId": "PRM-104",
+    "key": "DISPUTE_RESP",
+    "group": "Theo dõi & Vận hành",
+    "name": "Thời hạn phản hồi đầu tiên cho khiếu nại",
+    "valueType": "INTEGER",
+    "defaultValue": "24",
+    "unit": "giờ",
+    "description": null
+  },
+  {
+    "prmId": "PRM-105",
+    "key": "DISPUTE_RESOLVE",
+    "group": "Theo dõi & Vận hành",
+    "name": "Thời hạn xử lý xong khiếu nại",
+    "valueType": "INTEGER",
+    "defaultValue": "5",
+    "unit": "ngày làm việc",
+    "description": null
+  },
+  {
+    "prmId": "PRM-106",
+    "key": "APPEAL_WINDOW",
+    "group": "Theo dõi & Vận hành",
+    "name": "Thời hạn kháng nghị phán quyết khiếu nại",
+    "valueType": "INTEGER",
+    "defaultValue": "48",
+    "unit": "giờ",
+    "description": "Mỗi bên được kháng nghị 1 lần."
+  },
+  {
+    "prmId": "PRM-107",
+    "key": "AUDIT_KEEP",
+    "group": "Theo dõi & Vận hành",
+    "name": "Thời gian lưu nhật ký kiểm toán",
+    "valueType": "INTEGER",
+    "defaultValue": "5",
+    "unit": "năm",
+    "description": null
+  },
+  {
+    "prmId": "PRM-108",
+    "key": "LEDGER_KEEP",
+    "group": "Theo dõi & Vận hành",
+    "name": "Thời gian lưu sổ cái giao dịch",
+    "valueType": "INTEGER",
+    "defaultValue": "10",
+    "unit": "năm",
+    "description": "Dự kiến theo quy định lưu trữ chứng từ kế toán; cần xác nhận với kế toán/pháp chế."
+  },
+  {
+    "prmId": "PRM-109",
+    "key": "REF_REWARD",
+    "group": "Theo dõi & Vận hành",
+    "name": "Thưởng giới thiệu bạn bè",
+    "valueType": "INTEGER",
+    "defaultValue": "10000",
+    "unit": "VND/người",
+    "description": "Mỗi bên nhận sau khi người được mời hoàn tất đơn đầu tiên."
+  }
+]

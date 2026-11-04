@@ -1,0 +1,15 @@
+.account-page { max-width: 1040px; margin-inline: auto; }
+.account-navigation { display: flex; flex-wrap: wrap; gap: var(--space-2); padding: var(--space-2); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--bg-secondary); }
+.account-navigation a { padding: 10px 14px; border-radius: var(--radius-sm); color: var(--text-secondary); font-size: .84rem; text-decoration: none; }
+.account-navigation a.active { background: var(--brand-soft); color: var(--text-accent); }
+.profile-avatar-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-4); }
+.profile-avatar { width: 96px; height: 96px; display: grid; place-items: center; overflow: hidden; border-radius: 50%; border: 1px solid var(--border-subtle); background: var(--brand-soft); color: var(--text-accent); }
+.profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.account-request-list { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-3); }
+.account-request-list li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-3); border-top: 1px solid var(--border-subtle); padding-top: var(--space-4); }
+.account-request-list p { margin-bottom: 0; }
+.address-list { display: grid; gap: var(--space-5); }
+.address-list p { margin: 0; overflow-wrap: anywhere; }
+.address-map { height: 280px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); z-index: 0; background: var(--bg-primary); }
+.account-page .ui-card-header p { overflow-wrap: anywhere; }
+@media (max-width: 600px) { .account-navigation a { flex: 1 1 auto; text-align: center; } .address-map { height: 240px; } }

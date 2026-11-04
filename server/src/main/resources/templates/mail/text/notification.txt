@@ -1,0 +1,6 @@
+[(${title})]
+
+[(${body})]
+
+Đăng nhập [(${appName})] để xem thông tin tài khoản và các thông báo của bạn.
+Email tự động từ [(${appName})]. Vui lòng không trả lời email này.

@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><title>Xác nhận thay đổi thông tin liên hệ</title></head>
+<body style="margin:0;padding:24px;background:#f1f5f9;color:#0f172a;font:16px/1.6 Arial,sans-serif;">
+<table role="presentation" style="max-width:600px;margin:auto;background:white;" width="100%">
+<tr><td><table th:replace="~{html/fragments :: header}"></table></td></tr><tr><td style="padding:32px;">
+<h1>Xác nhận thay đổi thông tin liên hệ</h1><p>Xin chào <strong th:text="${fullName}">bạn</strong>,</p>
+<p>Mã xác nhận thay đổi thông tin liên hệ:</p><p style="font-size:32px;letter-spacing:8px;" th:text="${otp}">000000</p>
+<p>Mã có hiệu lực <span th:text="${expirationMinutes}">5</span> phút. Không chia sẻ mã này.</p>
+<p>Nếu bạn không yêu cầu thay đổi, hãy bỏ qua email và kiểm tra bảo mật tài khoản.</p></td></tr>
+<tr><td><table th:replace="~{html/fragments :: footer}"></table></td></tr></table></body></html>

@@ -1,0 +1,24 @@
+.notifications-page { width: 100%; max-width: 72rem; margin-inline: auto; }
+.notification-toolbar, .notification-item-meta, .notification-settings-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.notification-toolbar { justify-content: space-between; padding-bottom: var(--space-4); border-bottom: 1px solid var(--border-subtle); }
+.notification-list { list-style: none; padding: 0; margin: 0; }
+.notification-item { padding: var(--space-5) 0; border-bottom: 1px solid var(--border-subtle); }
+.notification-item:last-child { border-bottom: 0; }
+.notification-item h3, .notification-setting-row h3 { font-size: 1rem; line-height: 1.5; margin: var(--space-2) 0; overflow-wrap: anywhere; }
+.notification-item-meta { color: var(--text-muted); font-size: .875rem; }
+.notification-item-meta time { margin-left: auto; }
+.notification-item-meta > span { overflow-wrap: anywhere; }
+.notification-body { white-space: pre-wrap; overflow-wrap: anywhere; margin-block: var(--space-2) var(--space-4); }
+.notification-item.is-unread h3 { color: var(--text-primary); font-weight: 700; }
+.notification-bell { position: relative; display: inline-flex; align-items: center; gap: var(--space-2); }
+.notification-count { min-width: 1.25rem; padding-inline: .3rem; border-radius: var(--radius-full); background: var(--primary); color: var(--on-primary); font-size: .75rem; line-height: 1.25rem; text-align: center; }
+.notification-settings-fields { border: 0; margin: 0; padding: 0; min-width: 0; }
+.notification-setting-row { display: grid; grid-template-columns: minmax(12rem, 1fr) 2fr; gap: var(--space-5); padding-block: var(--space-5); border-bottom: 1px solid var(--border-subtle); }
+.notification-channels { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-5); }
+.notification-settings-actions { justify-content: flex-end; margin-top: var(--space-5); }
+@media (max-width: 640px) {
+  .notification-setting-row { grid-template-columns: 1fr; gap: var(--space-3); }
+  .notification-channels { gap: var(--space-4); }
+  .notification-item-meta time { width: 100%; margin-left: 0; }
+  .notification-bell > span:not(.notification-count) { display: none; }
+}

@@ -1,0 +1,17 @@
+.security-page { max-width: 1040px; margin-inline: auto; }
+.security-page .ui-muted { color: var(--text-secondary); font-size: .84rem; }
+.session-list { display: grid; gap: var(--space-4); list-style: none; padding: 0; margin: 0; }
+.session-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-4); padding: var(--space-5); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--bg-secondary); }
+.session-device { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.session-icon { display: grid; place-items: center; flex: 0 0 44px; height: 44px; border-radius: var(--radius-md); color: var(--text-accent); background: var(--brand-soft); }
+.session-device-heading { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); min-width: 0; }
+.session-device-heading h3 { font-size: .95rem; margin: 0; overflow-wrap: anywhere; }
+.session-details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-column: 1 / -1; gap: var(--space-4); margin: 0; }
+.session-details dt { color: var(--text-muted); font-size: .72rem; margin-bottom: var(--space-2); }
+.session-details dd { color: var(--text-secondary); font-size: .8rem; margin: 0; overflow-wrap: anywhere; }
+.session-revoke { grid-column: 2; grid-row: 1; align-self: center; }
+@media (max-width: 600px) {
+  .session-card { grid-template-columns: minmax(0, 1fr); padding: var(--space-4); }
+  .session-details { grid-template-columns: minmax(0, 1fr); }
+  .session-revoke { grid-column: 1; grid-row: auto; justify-self: start; }
+}

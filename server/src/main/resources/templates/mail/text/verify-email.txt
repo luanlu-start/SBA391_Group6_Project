@@ -1,0 +1,7 @@
+Xin chào [(${fullName})],
+
+Mã xác thực đăng ký [(${appName})] của bạn là: [(${otp})]
+Mã có hiệu lực [(${expirationMinutes})] phút. Không chia sẻ mã với người khác.
+
+Nếu bạn không đăng ký tài khoản, hãy bỏ qua email này.
+Email tự động từ [(${appName})]. Vui lòng không trả lời email này.

@@ -1,0 +1,4 @@
+Xin chào [(${fullName})],
+
+Mã xác nhận thay đổi thông tin liên hệ của bạn là [(${otp})]. Mã có hiệu lực [(${expirationMinutes})] phút.
+Không chia sẻ mã này. Nếu bạn không yêu cầu thay đổi, hãy bỏ qua email và kiểm tra bảo mật tài khoản.
