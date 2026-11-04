@@ -8,21 +8,9 @@ export interface MapTileConfig {
   };
 }
 
-export function getMapTileConfig(isDarkMode = true): MapTileConfig {
-  const provider = (import.meta.env.VITE_MAPS_PROVIDER || '').toLowerCase();
+export function getMapTileConfig(): MapTileConfig {
+  const provider = (import.meta.env.VITE_MAPS_PROVIDER || 'google').toLowerCase();
   const apiKey = (import.meta.env.VITE_MAPS_API_KEY || '').trim();
-
-  // If dark mode is preferred and no explicit light provider requested
-  if (isDarkMode && provider !== 'osm' && provider !== 'google') {
-    return {
-      url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-      options: {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        maxZoom: 19,
-        subdomains: ['a', 'b', 'c', 'd'],
-      },
-    };
-  }
 
   switch (provider) {
     case 'geoapify': {
@@ -43,27 +31,6 @@ export function getMapTileConfig(isDarkMode = true): MapTileConfig {
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
           maxZoom: 19,
           subdomains: ['a', 'b', 'c'],
-        },
-      };
-
-    case 'voyager':
-      return {
-        url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-        options: {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-          maxZoom: 19,
-          subdomains: ['a', 'b', 'c', 'd'],
-        },
-      };
-
-    case 'dark':
-    case 'carto-dark':
-      return {
-        url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-        options: {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-          maxZoom: 19,
-          subdomains: ['a', 'b', 'c', 'd'],
         },
       };
 

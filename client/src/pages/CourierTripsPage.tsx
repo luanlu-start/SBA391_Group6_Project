@@ -880,8 +880,9 @@ export default function CourierTripsPage() {
               {/* Tab 3: Interactive Route Map */}
               {detailModalTab === 'map' && (
                 <div>
-                  <div style={{ height: '360px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-subtle, #333d4c)' }}>
+                  <div style={{ height: '380px', borderRadius: '12px', overflow: 'hidden' }}>
                     <TripRouteMap
+                      key={`trip-map-${selectedTrip.id}`}
                       originLat={selectedTrip.originLat}
                       originLng={selectedTrip.originLng}
                       destinationLat={selectedTrip.destinationLat}

@@ -65,15 +65,19 @@ export default function AccountPage() {
           </dl>
 
           <div className="ui-form-actions" style={{ flexWrap: 'wrap', gap: '10px' }}>
-            <Link className="ui-button ui-button-primary" to="/courier/market">
-              Sàn đơn hàng
-            </Link>
-            <Link className="ui-button ui-button-primary" to="/courier/trips/new">
-              Đăng chuyến đi
-            </Link>
-            <Link className="ui-button ui-button-secondary" to="/courier/trips">
-              Chuyến đi của tôi
-            </Link>
+            {isCourier && (
+              <>
+                <Link className="ui-button ui-button-primary" to="/courier/market">
+                  Sàn đơn hàng
+                </Link>
+                <Link className="ui-button ui-button-primary" to="/courier/trips/new">
+                  Đăng chuyến đi
+                </Link>
+                <Link className="ui-button ui-button-secondary" to="/courier/trips">
+                  Chuyến đi của tôi
+                </Link>
+              </>
+            )}
             <Link className="ui-button ui-button-secondary" to="/orders/payment">
               Thanh toán & Ký quỹ đơn hàng
             </Link>

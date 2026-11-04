@@ -29,7 +29,8 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import ApiErrorNotice from '../components/ApiErrorNotice';
 import type { EscrowResponse } from '../types/payment';
 import { getSessionState } from '../auth/authSession';
-import { ShieldCheck, CheckCircle, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, CheckCircle, AlertTriangle, Send } from 'lucide-react';
+import InviteCourierModal from '../features/order/components/InviteCourierModal';
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -55,6 +56,7 @@ export default function OrderDetailPage() {
 
   // Trạng thái modal hủy đơn
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<ApiError | null>(null);
@@ -360,14 +362,24 @@ export default function OrderDetailPage() {
                 <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
                   Đơn hàng đang mở trên sàn. Bưu tá có thể gửi chào giá hoặc nhận đơn theo giá niêm yết.
                 </p>
-                <Button
-                  variant="primary"
-                  icon={<DollarSign size={16} />}
-                  onClick={() => navigate(`/sender/orders/${order.id}/offers`)}
-                  style={{ width: '100%' }}
-                >
-                  Xem danh sách chào giá
-                </Button>
+                <div className="ui-stack" style={{ gap: '8px' }}>
+                  <Button
+                    variant="primary"
+                    icon={<Send size={16} />}
+                    onClick={() => setIsInviteModalOpen(true)}
+                    style={{ width: '100%' }}
+                  >
+                    Mời tài xế trực tiếp
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    icon={<DollarSign size={16} />}
+                    onClick={() => navigate(`/sender/orders/${order.id}/offers`)}
+                    style={{ width: '100%' }}
+                  >
+                    Xem danh sách chào giá
+                  </Button>
+                </div>
               </div>
             </SectionCard>
           )}
@@ -603,6 +615,19 @@ export default function OrderDetailPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Modal mời tài xế giao hàng trực tiếp */}
+      {id && order && (
+        <InviteCourierModal
+          isOpen={isInviteModalOpen}
+          onClose={() => setIsInviteModalOpen(false)}
+          orderId={id}
+          orderCode={order.orderCode}
+          onSuccess={() => {
+            orderApi.getById(id).then(res => setOrder(res.data));
+          }}
+        />
+      )}
     </div>
   );
 }
