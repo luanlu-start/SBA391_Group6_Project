@@ -31,6 +31,7 @@ import type { EscrowResponse } from '../types/payment';
 import { getSessionState } from '../auth/authSession';
 import { ShieldCheck, CheckCircle, AlertTriangle, Send } from 'lucide-react';
 import InviteCourierModal from '../features/order/components/InviteCourierModal';
+import SuggestedCouriersCard from '../features/matching/components/SuggestedCouriersCard';
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -57,6 +58,7 @@ export default function OrderDetailPage() {
   // Trạng thái modal hủy đơn
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [invitedCourierId, setInvitedCourierId] = useState<number | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<ApiError | null>(null);
@@ -260,6 +262,18 @@ export default function OrderDetailPage() {
               </div>
             </div>
           </SectionCard>
+
+          {/* Gợi ý tài xế có chuyến đi tiện đường */}
+          {order.status === 'FINDING_SHIPPER' && (
+            <SuggestedCouriersCard
+              orderId={order.id}
+              isOrderOpen={true}
+              onInviteCourier={(courierId) => {
+                setInvitedCourierId(courierId);
+                setIsInviteModalOpen(true);
+              }}
+            />
+          )}
 
           {/* Chi tiết kiện hàng */}
           <SectionCard
@@ -620,12 +634,16 @@ export default function OrderDetailPage() {
       {id && order && (
         <InviteCourierModal
           isOpen={isInviteModalOpen}
-          onClose={() => setIsInviteModalOpen(false)}
+          onClose={() => {
+            setIsInviteModalOpen(false);
+            setInvitedCourierId(null);
+          }}
           orderId={id}
           orderCode={order.orderCode}
           onSuccess={() => {
             orderApi.getById(id).then(res => setOrder(res.data));
           }}
+          initialCourierId={invitedCourierId}
         />
       )}
     </div>

@@ -20,10 +20,12 @@ import {
   MapPin,
   X,
   Layers,
-  ArrowRight,
   TrendingUp,
+  Sparkles,
+  Check,
 } from 'lucide-react';
 import { tripApi } from '../api/tripApi';
+import { matchingApi } from '../api/matchingApi';
 import type {
   Trip,
   TripStatus,
@@ -32,6 +34,7 @@ import type {
   VehicleType,
   TripRecurrence,
 } from '../types/trip';
+import type { TripOrderMatch } from '../types/matching';
 import TripRouteMap from '../features/trip/components/TripRouteMap';
 import '../styles/trip.css';
 
@@ -51,9 +54,20 @@ export default function CourierTripsPage() {
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [detailModalTab, setDetailModalTab] = useState<'map' | 'orders' | 'suggestions'>('orders');
   const [attachedOrders, setAttachedOrders] = useState<TripAttachedOrder[]>([]);
-  const [suggestedOrders, setSuggestedOrders] = useState<TripAttachedOrder[]>([]);
+  const [suggestedOrders, setSuggestedOrders] = useState<TripOrderMatch[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+
+  // Quick Accept & Bid Modal State
+  const [quickAcceptOrder, setQuickAcceptOrder] = useState<TripOrderMatch | null>(null);
+  const [quickAccepting, setQuickAccepting] = useState<boolean>(false);
+
+  const [quickBidOrder, setQuickBidOrder] = useState<TripOrderMatch | null>(null);
+  const [quickBidPrice, setQuickBidPrice] = useState<string>('');
+  const [quickBidMessage, setQuickBidMessage] = useState<string>('');
+  const [quickBidEta, setQuickBidEta] = useState<string>('30');
+  const [quickBidding, setQuickBidding] = useState<boolean>(false);
+  const [quickBidError, setQuickBidError] = useState<string | null>(null);
 
   // Edit Modal State
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
@@ -103,7 +117,7 @@ export default function CourierTripsPage() {
       const [detailRes, ordersRes, suggestionsRes] = await Promise.allSettled([
         tripApi.getById(trip.id),
         tripApi.getAttachedOrders(trip.id),
-        tripApi.getSuggestedOrders(trip.id),
+        matchingApi.getOrdersForTrip(trip.id),
       ]);
 
       if (detailRes.status === 'fulfilled' && detailRes.value.data) {
@@ -124,6 +138,94 @@ export default function CourierTripsPage() {
     } finally {
       setLoadingOrders(false);
       setLoadingSuggestions(false);
+    }
+  };
+
+  // Quick Accept & Bid Handlers
+  const handleConfirmQuickAccept = async () => {
+    if (!selectedTrip || !quickAcceptOrder) return;
+    setQuickAccepting(true);
+    setFeedbackMessage(null);
+    try {
+      await matchingApi.quickAcceptOrder(selectedTrip.id, quickAcceptOrder.id);
+      setFeedbackMessage({
+        type: 'success',
+        text: `Đã nhận đơn #${quickAcceptOrder.orderCode} thành công! Đơn hàng được gắn vào chuyến đi và đang chờ người gửi ký quỹ.`,
+      });
+      setQuickAcceptOrder(null);
+      // Reload attached orders and suggestions
+      const [ordersRes, suggestionsRes] = await Promise.allSettled([
+        tripApi.getAttachedOrders(selectedTrip.id),
+        matchingApi.getOrdersForTrip(selectedTrip.id),
+      ]);
+      if (ordersRes.status === 'fulfilled' && ordersRes.value.data) {
+        setAttachedOrders(ordersRes.value.data);
+      }
+      if (suggestionsRes.status === 'fulfilled' && suggestionsRes.value.data) {
+        setSuggestedOrders(suggestionsRes.value.data);
+      }
+      fetchTrips();
+    } catch (err: unknown) {
+      const message =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : 'Không thể nhận đơn lúc này.';
+      setFeedbackMessage({ type: 'error', text: message || 'Lỗi khi nhận đơn.' });
+    } finally {
+      setQuickAccepting(false);
+    }
+  };
+
+  const handleOpenQuickBid = (order: TripOrderMatch) => {
+    setQuickBidOrder(order);
+    setQuickBidPrice(order.priceSuggested ? String(order.priceSuggested) : '');
+    setQuickBidMessage('Tôi có chuyến đi tiện đường khởi hành gần thời gian này, sẵn sàng hỗ trợ giao an toàn, đúng giờ!');
+    setQuickBidEta('30');
+    setQuickBidError(null);
+  };
+
+  const handleConfirmQuickBid = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTrip || !quickBidOrder) return;
+
+    const price = Number(quickBidPrice);
+    if (!price || isNaN(price) || price < 1000) {
+      setQuickBidError('Vui lòng nhập giá chào hợp lệ (tối thiểu 1.000 ₫).');
+      return;
+    }
+
+    if (quickBidOrder.priceSuggested) {
+      const minBid = Math.round(quickBidOrder.priceSuggested * 0.7);
+      const maxBid = Math.round(quickBidOrder.priceSuggested * 1.5);
+      if (price < minBid || price > maxBid) {
+        setQuickBidError(`Giá chào phải nằm trong biên cho phép từ ${minBid.toLocaleString('vi-VN')} ₫ đến ${maxBid.toLocaleString('vi-VN')} ₫.`);
+        return;
+      }
+    }
+
+    setQuickBidding(true);
+    setQuickBidError(null);
+    try {
+      const etaDate = quickBidEta ? new Date(Date.now() + Number(quickBidEta) * 60000).toISOString() : undefined;
+      await matchingApi.quickBidOrder(selectedTrip.id, quickBidOrder.id, {
+        price,
+        message: quickBidMessage.trim(),
+        etaPickup: etaDate,
+      });
+
+      setFeedbackMessage({
+        type: 'success',
+        text: `Đã gửi báo giá ${price.toLocaleString('vi-VN')} ₫ cho đơn #${quickBidOrder.orderCode} thành công!`,
+      });
+      setQuickBidOrder(null);
+    } catch (err: unknown) {
+      const message =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : 'Không thể gửi chào giá lúc này.';
+      setQuickBidError(message || 'Lỗi khi gửi chào giá.');
+    } finally {
+      setQuickBidding(false);
     }
   };
 
@@ -537,10 +639,18 @@ export default function CourierTripsPage() {
                   </div>
 
                   <div className="detail-item">
-                    <div className="detail-icon">{getVehicleLabel(trip.vehicleType)}</div>
+                    <div className="detail-icon">
+                      {trip.vehicleType === 'CAR' ? <Car size={15} /> : <Bike size={15} />}
+                    </div>
+                    <div>
+                      <span className="detail-label">Phương tiện</span>
+                      <strong className="detail-value">
+                        {trip.vehicleType === 'CAR' ? 'Ô tô' : trip.vehicleType === 'BICYCLE' ? 'Xe đạp' : 'Xe máy'}
+                      </strong>
+                    </div>
                   </div>
 
-                  {trip.distanceKm && (
+                  {trip.distanceKm ? (
                     <div className="detail-item">
                       <Navigation size={15} className="detail-icon" />
                       <div>
@@ -548,11 +658,13 @@ export default function CourierTripsPage() {
                         <strong className="detail-value">{trip.distanceKm} km</strong>
                       </div>
                     </div>
+                  ) : (
+                    <div className="detail-item" />
                   )}
 
                   {trip.floorPrice && (
-                    <div className="detail-item">
-                      <DollarSign size={15} className="detail-icon" />
+                    <div className="detail-item highlight-floor-price">
+                      <DollarSign size={15} className="detail-icon" style={{ color: '#ffb17d' }} />
                       <div>
                         <span className="detail-label">Giá sàn nhận</span>
                         <strong className="detail-value highlight">
@@ -573,7 +685,7 @@ export default function CourierTripsPage() {
                       title="Chỉnh sửa thông tin chuyến đi"
                       onClick={() => handleOpenEditModal(trip)}
                     >
-                      <Edit3 size={13} />
+                      <Edit3 size={12} />
                       <span>Sửa</span>
                     </button>
 
@@ -585,8 +697,8 @@ export default function CourierTripsPage() {
                       title={trip.status === 'PAUSED' ? 'Mở lại nhận đơn' : 'Tạm dừng nhận đơn'}
                       onClick={() => handleTogglePause(trip)}
                     >
-                      {trip.status === 'PAUSED' ? <PlayCircle size={13} /> : <PauseCircle size={13} />}
-                      <span>{trip.status === 'PAUSED' ? 'Mở nhận đơn' : 'Tạm dừng'}</span>
+                      {trip.status === 'PAUSED' ? <PlayCircle size={12} /> : <PauseCircle size={12} />}
+                      <span>{trip.status === 'PAUSED' ? 'Mở lại' : 'Tạm dừng'}</span>
                     </button>
 
                     {/* Complete button */}
@@ -597,7 +709,7 @@ export default function CourierTripsPage() {
                       title="Hoàn tất chuyến đi"
                       onClick={() => handleCompleteTrip(trip)}
                     >
-                      <CheckCircle2 size={13} />
+                      <CheckCircle2 size={12} />
                       <span>Hoàn tất</span>
                     </button>
 
@@ -609,7 +721,7 @@ export default function CourierTripsPage() {
                       title="Hủy chuyến đi"
                       onClick={() => handleInitiateCancel(trip)}
                     >
-                      <XCircle size={13} />
+                      <XCircle size={12} />
                       <span>Hủy</span>
                     </button>
                   </div>
@@ -621,23 +733,30 @@ export default function CourierTripsPage() {
                     type="button"
                     className="trip-card-action-btn primary"
                     onClick={() => handleOpenDetailModal(trip, 'orders')}
+                    title="Xem chi tiết hành trình và danh sách đơn đã ghép"
                   >
-                    <Layers size={15} />
-                    <span>Chi tiết & Đơn ghép ({attachedCount})</span>
+                    <Layers size={14} />
+                    <span>Chi tiết ({attachedCount})</span>
                   </button>
+
+                  {(trip.status === 'SCHEDULED' || trip.status === 'ACTIVE') && (
+                    <button
+                      type="button"
+                      className="trip-card-action-btn highlight"
+                      onClick={() => handleOpenDetailModal(trip, 'suggestions')}
+                      title="Xem các đơn hàng tiện đường phù hợp nhất với chuyến đi này"
+                    >
+                      <Sparkles size={14} />
+                      <span>Gợi ý tiện đường</span>
+                    </button>
+                  )}
 
                   <Link
                     to={`/courier/market?tripId=${trip.id}`}
-                    className="trip-card-action-btn"
-                    style={{
-                      backgroundColor: 'var(--bg-tertiary, #242d39)',
-                      color: 'var(--text-secondary, #b0bdd2)',
-                      border: '1px solid var(--border-subtle, #333d4c)',
-                    }}
-                    title="Tìm đơn mở trên sàn"
+                    className="trip-card-action-btn icon-btn"
+                    title="Mở sàn tìm kiếm đơn hàng"
                   >
                     <Search size={15} />
-                    <span>Sàn đơn</span>
                   </Link>
                 </div>
               </div>
@@ -823,12 +942,20 @@ export default function CourierTripsPage() {
                         <div key={ord.id} className="trip-order-item-card">
                           <div className="order-item-header">
                             <span className="order-code-badge">{ord.orderCode}</span>
-                            {ord.detourKm !== undefined && (
-                              <span className="order-detour-tag">
-                                <TrendingUp size={12} />
-                                Lệch ~{ord.detourKm} km
-                              </span>
-                            )}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              {ord.detourKm !== undefined && (
+                                <span className="order-detour-tag">
+                                  <TrendingUp size={12} />
+                                  Lệch ~{ord.detourKm} km
+                                </span>
+                              )}
+                              {ord.matchScore !== undefined && (
+                                <span className={`trip-match-score-badge ${ord.matchScore >= 85 ? 'high' : 'medium'}`}>
+                                  <Sparkles size={11} />
+                                  {ord.matchScore}% Phù hợp
+                                </span>
+                              )}
+                            </div>
                           </div>
 
                           <div className="order-item-product">{ord.productName}</div>
@@ -844,6 +971,16 @@ export default function CourierTripsPage() {
                             </div>
                           </div>
 
+                          {ord.matchReasons && ord.matchReasons.length > 0 && (
+                            <div className="trip-match-reasons-wrap">
+                              {ord.matchReasons.map((reason, idx) => (
+                                <span key={idx} className="trip-match-reason-pill">
+                                  ✓ {reason}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
                           <div className="order-item-footer">
                             <div>
                               <span>Khối lượng: <strong>{ord.weightKg} kg</strong></span>
@@ -853,20 +990,47 @@ export default function CourierTripsPage() {
                                 </span>
                               )}
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                               {ord.priceSuggested && (
                                 <span className="order-price-tag">
                                   {Number(ord.priceSuggested).toLocaleString('vi-VN')} ₫
                                 </span>
                               )}
+
+                              {selectedTrip.status !== 'PAUSED' && selectedTrip.status !== 'COMPLETED' && selectedTrip.status !== 'CANCELLED' && (
+                                <>
+                                  <button
+                                    type="button"
+                                    className="trip-modal-btn accept"
+                                    style={{ padding: '6px 12px', fontSize: '0.82rem' }}
+                                    onClick={() => setQuickAcceptOrder(ord)}
+                                    title="Nhận đơn ngay theo giá niêm yết"
+                                  >
+                                    <Check size={13} style={{ marginRight: '4px' }} />
+                                    <span>Nhận ngay</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    className="trip-modal-btn bid"
+                                    style={{ padding: '6px 12px', fontSize: '0.82rem' }}
+                                    onClick={() => handleOpenQuickBid(ord)}
+                                    title="Gửi báo giá chào cạnh tranh"
+                                  >
+                                    <DollarSign size={13} style={{ marginRight: '3px' }} />
+                                    <span>Chào giá</span>
+                                  </button>
+                                </>
+                              )}
+
                               <button
                                 type="button"
-                                className="trip-modal-btn primary"
-                                style={{ padding: '6px 12px', fontSize: '0.82rem' }}
+                                className="trip-card-sub-btn"
+                                style={{ padding: '6px 8px' }}
                                 onClick={() => navigate(`/courier/market/${ord.id}?tripId=${selectedTrip.id}`)}
+                                title="Xem chi tiết đơn trên sàn"
                               >
-                                <span>Nhận / Chào giá</span>
-                                <ArrowRight size={13} style={{ marginLeft: '4px' }} />
+                                <ExternalLink size={13} />
                               </button>
                             </div>
                           </div>
@@ -1201,6 +1365,160 @@ export default function CourierTripsPage() {
                 </button>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: QUICK ACCEPT CONFIRMATION */}
+      {quickAcceptOrder && selectedTrip && (
+        <div className="trip-modal-overlay" onClick={() => setQuickAcceptOrder(null)}>
+          <div className="quick-action-dialog" onClick={(e) => e.stopPropagation()}>
+            <h3>
+              <CheckCircle2 size={20} style={{ color: '#10b981' }} />
+              <span>Xác nhận nhận đơn tiện đường</span>
+            </h3>
+
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '14px', lineHeight: 1.5 }}>
+              Bạn đang nhận đơn hàng <strong>#{quickAcceptOrder.orderCode}</strong> ({quickAcceptOrder.productName}) và ghép vào chuyến đi #{selectedTrip.id}.
+            </p>
+
+            <div
+              style={{
+                backgroundColor: 'var(--bg-secondary)',
+                borderRadius: '8px',
+                padding: '12px 14px',
+                marginBottom: '16px',
+                fontSize: '0.85rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Giá cước niêm yết:</span>
+                <strong style={{ color: '#34d399', fontSize: '1rem' }}>
+                  {Number(quickAcceptOrder.priceSuggested || 0).toLocaleString('vi-VN')} ₫
+                </strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Khối lượng kiện hàng:</span>
+                <span>{quickAcceptOrder.weightKg} kg (Sức chứa chuyến: {selectedTrip.capacityKg} kg)</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Độ lệch ước tính:</span>
+                <span style={{ color: '#60a5fa' }}>~{quickAcceptOrder.detourKm ?? 0} km</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                className="trip-modal-btn secondary"
+                onClick={() => setQuickAcceptOrder(null)}
+                disabled={quickAccepting}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                className="trip-modal-btn accept"
+                onClick={handleConfirmQuickAccept}
+                disabled={quickAccepting}
+              >
+                {quickAccepting ? 'Đang nhận đơn...' : 'Xác nhận nhận đơn'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: QUICK BID */}
+      {quickBidOrder && selectedTrip && (
+        <div className="trip-modal-overlay" onClick={() => setQuickBidOrder(null)}>
+          <div className="quick-action-dialog" onClick={(e) => e.stopPropagation()}>
+            <h3>
+              <DollarSign size={20} style={{ color: 'var(--primary, #f37021)' }} />
+              <span>Gửi chào giá nhanh cho đơn hàng</span>
+            </h3>
+
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '14px' }}>
+              Đơn hàng: <strong>#{quickBidOrder.orderCode}</strong> ({quickBidOrder.productName}) • Giá gợi ý:{' '}
+              <strong style={{ color: '#34d399' }}>
+                {Number(quickBidOrder.priceSuggested || 0).toLocaleString('vi-VN')} ₫
+              </strong>
+            </p>
+
+            {quickBidError && (
+              <div className="trip-alert-box error" style={{ padding: '8px 12px', fontSize: '0.82rem', marginBottom: '12px' }}>
+                <AlertCircle size={14} />
+                <span>{quickBidError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleConfirmQuickBid}>
+              <div className="quick-action-field">
+                <label>
+                  Giá đề xuất của bạn (₫) *
+                  {quickBidOrder.priceSuggested && (
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginLeft: '6px' }}>
+                      (Biên cho phép: {Math.round(quickBidOrder.priceSuggested * 0.7).toLocaleString('vi-VN')} ₫ - {Math.round(quickBidOrder.priceSuggested * 1.5).toLocaleString('vi-VN')} ₫)
+                    </span>
+                  )}
+                </label>
+                <input
+                  type="number"
+                  className="quick-action-input"
+                  value={quickBidPrice}
+                  onChange={(e) => setQuickBidPrice(e.target.value)}
+                  step="1000"
+                  required
+                />
+              </div>
+
+              <div className="quick-action-field">
+                <label>Thời gian dự kiến có mặt lấy hàng (phút kể từ khi chốt)</label>
+                <select
+                  className="quick-action-input"
+                  value={quickBidEta}
+                  onChange={(e) => setQuickBidEta(e.target.value)}
+                >
+                  <option value="15">Trong vòng 15 phút</option>
+                  <option value="30">Trong vòng 30 phút</option>
+                  <option value="45">Trong vòng 45 phút</option>
+                  <option value="60">Trong vòng 60 phút</option>
+                  <option value="120">Trong vòng 2 giờ</option>
+                </select>
+              </div>
+
+              <div className="quick-action-field">
+                <label>Lời nhắn gửi người gửi</label>
+                <textarea
+                  className="quick-action-textarea"
+                  rows={2}
+                  value={quickBidMessage}
+                  onChange={(e) => setQuickBidMessage(e.target.value)}
+                  placeholder="Nhập ghi chú cho người gửi..."
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
+                <button
+                  type="button"
+                  className="trip-modal-btn secondary"
+                  onClick={() => setQuickBidOrder(null)}
+                  disabled={quickBidding}
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  className="trip-modal-btn primary"
+                  disabled={quickBidding}
+                >
+                  {quickBidding ? 'Đang gửi...' : 'Gửi báo giá'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
