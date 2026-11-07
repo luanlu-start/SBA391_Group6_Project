@@ -41,6 +41,7 @@ import CreateTripPage from '../pages/CreateTripPage';
 import CourierTripsPage from '../pages/CourierTripsPage';
 import RequireRole from './RequireRole';
 import CourierAssignedOrdersPage from '../pages/CourierAssignedOrdersPage';
+import CourierBatchPage from '../pages/CourierBatchPage';
 
 const UiKitPage = import.meta.env.DEV ? lazy(() => import('../pages/UiKitPage')) : null;
 
@@ -78,6 +79,10 @@ export default function AppRoutes() {
         <Route
           path="courier/orders"
           element={<CourierAssignedOrdersPage />}
+        />
+        <Route
+          path="courier/batch"
+          element={<CourierBatchPage />}
         />
       </Route>
         <Route index element={<HomePage />} />

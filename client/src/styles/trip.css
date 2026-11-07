@@ -447,9 +447,9 @@
   z-index: 1;
 }
 
-/* Nền bản đồ tối màu đồng bộ với Dark Mode của hệ thống, không làm ảnh hưởng ghim và đường lộ trình */
+/* Nền bản đồ màu sáng đồng bộ toàn hệ thống */
 .trip-map-container .leaflet-tile-pane {
-  filter: brightness(0.7) invert(1) contrast(2.8) hue-rotate(200deg) saturate(0.25) brightness(0.75);
+  filter: none !important;
 }
 
 /* Custom Pin Markers for Origin & Destination */
