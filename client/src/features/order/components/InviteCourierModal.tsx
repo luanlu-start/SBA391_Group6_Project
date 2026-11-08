@@ -25,6 +25,7 @@ interface InviteCourierModalProps {
     orderId: string | number;
     orderCode: string;
     onSuccess?: () => void;
+    initialCourierId?: number | null;
 }
 
 export default function InviteCourierModal({
@@ -33,6 +34,7 @@ export default function InviteCourierModal({
     orderId,
     orderCode,
     onSuccess,
+    initialCourierId,
 }: InviteCourierModalProps): React.ReactElement {
     const [activeTab, setActiveTab] = useState<'favorites' | 'search'>('favorites');
     const [favorites, setFavorites] = useState<FavoriteCourier[]>([]);
@@ -80,12 +82,15 @@ export default function InviteCourierModal({
         if (isOpen) {
             setError(null);
             setSuccessMsg(null);
-            setSelectedCourierId(null);
+            setSelectedCourierId(initialCourierId || null);
             setMessage('');
+            if (initialCourierId) {
+                setActiveTab('search');
+            }
             loadFavorites();
             handleSearch('');
         }
-    }, [isOpen, loadFavorites, handleSearch]);
+    }, [isOpen, initialCourierId, loadFavorites, handleSearch]);
 
     // Toggle favorite
     const handleToggleFavorite = async (courierId: number, e: React.MouseEvent) => {

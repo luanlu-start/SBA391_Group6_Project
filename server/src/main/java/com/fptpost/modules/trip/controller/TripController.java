@@ -178,7 +178,7 @@ public class TripController {
     // ==========================================
     // Đơn gợi ý cho chuyến đi (API-053)
     // ==========================================
-    @GetMapping({"/trips/{id}/suggested-orders", "/matching/orders-for-trip/{id}"})
+    @GetMapping("/trips/{id}/suggested-orders")
     @Operation(summary = "API-053: Đơn gợi ý cho chuyến đi", description = "Gợi ý các đơn hàng tiện đường phù hợp với hành trình và sức chứa")
     public ResponseEntity<ApiResponse<List<TripAttachedOrderResponse>>> getSuggestedOrders(
             @PathVariable("id") Long id,

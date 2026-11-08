@@ -1,6 +1,6 @@
 import { Link, NavLink } from 'react-router-dom';
 import { useState } from 'react';
-import { Menu, Package, PanelsTopLeft, Settings2, ShieldCheck, UserRound, Wallet, X, Navigation, CreditCard } from 'lucide-react';
+import { Menu, Package, PanelsTopLeft, Settings2, ShieldCheck, UserRound, Wallet, X, Navigation, CreditCard, Layers } from 'lucide-react';
 import NotificationBell from '../../features/notifications/NotificationBell';
 import { useAuthentication } from '../../auth/useAuthentication';
 import { useAccountMode } from '../../auth/useAccountMode';
@@ -33,6 +33,13 @@ export default function Navbar() {
               </NavLink>
               <NavLink to="/courier/trips" className="nav-link" onClick={closeMenu}>
                 <Navigation size={15} aria-hidden="true" /> Chuyến đi
+              </NavLink>
+
+              <NavLink to="/courier/orders" className="nav-link" onClick={closeMenu}>
+                <Package size={15} aria-hidden="true" /> Đơn nhận
+              </NavLink>
+              <NavLink to="/courier/batch" className="nav-link" onClick={closeMenu}>
+                <Layers size={15} aria-hidden="true" /> Gộp đơn
               </NavLink>
             </>
           )}

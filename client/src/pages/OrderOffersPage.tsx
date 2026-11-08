@@ -33,6 +33,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import ApiErrorNotice from '../components/ApiErrorNotice';
 import Modal from '../components/ui/Modal';
 import InviteCourierModal from '../features/order/components/InviteCourierModal';
+import SuggestedCouriersCard from '../features/matching/components/SuggestedCouriersCard';
 
 const numberFormat = new Intl.NumberFormat('vi-VN');
 
@@ -44,6 +45,7 @@ export default function OrderOffersPage(): React.ReactElement {
     const [offers, setOffers] = useState<Offer[]>([]);
     const [invitations, setInvitations] = useState<Invitation[]>([]);
     const [isInviteModalOpen, setIsInviteModalOpen] = useState<boolean>(false);
+    const [invitedCourierId, setInvitedCourierId] = useState<number | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [actionLoading, setActionLoading] = useState<boolean>(false);
     const [error, setError] = useState<ApiError | null>(null);
@@ -315,6 +317,16 @@ export default function OrderOffersPage(): React.ReactElement {
                     </div>
                 </div>
             </SectionCard>
+
+            {/* Tài xế tiện đường gợi ý (Ghép đơn - chuyến) */}
+            <SuggestedCouriersCard
+                orderId={order.id}
+                isOrderOpen={isOrderOpen}
+                onInviteCourier={(courierId) => {
+                    setInvitedCourierId(courierId);
+                    setIsInviteModalOpen(true);
+                }}
+            />
 
             {/* Lời mời trực tiếp */}
             <SectionCard
@@ -927,10 +939,14 @@ export default function OrderOffersPage(): React.ReactElement {
             {id && (
                 <InviteCourierModal
                     isOpen={isInviteModalOpen}
-                    onClose={() => setIsInviteModalOpen(false)}
+                    onClose={() => {
+                        setIsInviteModalOpen(false);
+                        setInvitedCourierId(null);
+                    }}
                     orderId={id}
                     orderCode={order.orderCode}
                     onSuccess={loadData}
+                    initialCourierId={invitedCourierId}
                 />
             )}
         </div>
