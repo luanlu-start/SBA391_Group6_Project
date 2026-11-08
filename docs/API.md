@@ -63,6 +63,32 @@ Người thực hiện tìm theo tên, email hoặc UUID qua interface đọc c�
 các mã thao tác/đối tượng lấy từ toàn bộ nhật ký đã ghi nhận. UUID lịch sử không còn tài khoản
 vẫn tìm được bằng mã đầy đủ. API chỉ cho ADMIN, trả no-store và không ghi dữ liệu.
 
+## UC-41 đã triển khai — ADMIN
+
+| Method | Đường dẫn | Chức năng |
+| --- | --- | --- |
+| GET | /api/v1/admin/withdrawals | API-100: hàng đợi; `status` = `OPEN` (mặc định), `ALL` hoặc một trạng thái; `q`, `page`, `size` ≤ 100 |
+| GET | /api/v1/admin/withdrawals/{id} | Chi tiết kèm đối chiếu ví (khả dụng, chờ rút, ký quỹ, lịch sử chi); endpoint bổ sung |
+| POST | /api/v1/admin/withdrawals/{id}/approve | API-101: duyệt cấp 1/cấp 2 |
+| POST | /api/v1/admin/withdrawals/{id}/reject | API-102: `{reason}`, hoàn tiền về ví khả dụng |
+| POST | /api/v1/admin/withdrawals/{id}/mark-paid | API-103: `{reference}` mã chuyển khoản, duy nhất |
+| POST | /api/v1/admin/withdrawals/{id}/mark-failed | `{reason}`, hoàn tiền về ví; endpoint bổ sung cho luồng A2 |
+| POST | /api/v1/admin/withdrawals/export | API-104: CSV UTF-8 các yêu cầu `APPROVED` (tối đa 200), chuyển sang `PROCESSING` |
+| POST | /api/v1/admin/withdrawals/import-result | API-105: multipart `file` CSV ≤ 1 MB, ≤ 500 dòng |
+
+Trạng thái: `PENDING_REVIEW → APPROVED_L1 → APPROVED → PROCESSING → PAID`; nhánh
+`REJECTED`, `FAILED` hoàn tiền chờ rút về ví khả dụng, `CANCELLED` do người dùng hủy (UC-40).
+Yêu cầu từ `DUAL_APPROVE` (PRM-065) cần hai Admin khác nhau; Admin không xử lý yêu cầu
+do chính mình đứng tên. `dueAt` cộng `WD_SLA` (PRM-064) ngày làm việc theo giờ Việt Nam.
+
+Chi trả qua interface `PayoutProvider`, chọn bằng `PAYOUT_PROVIDER`: `manual` (mặc định, Admin
+chuyển khoản rồi nhập mã hoặc nhập tệp kết quả) hoặc `mock` (chi ngay cho demo).
+Tệp xuất có cột `request_code, bank_name, account_number, account_holder_name, amount,
+transfer_content, vietqr_url, result, reference, reason`; điền `result` là `PAID` kèm `reference`
+hoặc `FAILED` kèm `reason` rồi nhập lại. Mỗi dòng xử lý trong giao dịch riêng, response trả
+số dòng đã chi/thất bại và danh sách lỗi theo dòng. Mọi thay đổi ghi sổ cái kép, audit và
+thông báo người dùng (nhóm PAYMENT) trong cùng giao dịch.
+
 ## Endpoint base đã có
 
 | Method | Đường dẫn | Kết quả |

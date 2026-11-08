@@ -267,5 +267,77 @@ public class LedgerService {
         log.info("Saved ledger transaction for withdrawal cancellation: txnCode={}, requestCode={}, amount={}", txnCode, requestCode, amount);
         return saved;
     }
+
+    @Transactional
+    public LedgerTransaction recordWithdrawalRefund(Long userId, Long amount, String requestCode) {
+        String idemKey = "REFUND_WDR_" + requestCode;
+        if (ledgerTransactionRepository.existsByIdempotencyKey(idemKey)) {
+            return ledgerTransactionRepository.findByIdempotencyKey(idemKey).orElse(null);
+        }
+
+        LedgerTransaction txn = LedgerTransaction.builder()
+                .transactionCode("LTX-WDR-REF-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
+                .type(LedgerTransactionType.WITHDRAWAL_REFUND)
+                .status(LedgerTransactionStatus.COMPLETED)
+                .idempotencyKey(idemKey)
+                .refType("WITHDRAWAL_REQUEST")
+                .refId(requestCode)
+                .amount(amount)
+                .description("Hoàn tiền yêu cầu rút #" + requestCode + " về số dư khả dụng ví ID " + userId)
+                .build();
+
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("CLEARING_WITHDRAWAL")
+                .accountType("LIABILITY")
+                .debit(amount)
+                .credit(0L)
+                .build());
+
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("USER_WALLET_" + userId)
+                .accountType("LIABILITY")
+                .debit(0L)
+                .credit(amount)
+                .build());
+
+        return ledgerTransactionRepository.save(txn);
+    }
+
+    @Transactional
+    public LedgerTransaction recordWithdrawalPayout(Long userId, Long amount, String requestCode, String payoutReference) {
+        String idemKey = "PAYOUT_WDR_" + requestCode;
+        if (ledgerTransactionRepository.existsByIdempotencyKey(idemKey)) {
+            return ledgerTransactionRepository.findByIdempotencyKey(idemKey).orElse(null);
+        }
+
+        LedgerTransaction txn = LedgerTransaction.builder()
+                .transactionCode("LTX-WDR-PAY-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
+                .type(LedgerTransactionType.WITHDRAWAL_PAYOUT)
+                .status(LedgerTransactionStatus.COMPLETED)
+                .idempotencyKey(idemKey)
+                .refType("WITHDRAWAL_REQUEST")
+                .refId(requestCode)
+                .amount(amount)
+                .description("Chi trả yêu cầu rút #" + requestCode + " cho người dùng ID " + userId
+                        + ", tham chiếu " + payoutReference)
+                .build();
+
+        // Clearing liability is settled against the platform's payout bank account.
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("CLEARING_WITHDRAWAL")
+                .accountType("LIABILITY")
+                .debit(amount)
+                .credit(0L)
+                .build());
+
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("PAYOUT_BANK")
+                .accountType("ASSET")
+                .debit(0L)
+                .credit(amount)
+                .build());
+
+        return ledgerTransactionRepository.save(txn);
+    }
 }
 

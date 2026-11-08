@@ -89,7 +89,9 @@ export type LedgerTransactionType =
   | 'ESCROW_RELEASE'
   | 'ESCROW_REFUND'
   | 'WITHDRAWAL_REQUEST'
-  | 'WITHDRAWAL_CANCEL';
+  | 'WITHDRAWAL_CANCEL'
+  | 'WITHDRAWAL_REFUND'
+  | 'WITHDRAWAL_PAYOUT';
 
 export type LedgerTransactionStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'REVERSED';
 
@@ -126,7 +128,15 @@ export interface WalletStatementResponse {
   transactions: WalletTransactionResponse[];
 }
 
-export type WithdrawalStatus = 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+export type WithdrawalStatus =
+  | 'PENDING_REVIEW'
+  | 'APPROVED_L1'
+  | 'APPROVED'
+  | 'PROCESSING'
+  | 'PAID'
+  | 'REJECTED'
+  | 'FAILED'
+  | 'CANCELLED';
 
 export interface WithdrawalCreationRequest {
   amount: number;
@@ -147,6 +157,8 @@ export interface WithdrawalResponse {
   accountHolderName: string;
   status: WithdrawalStatus;
   rejectionReason?: string;
+  failureReason?: string;
+  payoutReference?: string;
   createdAt: string;
   updatedAt: string;
 }

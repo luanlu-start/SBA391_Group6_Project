@@ -167,7 +167,7 @@ class WithdrawalServiceTest {
         testWallet.setAvailable(300_000L);
         testWallet.setPendingWithdraw(150_000L);
 
-        when(withdrawalRequestRepository.findById(200L)).thenReturn(Optional.of(existingWdr));
+        when(withdrawalRequestRepository.findByIdForUpdate(200L)).thenReturn(Optional.of(existingWdr));
         when(walletRepository.findByUserIdForUpdate(USER_ID)).thenReturn(Optional.of(testWallet));
         when(withdrawalRequestRepository.save(any(WithdrawalRequest.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -188,7 +188,7 @@ class WithdrawalServiceTest {
     @Test
     @DisplayName("Hủy yêu cầu rút tiền thất bại khi yêu cầu không tồn tại")
     void cancelWithdrawalRequest_NotFound() {
-        when(withdrawalRequestRepository.findById(999L)).thenReturn(Optional.empty());
+        when(withdrawalRequestRepository.findByIdForUpdate(999L)).thenReturn(Optional.empty());
 
         AppException ex = assertThrows(AppException.class, () ->
                 withdrawalService.cancelWithdrawalRequest(USER_ID, 999L));
@@ -207,7 +207,7 @@ class WithdrawalServiceTest {
                 .status(WithdrawalStatus.PENDING_REVIEW)
                 .build();
 
-        when(withdrawalRequestRepository.findById(300L)).thenReturn(Optional.of(otherUserWdr));
+        when(withdrawalRequestRepository.findByIdForUpdate(300L)).thenReturn(Optional.of(otherUserWdr));
 
         AppException ex = assertThrows(AppException.class, () ->
                 withdrawalService.cancelWithdrawalRequest(USER_ID, 300L));
@@ -226,7 +226,7 @@ class WithdrawalServiceTest {
                 .status(WithdrawalStatus.APPROVED)
                 .build();
 
-        when(withdrawalRequestRepository.findById(400L)).thenReturn(Optional.of(approvedWdr));
+        when(withdrawalRequestRepository.findByIdForUpdate(400L)).thenReturn(Optional.of(approvedWdr));
 
         AppException ex = assertThrows(AppException.class, () ->
                 withdrawalService.cancelWithdrawalRequest(USER_ID, 400L));
