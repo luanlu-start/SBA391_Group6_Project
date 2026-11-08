@@ -8,6 +8,7 @@ import WorkspaceLayout from './WorkspaceLayout';
 
 import { Gauge } from 'lucide-react';
 import { Scale } from 'lucide-react';
+import { Landmark } from 'lucide-react';
 
 export default function AdminLayout() {
   const { user, initializing } = useAuthentication();
@@ -28,6 +29,7 @@ export default function AdminLayout() {
       { label: 'Thông báo', to: '/notifications', icon: <Bell size={17} /> },
       { label: 'Uy tín người giao', to: '/admin/trust', icon: <Gauge size={17} /> },
       { label: 'Khiếu nại và kháng nghị', to: '/mod/complaints', icon: <Scale size={17} /> },
+      { label: 'Quỹ bảo đảm', to: '/admin/guarantee', icon: <Landmark size={17} /> },
     ]}
     headerActions={<><NotificationBell /><Link to="/account" className="ui-button ui-button-ghost ui-button-sm">{user.fullName}</Link></>}>
     <Outlet />
