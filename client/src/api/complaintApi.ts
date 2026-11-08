@@ -18,7 +18,8 @@ export const complaintApi = {
     const form = new FormData();
     form.append('request', new Blob([JSON.stringify({ body })], { type: 'application/json' }));
     files.forEach(file => form.append('files', file));
-    return axiosClient.post<unknown, ApiResponse<ComplaintDetail>>(`${complaintPath(id)}/messages`, form);
+    return axiosClient.post<unknown, ApiResponse<ComplaintDetail>>(`${complaintPath(id)}/messages`, form,
+      { headers: { 'Content-Type': 'multipart/form-data' } });
   },
   appeal: (id: string, reason: string) =>
     axiosClient.post<unknown, ApiResponse<ComplaintDetail>>(`${complaintPath(id)}/appeal`, { reason }),

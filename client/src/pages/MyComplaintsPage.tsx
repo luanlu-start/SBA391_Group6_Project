@@ -15,9 +15,14 @@ import type { TableColumn } from '../components/ui/DataTable';
 import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
 import { formatTime, reasonLabels, statusLabels, statusTones } from '../features/complaints/complaintPresentation';
+import SignedIn from '../features/complaints/components/SignedIn';
 import '../styles/complaints.css';
 
 export default function MyComplaintsPage() {
+  return <SignedIn><ComplaintList /></SignedIn>;
+}
+
+function ComplaintList() {
   const [page, setPage] = useState(0);
   const [result, setResult] = useState<PageResponse<ComplaintSummary> | null>(null);
   const [loading, setLoading] = useState(true);

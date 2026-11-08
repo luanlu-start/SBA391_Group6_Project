@@ -61,7 +61,9 @@ export const escrowLabels: Record<EscrowState, string> = {
 };
 
 const money = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 });
-const time = new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Ho_Chi_Minh' });
+const time = new Intl.DateTimeFormat('vi-VN', {
+  day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh',
+});
 
 export const formatMoney = (value: number | null | undefined) => money.format(value ?? 0);
 export const formatTime = (value: string | null | undefined) => (value ? time.format(new Date(value)) : '—');
