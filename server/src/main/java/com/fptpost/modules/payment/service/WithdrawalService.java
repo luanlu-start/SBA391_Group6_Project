@@ -99,7 +99,7 @@ public class WithdrawalService {
      */
     @Transactional
     public WithdrawalResponse cancelWithdrawalRequest(Long userId, Long withdrawalId) {
-        WithdrawalRequest wdr = withdrawalRequestRepository.findById(withdrawalId)
+        WithdrawalRequest wdr = withdrawalRequestRepository.findByIdForUpdate(withdrawalId)
                 .orElseThrow(() -> new AppException(PaymentErrorCode.WITHDRAWAL_REQUEST_NOT_FOUND));
 
         if (!wdr.getUserId().equals(userId)) {
@@ -189,6 +189,8 @@ public class WithdrawalService {
                 .accountHolderName(entity.getAccountHolderName())
                 .status(entity.getStatus())
                 .rejectionReason(entity.getRejectionReason())
+                .failureReason(entity.getFailureReason())
+                .payoutReference(entity.getPayoutReference())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();

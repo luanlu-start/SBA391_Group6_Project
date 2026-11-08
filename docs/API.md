@@ -7,6 +7,23 @@ và [SPEC](sources/fptpost-spec-v1.0.pdf), mục 6. Danh mục cũ bên dưới 
 Nghiệp vụ/phân công hiện tại theo workbook `FPTPost_Dac_ta_BR_UC (1).xlsx` do nhóm cung cấp.
 Các mục UC-45, UC-46 và UC-60 bên dưới mô tả API đã triển khai theo bản đang áp dụng.
 
+## UC-55 đã triển khai — Người dùng, MODERATOR/ADMIN
+
+| Method | Đường dẫn | Chức năng |
+| --- | --- | --- |
+| POST | /api/v1/reports | API-139: multipart `request` (`targetType` ORDER/USER/MESSAGE, `targetId`, `reason`, `description`) và tối đa 3 `files` ảnh |
+| GET | /api/v1/me/reports | Báo cáo tôi đã gửi và trạng thái hồ sơ |
+| GET | /api/v1/mod/reports | API-140: hàng đợi (`status` OPEN/RESOLVED/DISMISSED, `targetType`), nhiều báo cáo hiển thị trước |
+| GET | /api/v1/mod/reports/{id} | Chi tiết hồ sơ, các báo cáo đã gộp, số lần người bị báo cáo từng vi phạm |
+| GET | /api/v1/mod/reports/{id}/evidence/{evidenceId} | Ảnh bằng chứng (kho riêng tư) |
+| POST | /api/v1/mod/reports/{id}/resolve | `{action: WARN/ESCALATE/DISMISS, note}` |
+
+Mỗi đối tượng có tối đa một hồ sơ đang mở; báo cáo trùng được gộp vào hồ sơ đó (luồng A1), một người
+báo cáo lại cùng hồ sơ không tạo bản ghi mới. Người dùng chỉ báo cáo đơn đang mở trên sàn hoặc đơn mình
+tham gia, tin nhắn trong cuộc trò chuyện của mình, và không tự báo cáo. `WARN` gửi cảnh cáo cho người bị
+báo cáo; `ESCALATE` cảnh cáo và thông báo Admin kèm liên kết hồ sơ người dùng để xem xét khóa (UC-56);
+`DISMISS` đóng hồ sơ. Người báo cáo nhận kết quả, quyết định ghi audit.
+
 ## UC-45 đã triển khai — ADMIN
 
 | Method | Đường dẫn | Chức năng |
@@ -31,6 +48,26 @@ Mọi mutation ghi audit trong cùng giao dịch SQL, response no-store và ch�
 UC-44 sử dụng snapshot từ `PromotionCatalog` trong module pricing. Luồng áp mã/reserve/redeem
 vào Order/Payment do owner UC-44 tích hợp; quản trị UC-45 chưa thực hiện thao tác đó.
 
+## UC-57 đã triển khai — ADMIN
+
+| Method | Đường dẫn | Chức năng |
+| --- | --- | --- |
+| GET | /api/v1/admin/users | API-144: `q` (email, SĐT dạng 0xxx hoặc +84, họ tên, mã), `role`, `status`, `page`, `size` ≤ 100 |
+| GET | /api/v1/admin/users/{publicId} | API-145: hồ sơ, KYC, người giao, ví, đơn và giao dịch gần đây, phiên, yêu cầu dữ liệu |
+| PUT | /api/v1/admin/users/{publicId}/roles | API-146: `{roles}`; thu hồi mọi phiên của người dùng |
+| GET/POST | /api/v1/admin/staff | API-147: danh sách và tạo tài khoản MODERATOR/ADMIN |
+| GET | /api/v1/admin/account-requests | Yêu cầu xuất/xóa dữ liệu (`status` mặc định PENDING, `type`) |
+| POST | /api/v1/admin/account-requests/{id}/complete | Xuất dữ liệu: cho phép người dùng tải; xóa: ẩn danh tài khoản |
+| POST | /api/v1/admin/account-requests/{id}/reject | `{reason}` gửi tới người dùng |
+| GET | /api/v1/admin/account-requests/{id}/export | Admin xem trước bản sao JSON |
+| GET | /api/v1/me/data-requests/{id}/export | Người dùng tải bản sao trong 7 ngày sau khi được duyệt |
+
+Admin không tự đổi vai trò hay tự xử lý yêu cầu của mình; không gỡ ADMIN của quản trị viên cuối cùng;
+vai trò COURIER chỉ cấp khi đã có hồ sơ người giao (UC-10). Tài khoản nhân sự không có mật khẩu
+được đặt hộ: nhân sự nhận thông báo và tự đặt qua Quên mật khẩu (UC-05).
+Ẩn danh (BR-N-040) chỉ chạy khi ví bằng 0 và không còn đơn đang xử lý; email/SĐT/họ tên/địa chỉ bị xóa
+hoặc thay thế, phiên bị thu hồi, đơn và sổ cái được giữ. Mọi thao tác ghi audit.
+
 ## UC-46 đã triển khai — ADMIN
 
 | Method | Đường dẫn | Chức năng |
@@ -44,6 +81,24 @@ vào Order/Payment do owner UC-44 tích hợp; quản trị UC-45 chưa thực h
 Request/response thực tế tra trong Swagger/OpenAPI của ứng dụng đang chạy;
 quy ước lỗi xem [API-ERRORS.md](API-ERRORS.md).
 Simulation hiện dùng adapter `REFERENCE` trong dev/demo/test/local; production/staging cần Pricing provider thật.
+
+## UC-54 đã triển khai — MODERATOR/ADMIN
+
+| Method | Đường dẫn | Chức năng |
+| --- | --- | --- |
+| GET | /api/v1/mod/orders/pending | API-136: hàng đợi, `q` (mã vận đơn/tên hàng), `page`, `size` ≤ 100; đơn gửi trước hiển thị trước |
+| GET | /api/v1/mod/orders/{orderId} | Chi tiết: nội dung, ảnh, danh mục, từ khóa khớp, số lần người gửi bị từ chối gần đây |
+| POST | /api/v1/mod/orders/{orderId}/approve | API-137: đơn `PENDING → FINDING_SHIPPER` |
+| POST | /api/v1/mod/orders/{orderId}/reject | API-138: `{reason}`, đơn `PENDING → REJECTED` |
+| GET | /api/v1/orders/{orderId}/moderation | Người gửi xem kết quả và lý do; không trả từ khóa đã khớp |
+| GET/POST/DELETE | /api/v1/admin/moderation-keywords | ADMIN quản trị từ khóa `PROHIBITED`/`SUSPICIOUS` (BR-C-012) |
+
+Kiểm duyệt tự động chạy trong giao dịch tạo/sửa đơn (UC-12 bước 7, UC-14 bước 5): đơn có tên, mô tả
+hoặc ghi chú khớp nguyên từ với từ khóa, hoặc danh mục `isProhibited`/`requiresReview`, ở lại `PENDING`
+và vào hàng đợi; đơn sạch chuyển `FINDING_SHIPPER` (lên sàn). Sửa đơn đã được duyệt mà không đổi nội dung
+thì không phải duyệt lại. Người gửi bị từ chối từ `app.moderation.repeat-rejection-threshold` (3) lần trong
+`app.moderation.repeat-rejection-window-days` (30) ngày nhận cảnh báo. Kiểm duyệt viên không xử lý đơn của
+chính mình; mọi quyết định ghi audit và thông báo người gửi (nhóm ORDER).
 
 ## UC-60 đã triển khai — ADMIN
 
@@ -62,6 +117,32 @@ Schema, index và retention xem [DATABASE.md](DATABASE.md#index-và-retention-uc
 Người thực hiện tìm theo tên, email hoặc UUID qua interface đọc của Identity;
 các mã thao tác/đối tượng lấy từ toàn bộ nhật ký đã ghi nhận. UUID lịch sử không còn tài khoản
 vẫn tìm được bằng mã đầy đủ. API chỉ cho ADMIN, trả no-store và không ghi dữ liệu.
+
+## UC-41 đã triển khai — ADMIN
+
+| Method | Đường dẫn | Chức năng |
+| --- | --- | --- |
+| GET | /api/v1/admin/withdrawals | API-100: hàng đợi; `status` = `OPEN` (mặc định), `ALL` hoặc một trạng thái; `q`, `page`, `size` ≤ 100 |
+| GET | /api/v1/admin/withdrawals/{id} | Chi tiết kèm đối chiếu ví (khả dụng, chờ rút, ký quỹ, lịch sử chi); endpoint bổ sung |
+| POST | /api/v1/admin/withdrawals/{id}/approve | API-101: duyệt cấp 1/cấp 2 |
+| POST | /api/v1/admin/withdrawals/{id}/reject | API-102: `{reason}`, hoàn tiền về ví khả dụng |
+| POST | /api/v1/admin/withdrawals/{id}/mark-paid | API-103: `{reference}` mã chuyển khoản, duy nhất |
+| POST | /api/v1/admin/withdrawals/{id}/mark-failed | `{reason}`, hoàn tiền về ví; endpoint bổ sung cho luồng A2 |
+| POST | /api/v1/admin/withdrawals/export | API-104: CSV UTF-8 các yêu cầu `APPROVED` (tối đa 200), chuyển sang `PROCESSING` |
+| POST | /api/v1/admin/withdrawals/import-result | API-105: multipart `file` CSV ≤ 1 MB, ≤ 500 dòng |
+
+Trạng thái: `PENDING_REVIEW → APPROVED_L1 → APPROVED → PROCESSING → PAID`; nhánh
+`REJECTED`, `FAILED` hoàn tiền chờ rút về ví khả dụng, `CANCELLED` do người dùng hủy (UC-40).
+Yêu cầu từ `DUAL_APPROVE` (PRM-065) cần hai Admin khác nhau; Admin không xử lý yêu cầu
+do chính mình đứng tên. `dueAt` cộng `WD_SLA` (PRM-064) ngày làm việc theo giờ Việt Nam.
+
+Chi trả qua interface `PayoutProvider`, chọn bằng `PAYOUT_PROVIDER`: `manual` (mặc định, Admin
+chuyển khoản rồi nhập mã hoặc nhập tệp kết quả) hoặc `mock` (chi ngay cho demo).
+Tệp xuất có cột `request_code, bank_name, account_number, account_holder_name, amount,
+transfer_content, vietqr_url, result, reference, reason`; điền `result` là `PAID` kèm `reference`
+hoặc `FAILED` kèm `reason` rồi nhập lại. Mỗi dòng xử lý trong giao dịch riêng, response trả
+số dòng đã chi/thất bại và danh sách lỗi theo dòng. Mọi thay đổi ghi sổ cái kép, audit và
+thông báo người dùng (nhóm PAYMENT) trong cùng giao dịch.
 
 ## Endpoint base đã có
 
@@ -108,6 +189,20 @@ Product CRUD là ví dụ kỹ thuật, không tương ứng UC-12 hay các API 
 UC-01–06 đã có đăng ký, xác thực email, đăng nhập, refresh rotation, quản lý phiên, khôi phục và đổi mật khẩu.
 UC-34, UC-35 và UC-36 đã được triển khai hoàn chỉnh cho cả Backend, Security và Frontend: nạp tiền vào ví qua cổng VNPay (SCR-42), thanh toán và ký quỹ đơn hàng (SCR-22), giải ngân tiền ký quỹ cho shipper (UC-36), quản lý bút toán sổ cái kép (ledger) và xử lý IPN đa mục đích (WALLET_TOPUP / ORDER_ESCROW) bảo đảm tính toàn vẹn (idempotency).
 Product/Activity, Wallet, Escrow và Order Payment yêu cầu Bearer JWT; các endpoint callback VNPay công khai (return/ipn) được cấu hình trong SecurityConfig. Endpoint giải ngân admin yêu cầu role ADMIN.
+
+## UC-63 đã triển khai — ADMIN
+
+| Method | Đường dẫn | Chức năng |
+| --- | --- | --- |
+| GET | /api/v1/admin/jobs | API-162: lịch, lần chạy gần nhất, lần kế tiếp, số lần lỗi liên tiếp, đang chạy |
+| GET | /api/v1/admin/jobs/{name}/runs | Nhật ký chạy (mới nhất trước) |
+| POST | /api/v1/admin/jobs/{name}/run | API-163: chạy thủ công; đang chạy ở instance khác trả `JOB_RUNNING`/409 |
+
+Tác vụ hiện có: `order-expiry` (BR-R-020, đơn đang mở quá `OPEN_DEFAULT` giờ chưa có người giao →
+`EXPIRED`, hết hạn chào giá/lời mời còn chờ, báo người gửi), `offer-expiry` (`BID_TTL`), `invitation-expiry`,
+`job-run-cleanup` (giữ nhật ký 90 ngày). Mỗi tác vụ giữ khóa trong bảng `scheduled_job_locks` bằng câu lệnh
+cập nhật có điều kiện nên mỗi chu kỳ chỉ một instance chạy (BR-N-015); lỗi được thử lại
+(`app.jobs.max-attempts`, mặc định 2) rồi ghi `FAILED` và thông báo Admin. Tắt bộ lập lịch bằng `app.jobs.enabled=false`.
 
 ## API xác thực UC-01–06
 
@@ -227,6 +322,25 @@ Tài khoản được lấy từ JWT, không nhận ID/email để chọn tài k
 - Email bảo mật dùng chung sự kiện `PasswordChangedEvent` và template `password-changed` với UC-05, gửi sau commit. Lỗi gửi thông báo không hoàn tác mật khẩu; hiện ghi log, chưa có retry/outbox.
 - Giới hạn IP của auth áp dụng cả request sai JSON/validation; HTTP 429 có `Retry-After`. Không yêu cầu OTP cho UC-06 vì đã xác nhận bằng mật khẩu hiện tại.
 
+## UC-59 đã triển khai — ADMIN
+
+| Method | Đường dẫn | Chức năng |
+|---|---|---|
+| GET | `/api/v1/admin/dashboard?from=&to=` | API-154: số liệu tổng quan trong kỳ (mặc định 30 ngày gần nhất) |
+| GET | `/api/v1/admin/reports/courier-revenue?month=yyyy-MM` | API-156: doanh thu theo người giao trong tháng |
+| GET | `/api/v1/admin/reports/export?type=` | API-155: xuất CSV `ORDERS`, `DASHBOARD` (`from`/`to`) hoặc `COURIER_REVENUE` (`month`) |
+
+- Kỳ báo cáo tính theo ngày giờ Việt Nam, gồm cả hai đầu, tối đa 366 ngày; sai khoảng hoặc thiếu tháng trả HTTP 400
+  `REPORT_RANGE_INVALID`, loại xuất không hỗ trợ trả `REPORT_TYPE_INVALID`. Mọi phản hồi là `no-store`.
+- Dashboard (BR-F-114): đơn tạo mới theo trạng thái và tỷ lệ hủy, người dùng/người giao mới, người giao có cập nhật đơn,
+  tổng giải ngân ký quỹ, hoa hồng ước tính, tổng nạp ví, tổng yêu cầu rút và chuỗi theo ngày. Số tiền chỉ tính bút toán
+  sổ cái `COMPLETED`.
+- Doanh thu người giao (BR-F-084, BR-C-010) lấy từ bút toán `ESCROW_RELEASE` trong sổ cái; hoa hồng theo `fee_rate_locked`
+  của đơn (đơn chưa khóa tỷ lệ dùng `FEE_NEW`), khấu trừ theo `WITHHOLD`, làm tròn xuống như mô phỏng giá.
+- CSV UTF-8 có BOM, phân cách dấu phẩy, xuống dòng CRLF để mở trực tiếp bằng Excel; ô bắt đầu bằng `=`, `+`, `-`, `@`
+  được thêm `'` để không bị hiểu là công thức. Người dùng xuất hiện bằng `publicId`, không lộ ID nội bộ.
+- Giao diện: `/admin/dashboard` (trang mặc định của khu quản trị) và `/admin/reports`.
+
 ## API Ví tiền & Ký quỹ (UC-34 & UC-35)
 
 Luồng giao diện:
@@ -311,6 +425,38 @@ Luồng giao diện:
 Google login và KYC chưa triển khai.
 Cấu hình SMTP/template nằm trong [README](../README.md), schema trong [DATABASE](DATABASE.md),
 mã lỗi và field validation theo [contract lỗi](API-ERRORS.md).
+
+## UC-51 đã triển khai — Khiếu nại và phán quyết
+
+| Method | Đường dẫn | Quyền | Chức năng |
+|---|---|---|---|
+| GET | `/api/v1/complaints` | Đăng nhập | API-123: khiếu nại về đơn mình gửi hoặc giao |
+| GET | `/api/v1/complaints/{id}` | Bên của đơn, MODERATOR, ADMIN | API-124: hồ sơ, phán quyết, kháng nghị, trao đổi và quyền thao tác của người xem |
+| POST | `/api/v1/complaints/{id}/messages` | Bên của đơn, người phụ trách, ADMIN | API-125: multipart `request` `{body}` và `files` (tối đa 3 ảnh) |
+| GET | `/api/v1/complaints/{id}/evidence/{evidenceId}` | Như xem hồ sơ | Ảnh bằng chứng, `no-store`, `nosniff` |
+| POST | `/api/v1/complaints/{id}/appeal` | Bên của đơn | API-127: kháng nghị một lần trước `appealDeadline` |
+| GET | `/api/v1/mod/complaints?status=&mine=` | MODERATOR, ADMIN | Hàng đợi theo hạn xử lý; `status` = `ACTIVE` (mặc định), từng trạng thái hoặc `ALL` |
+| POST | `/api/v1/mod/complaints/{id}/claim` | MODERATOR, ADMIN | Tiếp nhận (`OPEN → INVESTIGATING`); Admin tiếp quản hồ sơ người khác |
+| POST | `/api/v1/mod/complaints/{id}/request-info` | Người phụ trách | A2: `INVESTIGATING → AWAITING_INFO`; bên của đơn trả lời thì quay lại `INVESTIGATING` |
+| POST | `/api/v1/mod/complaints/{id}/ruling` | Người phụ trách | API-126: `{outcome, senderPercent, compensationAmount, reason}` → `RESOLVED` |
+| GET | `/api/v1/mod/complaints/{id}/chat` | MODERATOR, ADMIN | Lịch sử chat của đơn, chỉ đọc (BR-F-045); kho chat lỗi trả `available=false` |
+| POST | `/api/v1/admin/complaints/{id}/appeal-review` | ADMIN khác người ra phán quyết | A1: `UPHOLD` hoặc `AMEND` kèm phán quyết mới, sau đó xử lý tiền |
+
+- Trạng thái: `OPEN → INVESTIGATING ⇄ AWAITING_INFO → RESOLVED → (APPEALED →) CLOSED`. Đơn chuyển `DISPUTED` khi mở
+  hồ sơ và `COMPLETED` khi đóng; ký quỹ bị đóng băng suốt thời gian khiếu nại.
+- Phán quyết `SENDER_FAVOR`, `COURIER_FAVOR` hoặc `SPLIT` (`senderPercent` 1–99, làm tròn xuống). Tiền chỉ di chuyển khi
+  hồ sơ đóng: hết `APPEAL_WINDOW` mà không kháng nghị (job mỗi 5 phút) hoặc Admin xem xét xong kháng nghị.
+- Ký quỹ còn giữ: phần người gửi ghi `ESCROW_REFUND`, phần người giao ghi `ESCROW_RELEASE`, ký quỹ chuyển `REFUNDED`,
+  `RELEASED` hoặc `PARTIALLY_REFUNDED`. Ký quỹ đã giải ngân: thu hồi từ số dư khả dụng của người giao bằng bút toán
+  `COMPLAINT_CLAWBACK`; phần thiếu ghi `unrecoveredAmount` và báo Admin.
+- `compensationAmount` chỉ cho đơn có bảo hiểm (giá trị khai báo > 0), tối đa bằng giá trị khai báo và không dùng với
+  `COURIER_FAVOR`; khoản này do Quỹ bảo đảm chi (UC-52).
+- SLA: phản hồi đầu tiên trong `DISPUTE_RESP` giờ, phán quyết trong `DISPUTE_RESOLVE` ngày làm việc (thứ Hai–thứ Sáu giờ
+  Việt Nam); quá hạn báo kiểm duyệt viên và Admin một lần. Nhân sự là một bên của đơn chỉ xem với vai trò bên đó.
+- Tạo khiếu nại (UC-50) gọi `ComplaintLifecycle.open(OpenComplaintCommand)` sau khi kiểm tra thời hạn và bằng chứng.
+  Khi hồ sơ đóng, `ComplaintClosedEvent` được phát cho UC-52 và UC-49.
+- Giao diện: `/mod/complaints`, `/mod/complaints/:id` cho kiểm duyệt viên và Admin; `/me/complaints`,
+  `/complaints/:id` cho các bên.
 
 ## Contract đang chạy
 

@@ -1,0 +1,36 @@
+.order-moderation-muted { color: var(--text-secondary); font-size: .875rem; }
+.order-moderation-warning { color: var(--accent-amber, var(--text-secondary)); font-size: .8125rem; }
+.order-moderation-time { white-space: nowrap; }
+.order-moderation-cell { display: grid; gap: var(--space-1); min-width: 150px; }
+.order-moderation-badges { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.order-moderation-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.order-moderation-search { max-width: 420px; margin-bottom: var(--space-4); }
+.order-moderation-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); margin: 0; }
+.order-moderation-grid div { min-width: 0; }
+.order-moderation-grid dt { color: var(--text-secondary); font-size: .8125rem; margin-bottom: var(--space-1); }
+.order-moderation-grid dd { margin: 0; overflow-wrap: anywhere; }
+.order-moderation-wide { grid-column: 1 / -1; }
+.order-moderation-text { white-space: pre-wrap; }
+.order-moderation-images { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: var(--space-3); }
+.order-moderation-images img {
+  display: block; width: 100%; aspect-ratio: 1; object-fit: cover;
+  border: 1px solid var(--border-subtle); border-radius: var(--radius-md);
+}
+.order-moderation-decision { border-top: 1px solid var(--border-subtle); padding-top: var(--space-4); }
+.order-moderation-keyword-form { display: grid; grid-template-columns: 2fr 1fr auto; gap: var(--space-3); align-items: end; }
+.order-moderation-keywords { display: flex; flex-wrap: wrap; gap: var(--space-2); list-style: none; padding: 0; margin: var(--space-4) 0 0; }
+.order-moderation-keywords li {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3);
+  border: 1px solid var(--border-subtle); border-radius: 999px;
+}
+.order-moderation-keywords li.is-prohibited { border-color: var(--accent-rose, var(--border-subtle)); }
+.order-moderation-keywords small { color: var(--text-secondary); }
+.order-moderation-keywords button {
+  display: inline-flex; padding: 2px; border: 0; border-radius: 999px; background: transparent; color: inherit; cursor: pointer;
+}
+.order-moderation-keywords button:focus-visible { outline: 2px solid var(--focus-ring, currentColor); outline-offset: 2px; }
+@media (max-width: 600px) {
+  .order-moderation-grid, .order-moderation-keyword-form { grid-template-columns: minmax(0, 1fr); }
+  .order-moderation-actions > .ui-button { flex: 1 1 auto; }
+}

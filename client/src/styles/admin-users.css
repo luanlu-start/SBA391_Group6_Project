@@ -1,0 +1,31 @@
+.admin-users-muted { color: var(--text-secondary); font-size: .875rem; }
+.admin-users-code { font-family: var(--font-mono); overflow-wrap: anywhere; }
+.admin-users-time { white-space: nowrap; }
+.admin-users-cell { display: grid; gap: var(--space-1); min-width: 160px; }
+.admin-users-badges, .admin-users-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.admin-users-filters { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: var(--space-4); margin-bottom: var(--space-4); }
+.admin-users-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); align-items: start; }
+.admin-users-dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); margin: 0; }
+.admin-users-dl div { min-width: 0; }
+.admin-users-dl dt { color: var(--text-secondary); font-size: .8125rem; margin-bottom: var(--space-1); }
+.admin-users-dl dd { margin: 0; overflow-wrap: anywhere; }
+.admin-users-subheading { font-size: .9375rem; margin: var(--space-5) 0 var(--space-2); }
+.admin-users-list { display: grid; gap: var(--space-2); list-style: none; padding: 0; margin: 0; }
+.admin-users-list li {
+  display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; justify-content: space-between;
+  padding: var(--space-2) 0; border-bottom: 1px solid var(--border-subtle);
+}
+.admin-users-requests { display: grid; gap: var(--space-3); list-style: none; padding: 0; margin: 0; }
+.admin-users-requests li {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-3);
+  padding: var(--space-3); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);
+}
+.admin-users-staff-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); margin-bottom: var(--space-4); }
+.admin-users-staff-submit { grid-column: 1 / -1; }
+@media (max-width: 960px) {
+  .admin-users-detail-grid { grid-template-columns: minmax(0, 1fr); }
+  .admin-users-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .admin-users-filters, .admin-users-dl, .admin-users-staff-form { grid-template-columns: minmax(0, 1fr); }
+}

@@ -84,6 +84,9 @@ export default function AccountPage() {
             <Link className="ui-button ui-button-secondary" to="/wallet">
               Ví FPTPost (Nạp tiền)
             </Link>
+            <Link className="ui-button ui-button-secondary" to="/me/complaints">
+              Khiếu nại của tôi
+            </Link>
             {isCourier ? (
               <Link className="ui-button ui-button-secondary" to="/courier">
                 Không gian người giao

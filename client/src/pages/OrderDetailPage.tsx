@@ -27,8 +27,10 @@ import Alert from '../components/ui/Alert';
 import Input from '../components/ui/Input';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ApiErrorNotice from '../components/ApiErrorNotice';
+import OrderModerationNotice from '../features/order-moderation/components/OrderModerationNotice';
 import type { EscrowResponse } from '../types/payment';
 import { getSessionState } from '../auth/authSession';
+import ReportViolationButton from '../features/violation-reports/components/ReportViolationButton';
 import { ShieldCheck, CheckCircle, AlertTriangle, Send } from 'lucide-react';
 import InviteCourierModal from '../features/order/components/InviteCourierModal';
 import SuggestedCouriersCard from '../features/matching/components/SuggestedCouriersCard';
@@ -169,7 +171,7 @@ export default function OrderDetailPage() {
     tone: 'neutral',
   };
 
-  const canEdit = order.status === 'PENDING';
+  const canEdit = order.status === 'PENDING' || (order.status === 'FINDING_SHIPPER' && !order.courierId);
   const canCancel = order.status === 'PENDING' || order.status === 'FINDING_SHIPPER';
 
   return (
@@ -207,6 +209,10 @@ export default function OrderDetailPage() {
                 Hủy đơn hàng
               </Button>
             )}
+            {order.courierId && (
+              <ReportViolationButton targetType="ORDER" targetId={String(order.id)}
+                targetName={`Đơn ${order.orderCode}: báo cáo hành vi của người giao`} />
+            )}
             <Button
               variant="ghost"
               icon={<ArrowLeft size={16} />}
@@ -217,6 +223,8 @@ export default function OrderDetailPage() {
           </div>
         }
       />
+
+      <OrderModerationNotice orderId={order.id} status={order.status} />
 
       <div className="ui-showcase-grid">
         {/* Left Column: Shipment & Product Details */}

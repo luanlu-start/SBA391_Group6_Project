@@ -4,8 +4,10 @@ import MainLayout from '../layouts/MainLayout';
 import AdminLayout from '../layouts/AdminLayout';
 import ModeratorLayout from '../layouts/ModeratorLayout';
 import KycReviewPage from '../pages/KycReviewPage';
+import OrderModerationPage from '../pages/OrderModerationPage';
 import NotificationsPage from '../pages/NotificationsPage';
 import NotificationSettingsPage from '../pages/NotificationSettingsPage';
+import ViolationReportsPage from '../pages/ViolationReportsPage';
 import HomePage from '../pages/HomePage';
 import ProductsPage from '../pages/ProductsPage';
 import NotFoundPage from '../pages/NotFoundPage';
@@ -22,10 +24,17 @@ import KycPage from '../pages/KycPage';
 import CourierRegisterPage from '../pages/CourierRegisterPage';
 import CourierPage from '../pages/CourierPage';
 import LegalPage from '../pages/LegalPage';
+import AdminDashboardPage from '../pages/AdminDashboardPage';
+import AdminReportsPage from '../pages/AdminReportsPage';
 import AdminParametersPage from '../pages/AdminParametersPage';
 import AdminAuditPage from '../pages/AdminAuditPage';
+import AdminUsersPage from '../pages/AdminUsersPage';
+import AdminUserDetailPage from '../pages/AdminUserDetailPage';
+import AdminStaffPage from '../pages/AdminStaffPage';
 import AdminPromotionsPage from '../pages/AdminPromotionsPage';
+import AdminJobsPage from '../pages/AdminJobsPage';
 import AdminCategoriesPage from '../pages/AdminCategoriesPage';
+import AdminWithdrawalsPage from '../pages/AdminWithdrawalsPage';
 import WalletPage from '../pages/WalletPage';
 import OrderPaymentPage from '../pages/OrderPaymentPage';
 import VNPayReturnPage from '../pages/VNPayReturnPage';
@@ -35,6 +44,10 @@ import EditOrderPage from '../pages/EditOrderPage';
 import OrderDetailPage from '../pages/OrderDetailPage';
 import OrderOffersPage from '../pages/OrderOffersPage';
 import ChatPage from '../pages/ChatPage';
+import ComplaintQueuePage from '../pages/ComplaintQueuePage';
+import ComplaintReviewPage from '../pages/ComplaintReviewPage';
+import ComplaintDetailPage from '../pages/ComplaintDetailPage';
+import MyComplaintsPage from '../pages/MyComplaintsPage';
 import CourierOrderDetailPage from "../pages/CourierOrderDetailPage";
 import CourierMarketplacePage from '../pages/CourierMarketplacePage';
 import CreateTripPage from '../pages/CreateTripPage';
@@ -63,16 +76,27 @@ export default function AppRoutes() {
       <Route path="/reset" element={<ResetPasswordPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/mod" element={<ModeratorLayout />}>
+        <Route path="reports" element={<ViolationReportsPage />} />
         <Route index element={<Navigate to="kyc" replace />} />
+        <Route path="complaints" element={<ComplaintQueuePage />} />
+        <Route path="complaints/:id" element={<ComplaintReviewPage />} />
         <Route path="kyc" element={<KycReviewPage />} />
+        <Route path="orders" element={<OrderModerationPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
       <Route path="/admin" element={<AdminLayout />}>
-        <Route index element={<Navigate to="params" replace />} />
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<AdminDashboardPage />} />
+        <Route path="reports" element={<AdminReportsPage />} />
         <Route path="params" element={<AdminParametersPage />} />
+        <Route path="users" element={<AdminUsersPage />} />
+        <Route path="users/:publicId" element={<AdminUserDetailPage />} />
+        <Route path="staff" element={<AdminStaffPage />} />
         <Route path="audit" element={<AdminAuditPage />} />
         <Route path="promotions" element={<AdminPromotionsPage />} />
+        <Route path="jobs" element={<AdminJobsPage />} />
         <Route path="categories" element={<AdminCategoriesPage />} />
+        <Route path="withdrawals" element={<AdminWithdrawalsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
       <Route path="/" element={<MainLayout />}>
@@ -117,6 +141,8 @@ export default function AppRoutes() {
         <Route path="me/profile" element={<ProfilePage />} />
         <Route path="me/addresses" element={<AddressesPage />} />
         <Route path="me/kyc" element={<KycPage />} />
+        <Route path="me/complaints" element={<MyComplaintsPage />} />
+        <Route path="complaints/:id" element={<ComplaintDetailPage />} />
         <Route path="me/courier-register" element={<CourierRegisterPage />} />
         <Route path="courier" element={<CourierPage />} />
         <Route path="legal" element={<LegalPage />} />

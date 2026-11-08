@@ -10,14 +10,34 @@ public enum WithdrawalStatus {
     PENDING_REVIEW,
 
     /**
-     * Đã được phê duyệt và giải ngân chi trả thành công về tài khoản ngân hàng.
+     * Đã duyệt cấp 1, chờ một quản trị viên khác duyệt cấp 2 (số tiền từ ngưỡng DUAL_APPROVE).
+     */
+    APPROVED_L1,
+
+    /**
+     * Đủ cấp duyệt, chờ chi trả.
      */
     APPROVED,
 
     /**
-     * Bị từ chối phê duyệt (kèm lý do).
+     * Đã gửi PayoutProvider hoặc đã xuất lệnh chi, chờ kết quả.
+     */
+    PROCESSING,
+
+    /**
+     * Đã chi thành công, có mã tham chiếu.
+     */
+    PAID,
+
+    /**
+     * Bị từ chối phê duyệt (kèm lý do), tiền đã hoàn về ví khả dụng.
      */
     REJECTED,
+
+    /**
+     * Chi trả thất bại, tiền đã hoàn về ví khả dụng.
+     */
+    FAILED,
 
     /**
      * Người dùng chủ động hủy yêu cầu khi còn ở trạng thái PENDING_REVIEW.
