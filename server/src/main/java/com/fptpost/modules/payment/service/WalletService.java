@@ -17,7 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -178,7 +177,8 @@ public class WalletService {
 
         int page = Math.max(0, request.getPage());
         int size = request.getSize() > 0 && request.getSize() <= 100 ? request.getSize() : 10;
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id")));
+        // The query already orders by createdAt and id; repeating them through Pageable is rejected by SQL Server.
+        Pageable pageable = PageRequest.of(page, size);
 
         String accountCode = "USER_WALLET_" + userId;
         Page<LedgerTransaction> pageResult = ledgerTransactionRepository.findTransactions(
