@@ -76,6 +76,9 @@ export default function AccountPage() {
                 <Link className="ui-button ui-button-secondary" to="/courier/trips">
                   Chuyến đi của tôi
                 </Link>
+                <Link className="ui-button ui-button-secondary" to="/courier/trust">
+                  Uy tín và hạng
+                </Link>
               </>
             )}
             <Link className="ui-button ui-button-secondary" to="/orders/payment">
