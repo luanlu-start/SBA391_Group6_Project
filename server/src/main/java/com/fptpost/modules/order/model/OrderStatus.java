@@ -11,6 +11,7 @@ public enum OrderStatus {
     AWAITING_PAYMENT,   // Đã nhận/chọn người giao, chờ người gửi ký quỹ (UC-17)
     SHIPPER_ASSIGNED,   // Đã lựa chọn hoặc chỉ định người giao
     IN_DELIVERY,        // Đang thực hiện giao hàng
+    DISPUTED,           // Đang khiếu nại, ký quỹ bị đóng băng đến khi có phán quyết cuối (UC-50, UC-51)
     COMPLETED,          // Giao hàng thành công
     CANCELLED           // Đơn đã bị hủy
 }

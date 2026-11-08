@@ -25,6 +25,11 @@ public enum LedgerTransactionType {
     ESCROW_REFUND,
 
     /**
+     * Thu hồi từ ví người giao về ví người gửi theo phán quyết khiếu nại khi ký quỹ đã giải ngân (UC-51).
+     */
+    COMPLAINT_CLAWBACK,
+
+    /**
      * Yêu cầu rút tiền từ ví về ngân hàng (UC-40).
      */
     WITHDRAWAL_REQUEST,

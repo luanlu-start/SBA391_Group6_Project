@@ -6,6 +6,8 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import EmptyState from '../components/ui/EmptyState';
 import WorkspaceLayout from './WorkspaceLayout';
 
+import { Scale } from 'lucide-react';
+
 export default function AdminLayout() {
   const { user, initializing } = useAuthentication();
   const location = useLocation();
@@ -23,6 +25,7 @@ export default function AdminLayout() {
       { label: 'Loại hàng hóa', to: '/admin/categories', icon: <Boxes size={17} /> },
       { label: 'Duyệt hồ sơ KYC', to: '/mod/kyc', icon: <ShieldCheck size={17} /> },
       { label: 'Thông báo', to: '/notifications', icon: <Bell size={17} /> },
+      { label: 'Khiếu nại và kháng nghị', to: '/mod/complaints', icon: <Scale size={17} /> },
     ]}
     headerActions={<><NotificationBell /><Link to="/account" className="ui-button ui-button-ghost ui-button-sm">{user.fullName}</Link></>}>
     <Outlet />

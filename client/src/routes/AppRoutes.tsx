@@ -35,6 +35,10 @@ import EditOrderPage from '../pages/EditOrderPage';
 import OrderDetailPage from '../pages/OrderDetailPage';
 import OrderOffersPage from '../pages/OrderOffersPage';
 import ChatPage from '../pages/ChatPage';
+import ComplaintQueuePage from '../pages/ComplaintQueuePage';
+import ComplaintReviewPage from '../pages/ComplaintReviewPage';
+import ComplaintDetailPage from '../pages/ComplaintDetailPage';
+import MyComplaintsPage from '../pages/MyComplaintsPage';
 import CourierOrderDetailPage from "../pages/CourierOrderDetailPage";
 import CourierMarketplacePage from '../pages/CourierMarketplacePage';
 import CreateTripPage from '../pages/CreateTripPage';
@@ -62,6 +66,8 @@ export default function AppRoutes() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/mod" element={<ModeratorLayout />}>
         <Route index element={<Navigate to="kyc" replace />} />
+        <Route path="complaints" element={<ComplaintQueuePage />} />
+        <Route path="complaints/:id" element={<ComplaintReviewPage />} />
         <Route path="kyc" element={<KycReviewPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
@@ -107,6 +113,8 @@ export default function AppRoutes() {
         <Route path="me/profile" element={<ProfilePage />} />
         <Route path="me/addresses" element={<AddressesPage />} />
         <Route path="me/kyc" element={<KycPage />} />
+        <Route path="me/complaints" element={<MyComplaintsPage />} />
+        <Route path="complaints/:id" element={<ComplaintDetailPage />} />
         <Route path="me/courier-register" element={<CourierRegisterPage />} />
         <Route path="courier" element={<CourierPage />} />
         <Route path="legal" element={<LegalPage />} />

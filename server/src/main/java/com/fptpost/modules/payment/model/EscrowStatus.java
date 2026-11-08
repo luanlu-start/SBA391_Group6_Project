@@ -17,5 +17,10 @@ public enum EscrowStatus {
     /**
      * Tiền đã hoàn lại cho người gửi khi đơn bị hủy hoặc sự cố (UC-37).
      */
-    REFUNDED
+    REFUNDED,
+
+    /**
+     * Phán quyết khiếu nại chia ký quỹ: một phần hoàn người gửi, phần còn lại trả người giao (UC-51).
+     */
+    PARTIALLY_REFUNDED
 }
