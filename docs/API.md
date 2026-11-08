@@ -322,6 +322,25 @@ Tài khoản được lấy từ JWT, không nhận ID/email để chọn tài k
 - Email bảo mật dùng chung sự kiện `PasswordChangedEvent` và template `password-changed` với UC-05, gửi sau commit. Lỗi gửi thông báo không hoàn tác mật khẩu; hiện ghi log, chưa có retry/outbox.
 - Giới hạn IP của auth áp dụng cả request sai JSON/validation; HTTP 429 có `Retry-After`. Không yêu cầu OTP cho UC-06 vì đã xác nhận bằng mật khẩu hiện tại.
 
+## UC-59 đã triển khai — ADMIN
+
+| Method | Đường dẫn | Chức năng |
+|---|---|---|
+| GET | `/api/v1/admin/dashboard?from=&to=` | API-154: số liệu tổng quan trong kỳ (mặc định 30 ngày gần nhất) |
+| GET | `/api/v1/admin/reports/courier-revenue?month=yyyy-MM` | API-156: doanh thu theo người giao trong tháng |
+| GET | `/api/v1/admin/reports/export?type=` | API-155: xuất CSV `ORDERS`, `DASHBOARD` (`from`/`to`) hoặc `COURIER_REVENUE` (`month`) |
+
+- Kỳ báo cáo tính theo ngày giờ Việt Nam, gồm cả hai đầu, tối đa 366 ngày; sai khoảng hoặc thiếu tháng trả HTTP 400
+  `REPORT_RANGE_INVALID`, loại xuất không hỗ trợ trả `REPORT_TYPE_INVALID`. Mọi phản hồi là `no-store`.
+- Dashboard (BR-F-114): đơn tạo mới theo trạng thái và tỷ lệ hủy, người dùng/người giao mới, người giao có cập nhật đơn,
+  tổng giải ngân ký quỹ, hoa hồng ước tính, tổng nạp ví, tổng yêu cầu rút và chuỗi theo ngày. Số tiền chỉ tính bút toán
+  sổ cái `COMPLETED`.
+- Doanh thu người giao (BR-F-084, BR-C-010) lấy từ bút toán `ESCROW_RELEASE` trong sổ cái; hoa hồng theo `fee_rate_locked`
+  của đơn (đơn chưa khóa tỷ lệ dùng `FEE_NEW`), khấu trừ theo `WITHHOLD`, làm tròn xuống như mô phỏng giá.
+- CSV UTF-8 có BOM, phân cách dấu phẩy, xuống dòng CRLF để mở trực tiếp bằng Excel; ô bắt đầu bằng `=`, `+`, `-`, `@`
+  được thêm `'` để không bị hiểu là công thức. Người dùng xuất hiện bằng `publicId`, không lộ ID nội bộ.
+- Giao diện: `/admin/dashboard` (trang mặc định của khu quản trị) và `/admin/reports`.
+
 ## API Ví tiền & Ký quỹ (UC-34 & UC-35)
 
 Luồng giao diện:
