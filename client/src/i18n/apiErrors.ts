@@ -21,6 +21,8 @@ export const apiErrorMessages: Record<string, string> = {
   COURIER_COMMITMENT_CHANGED: "Vui lòng tải lại trang và đọc cam kết trách nhiệm mới.",
   COURIER_HOURS_INVALID: "Giờ kết thúc phải sau giờ bắt đầu trong cùng ngày và các khung giờ không được trùng nhau.",
   COURIER_AREAS_INVALID: "Vui lòng nhập các khu vực hoạt động khác nhau.",
+  REPORT_RANGE_INVALID: 'Ngày bắt đầu phải trước ngày kết thúc và khoảng báo cáo tối đa 366 ngày.',
+  REPORT_TYPE_INVALID: 'Loại báo cáo cần xuất không được hỗ trợ.',
 
     PROFILE_IDENTITY_LOCKED: "Không thể đổi họ tên hoặc ngày sinh khi hồ sơ đang chờ duyệt hoặc đã được xác minh.",
     KYC_PROFILE_MISMATCH: "Họ tên và ngày sinh phải khớp hồ sơ cá nhân. Vui lòng cập nhật hồ sơ trước.",

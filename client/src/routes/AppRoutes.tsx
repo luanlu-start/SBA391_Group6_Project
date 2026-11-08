@@ -22,6 +22,8 @@ import KycPage from '../pages/KycPage';
 import CourierRegisterPage from '../pages/CourierRegisterPage';
 import CourierPage from '../pages/CourierPage';
 import LegalPage from '../pages/LegalPage';
+import AdminDashboardPage from '../pages/AdminDashboardPage';
+import AdminReportsPage from '../pages/AdminReportsPage';
 import AdminParametersPage from '../pages/AdminParametersPage';
 import AdminAuditPage from '../pages/AdminAuditPage';
 import AdminPromotionsPage from '../pages/AdminPromotionsPage';
@@ -66,7 +68,9 @@ export default function AppRoutes() {
         <Route path="*" element={<NotFoundPage />} />
       </Route>
       <Route path="/admin" element={<AdminLayout />}>
-        <Route index element={<Navigate to="params" replace />} />
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<AdminDashboardPage />} />
+        <Route path="reports" element={<AdminReportsPage />} />
         <Route path="params" element={<AdminParametersPage />} />
         <Route path="audit" element={<AdminAuditPage />} />
         <Route path="promotions" element={<AdminPromotionsPage />} />
