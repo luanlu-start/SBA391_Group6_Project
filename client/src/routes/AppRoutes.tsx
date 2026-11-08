@@ -35,6 +35,8 @@ import EditOrderPage from '../pages/EditOrderPage';
 import OrderDetailPage from '../pages/OrderDetailPage';
 import OrderOffersPage from '../pages/OrderOffersPage';
 import ChatPage from '../pages/ChatPage';
+import CourierTrustPage from '../pages/CourierTrustPage';
+import AdminTrustPage from '../pages/AdminTrustPage';
 import ComplaintQueuePage from '../pages/ComplaintQueuePage';
 import ComplaintReviewPage from '../pages/ComplaintReviewPage';
 import ComplaintDetailPage from '../pages/ComplaintDetailPage';
@@ -78,6 +80,7 @@ export default function AppRoutes() {
         <Route path="promotions" element={<AdminPromotionsPage />} />
         <Route path="categories" element={<AdminCategoriesPage />} />
         <Route path="*" element={<NotFoundPage />} />
+        <Route path="trust" element={<AdminTrustPage />} />
       </Route>
       <Route path="/" element={<MainLayout />}>
       <Route element={<RequireRole allowedRoles={['COURIER']} />}>
@@ -105,6 +108,7 @@ export default function AppRoutes() {
         <Route path="courier/market/:id" element={<CourierOrderDetailPage />} />
         <Route path="courier/trips" element={<CourierTripsPage />} />
         <Route path="courier/trips/new" element={<CreateTripPage />} />
+        <Route path="courier/trust" element={<CourierTrustPage />} />
         <Route path="verify" element={<VerifyOtpPage />} />
         <Route path="account" element={<AccountPage />} />
         <Route path="notifications" element={<NotificationsPage />} />

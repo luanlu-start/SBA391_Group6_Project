@@ -312,6 +312,28 @@ Google login và KYC chưa triển khai.
 Cấu hình SMTP/template nằm trong [README](../README.md), schema trong [DATABASE](DATABASE.md),
 mã lỗi và field validation theo [contract lỗi](API-ERRORS.md).
 
+## UC-49 đã triển khai — Điểm uy tín và hạng người giao
+
+| Method | Đường dẫn | Quyền | Chức năng |
+|---|---|---|---|
+| GET | `/api/v1/me/trust` | Người có hồ sơ người giao | API-121: điểm, hạng, quyền lợi, tiến độ lên hạng, thành phần điểm và 20 thay đổi gần nhất |
+| GET | `/api/v1/admin/trust?filter=` | ADMIN | Người giao theo điểm tăng dần; `REVIEW` (mặc định, dưới `TRUST_REVIEW`), `RESTRICTED`, `ALL` |
+| POST | `/api/v1/admin/trust/{courierPublicId}/restrict` | ADMIN | Tạm khóa nhận đơn `{days: 1–30, reason}` (BR-R-074) |
+| POST | `/api/v1/admin/trust/recalculate` | ADMIN | Tính lại toàn bộ người giao ngay |
+
+- Điểm 0–100 = 100 × (`W_ONTIME`·đúng hạn + `W_RATING`·đánh giá + `W_COMPLETE`·hoàn thành + `W_COMPLAINT`·không thua
+  khiếu nại) − `CANCEL_PENALTY` × số lần hủy sau khi nhận trong 90 ngày. Mỗi tỷ lệ được làm mượt về `TRUST_INIT`/100 với
+  5 mẫu ảo, nên người giao mới bắt đầu đúng `TRUST_INIT`. Khiếu nại thua là khiếu nại đã đóng với `SENDER_FAVOR` hoặc `SPLIT`.
+- Hạng theo `TIER_BRONZE..TIER_DIAMOND` (điểm và số đơn hoàn tất), tự xuống hạng khi không còn đủ điều kiện; hạng,
+  điểm và số đơn được ghi vào `courier_profiles` để chào giá, lời mời và hạn mức theo hạng dùng ngay.
+- Dưới `TRUST_RESTRICT`: báo người giao chỉ nhận đơn giá trị thấp. Dưới `TRUST_REVIEW`: báo Admin xem xét khóa. Hủy quá
+  `CANCEL_LIMIT` lần trong 30 ngày: `restrictedUntil` = lần hủy gần nhất + `CANCEL_BAN` ngày.
+- Tính lại sau mỗi khiếu nại đóng (sau commit), khi gọi `TrustScoreService.recalculate` hoặc
+  `recordCourierCancellation`, và hằng đêm 03:30 giờ Việt Nam. Lịch sử chỉ ghi khi điểm hoặc hạng thay đổi.
+- Đúng hạn và đánh giá đọc qua `DeliveryPunctualitySource` (UC-28) và `CourierRatingSource` (UC-47); khi chưa có bean
+  triển khai, hai thành phần này dùng giá trị khởi tạo.
+- Giao diện: `/courier/trust` cho người giao, `/admin/trust` cho Admin.
+
 ## UC-51 đã triển khai — Khiếu nại và phán quyết
 
 | Method | Đường dẫn | Quyền | Chức năng |
