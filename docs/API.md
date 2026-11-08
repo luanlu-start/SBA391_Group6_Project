@@ -312,6 +312,38 @@ Google login và KYC chưa triển khai.
 Cấu hình SMTP/template nằm trong [README](../README.md), schema trong [DATABASE](DATABASE.md),
 mã lỗi và field validation theo [contract lỗi](API-ERRORS.md).
 
+## UC-51 đã triển khai — Khiếu nại và phán quyết
+
+| Method | Đường dẫn | Quyền | Chức năng |
+|---|---|---|---|
+| GET | `/api/v1/complaints` | Đăng nhập | API-123: khiếu nại về đơn mình gửi hoặc giao |
+| GET | `/api/v1/complaints/{id}` | Bên của đơn, MODERATOR, ADMIN | API-124: hồ sơ, phán quyết, kháng nghị, trao đổi và quyền thao tác của người xem |
+| POST | `/api/v1/complaints/{id}/messages` | Bên của đơn, người phụ trách, ADMIN | API-125: multipart `request` `{body}` và `files` (tối đa 3 ảnh) |
+| GET | `/api/v1/complaints/{id}/evidence/{evidenceId}` | Như xem hồ sơ | Ảnh bằng chứng, `no-store`, `nosniff` |
+| POST | `/api/v1/complaints/{id}/appeal` | Bên của đơn | API-127: kháng nghị một lần trước `appealDeadline` |
+| GET | `/api/v1/mod/complaints?status=&mine=` | MODERATOR, ADMIN | Hàng đợi theo hạn xử lý; `status` = `ACTIVE` (mặc định), từng trạng thái hoặc `ALL` |
+| POST | `/api/v1/mod/complaints/{id}/claim` | MODERATOR, ADMIN | Tiếp nhận (`OPEN → INVESTIGATING`); Admin tiếp quản hồ sơ người khác |
+| POST | `/api/v1/mod/complaints/{id}/request-info` | Người phụ trách | A2: `INVESTIGATING → AWAITING_INFO`; bên của đơn trả lời thì quay lại `INVESTIGATING` |
+| POST | `/api/v1/mod/complaints/{id}/ruling` | Người phụ trách | API-126: `{outcome, senderPercent, compensationAmount, reason}` → `RESOLVED` |
+| GET | `/api/v1/mod/complaints/{id}/chat` | MODERATOR, ADMIN | Lịch sử chat của đơn, chỉ đọc (BR-F-045); kho chat lỗi trả `available=false` |
+| POST | `/api/v1/admin/complaints/{id}/appeal-review` | ADMIN khác người ra phán quyết | A1: `UPHOLD` hoặc `AMEND` kèm phán quyết mới, sau đó xử lý tiền |
+
+- Trạng thái: `OPEN → INVESTIGATING ⇄ AWAITING_INFO → RESOLVED → (APPEALED →) CLOSED`. Đơn chuyển `DISPUTED` khi mở
+  hồ sơ và `COMPLETED` khi đóng; ký quỹ bị đóng băng suốt thời gian khiếu nại.
+- Phán quyết `SENDER_FAVOR`, `COURIER_FAVOR` hoặc `SPLIT` (`senderPercent` 1–99, làm tròn xuống). Tiền chỉ di chuyển khi
+  hồ sơ đóng: hết `APPEAL_WINDOW` mà không kháng nghị (job mỗi 5 phút) hoặc Admin xem xét xong kháng nghị.
+- Ký quỹ còn giữ: phần người gửi ghi `ESCROW_REFUND`, phần người giao ghi `ESCROW_RELEASE`, ký quỹ chuyển `REFUNDED`,
+  `RELEASED` hoặc `PARTIALLY_REFUNDED`. Ký quỹ đã giải ngân: thu hồi từ số dư khả dụng của người giao bằng bút toán
+  `COMPLAINT_CLAWBACK`; phần thiếu ghi `unrecoveredAmount` và báo Admin.
+- `compensationAmount` chỉ cho đơn có bảo hiểm (giá trị khai báo > 0), tối đa bằng giá trị khai báo và không dùng với
+  `COURIER_FAVOR`; khoản này do Quỹ bảo đảm chi (UC-52).
+- SLA: phản hồi đầu tiên trong `DISPUTE_RESP` giờ, phán quyết trong `DISPUTE_RESOLVE` ngày làm việc (thứ Hai–thứ Sáu giờ
+  Việt Nam); quá hạn báo kiểm duyệt viên và Admin một lần. Nhân sự là một bên của đơn chỉ xem với vai trò bên đó.
+- Tạo khiếu nại (UC-50) gọi `ComplaintLifecycle.open(OpenComplaintCommand)` sau khi kiểm tra thời hạn và bằng chứng.
+  Khi hồ sơ đóng, `ComplaintClosedEvent` được phát cho UC-52 và UC-49.
+- Giao diện: `/mod/complaints`, `/mod/complaints/:id` cho kiểm duyệt viên và Admin; `/me/complaints`,
+  `/complaints/:id` cho các bên.
+
 ## Contract đang chạy
 
 Response thành công dùng `ApiResponse<T>`: `success`, `status`, `code: 1000`,
