@@ -15,7 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -144,7 +143,7 @@ public class WithdrawalService {
     public PageResponse<WithdrawalResponse> getMyWithdrawals(Long userId, int page, int size) {
         int targetPage = Math.max(0, page);
         int targetSize = size > 0 && size <= 100 ? size : 10;
-        Pageable pageable = PageRequest.of(targetPage, targetSize, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(targetPage, targetSize);
 
         Page<WithdrawalRequest> pageResult = withdrawalRequestRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
 
