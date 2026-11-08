@@ -85,6 +85,9 @@ export const apiErrorMessages: Record<string, string> = {
     KYC_ENCRYPTION_UNAVAILABLE: "Chưa thể lưu hoặc đọc hồ sơ xác minh an toàn. Vui lòng thử lại sau.",
     KYC_FILE_LINK_INVALID: "Vui lòng mở lại ảnh từ hồ sơ để nhận liên kết mới.",
 
+  TRUST_COURIER_PROFILE_MISSING: 'Tài khoản chưa đăng ký làm người giao nên chưa có điểm uy tín.',
+  TRUST_FILTER_INVALID: 'Bộ lọc người giao không hợp lệ.',
+
   COMPLAINT_NOT_FOUND: 'Khiếu nại không tồn tại hoặc bạn không phải là một bên của đơn.',
   COMPLAINT_FORBIDDEN: 'Chỉ người gửi hoặc người giao của đơn mới thực hiện được thao tác này.',
   COMPLAINT_PARTY_CONFLICT: 'Bạn là một bên của đơn nên không được xử lý khiếu nại này.',

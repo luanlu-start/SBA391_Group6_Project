@@ -48,6 +48,8 @@ import EditOrderPage from '../pages/EditOrderPage';
 import OrderDetailPage from '../pages/OrderDetailPage';
 import OrderOffersPage from '../pages/OrderOffersPage';
 import ChatPage from '../pages/ChatPage';
+import CourierTrustPage from '../pages/CourierTrustPage';
+import AdminTrustPage from '../pages/AdminTrustPage';
 import ComplaintQueuePage from '../pages/ComplaintQueuePage';
 import ComplaintReviewPage from '../pages/ComplaintReviewPage';
 import ComplaintDetailPage from '../pages/ComplaintDetailPage';
@@ -102,6 +104,7 @@ export default function AppRoutes() {
         <Route path="categories" element={<AdminCategoriesPage />} />
         <Route path="withdrawals" element={<AdminWithdrawalsPage />} />
         <Route path="reconcile" element={<AdminReconciliationPage />} />
+        <Route path="trust" element={<AdminTrustPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
       <Route path="/" element={<MainLayout />}>
@@ -118,6 +121,7 @@ export default function AppRoutes() {
           path="courier/earnings"
           element={<CourierEarningsPage />}
         />
+        <Route path="courier/trust" element={<CourierTrustPage />} />
       </Route>
         <Route index element={<HomePage />} />
         <Route path="products" element={<ProductsPage />} />
