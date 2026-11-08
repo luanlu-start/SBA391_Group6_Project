@@ -30,6 +30,7 @@ import ApiErrorNotice from '../components/ApiErrorNotice';
 import OrderModerationNotice from '../features/order-moderation/components/OrderModerationNotice';
 import type { EscrowResponse } from '../types/payment';
 import { getSessionState } from '../auth/authSession';
+import ReportViolationButton from '../features/violation-reports/components/ReportViolationButton';
 import { ShieldCheck, CheckCircle, AlertTriangle, Send } from 'lucide-react';
 import InviteCourierModal from '../features/order/components/InviteCourierModal';
 
@@ -205,6 +206,10 @@ export default function OrderDetailPage() {
               >
                 Hủy đơn hàng
               </Button>
+            )}
+            {order.courierId && (
+              <ReportViolationButton targetType="ORDER" targetId={String(order.id)}
+                targetName={`Đơn ${order.orderCode}: báo cáo hành vi của người giao`} />
             )}
             <Button
               variant="ghost"

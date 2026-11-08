@@ -31,6 +31,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import ApiErrorNotice from '../components/ApiErrorNotice';
 import Modal from '../components/ui/Modal';
 import { useAuthentication } from '../auth/useAuthentication';
+import ReportViolationButton from '../features/violation-reports/components/ReportViolationButton';
 
 const numberFormat = new Intl.NumberFormat('vi-VN');
 
@@ -251,6 +252,8 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                         <Badge dot tone={statusConfig.tone}>
                             {statusConfig.label}
                         </Badge>
+                        <ReportViolationButton targetType="ORDER" targetId={String(order.id)}
+                            targetName={`Đơn ${order.orderCode}: ${order.productName}`} />
                         <Button
                             variant="ghost"
                             icon={<ArrowLeft size={16} />}

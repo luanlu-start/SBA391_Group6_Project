@@ -7,6 +7,23 @@ và [SPEC](sources/fptpost-spec-v1.0.pdf), mục 6. Danh mục cũ bên dưới 
 Nghiệp vụ/phân công hiện tại theo workbook `FPTPost_Dac_ta_BR_UC (1).xlsx` do nhóm cung cấp.
 Các mục UC-45, UC-46 và UC-60 bên dưới mô tả API đã triển khai theo bản đang áp dụng.
 
+## UC-55 đã triển khai — Người dùng, MODERATOR/ADMIN
+
+| Method | Đường dẫn | Chức năng |
+| --- | --- | --- |
+| POST | /api/v1/reports | API-139: multipart `request` (`targetType` ORDER/USER/MESSAGE, `targetId`, `reason`, `description`) và tối đa 3 `files` ảnh |
+| GET | /api/v1/me/reports | Báo cáo tôi đã gửi và trạng thái hồ sơ |
+| GET | /api/v1/mod/reports | API-140: hàng đợi (`status` OPEN/RESOLVED/DISMISSED, `targetType`), nhiều báo cáo hiển thị trước |
+| GET | /api/v1/mod/reports/{id} | Chi tiết hồ sơ, các báo cáo đã gộp, số lần người bị báo cáo từng vi phạm |
+| GET | /api/v1/mod/reports/{id}/evidence/{evidenceId} | Ảnh bằng chứng (kho riêng tư) |
+| POST | /api/v1/mod/reports/{id}/resolve | `{action: WARN/ESCALATE/DISMISS, note}` |
+
+Mỗi đối tượng có tối đa một hồ sơ đang mở; báo cáo trùng được gộp vào hồ sơ đó (luồng A1), một người
+báo cáo lại cùng hồ sơ không tạo bản ghi mới. Người dùng chỉ báo cáo đơn đang mở trên sàn hoặc đơn mình
+tham gia, tin nhắn trong cuộc trò chuyện của mình, và không tự báo cáo. `WARN` gửi cảnh cáo cho người bị
+báo cáo; `ESCALATE` cảnh cáo và thông báo Admin kèm liên kết hồ sơ người dùng để xem xét khóa (UC-56);
+`DISMISS` đóng hồ sơ. Người báo cáo nhận kết quả, quyết định ghi audit.
+
 ## UC-45 đã triển khai — ADMIN
 
 | Method | Đường dẫn | Chức năng |
