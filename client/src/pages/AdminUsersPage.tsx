@@ -7,6 +7,7 @@ import type { ApiError } from '../api/ApiError';
 import type { PageResponse } from '../types/api';
 import type { AccountRole, AccountStatus, AdminUserQuery, AdminUserSummary } from '../types/adminUsers';
 import AccountRequestsPanel from '../features/admin-users/components/AccountRequestsPanel';
+import BlacklistPanel from '../features/admin-users/components/BlacklistPanel';
 import { accountStatusLabels, accountStatusTones, formatAdminTime, roleLabels } from '../features/admin-users/adminUserPresentation';
 import ApiErrorNotice from '../components/ApiErrorNotice';
 import PageHeader from '../components/ui/PageHeader';
@@ -86,5 +87,6 @@ export default function AdminUsersPage() {
       </>}
     </SectionCard>
     <AccountRequestsPanel />
+    <BlacklistPanel />
   </div>;
 }
