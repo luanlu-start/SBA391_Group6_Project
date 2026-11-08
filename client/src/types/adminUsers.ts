@@ -66,7 +66,19 @@ export interface AdminUserDetail {
   activeSessions: number;
   dataRequests: AccountRequestItem[];
   self: boolean;
+  lock: AccountLockInfo | null;
+  ordersNeedingAction: AdminUserOrder[];
 }
+
+export interface AccountLockInfo {
+  reason: string;
+  lockedAt: string;
+  lockedUntil: string | null;
+  permanent: boolean;
+  lockedByName: string | null;
+}
+
+export type BlacklistKind = 'PHONE' | 'ID_NUMBER' | 'DEVICE';
 
 export interface AdminUserQuery {
   q?: string;

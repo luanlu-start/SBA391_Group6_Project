@@ -8,6 +8,8 @@ import com.fptpost.modules.backoffice.dto.request.AdminUserSearchRequest;
 import com.fptpost.modules.backoffice.dto.request.StaffCreationRequest;
 import com.fptpost.modules.backoffice.dto.response.*;
 import com.fptpost.modules.backoffice.exception.UserAdministrationErrorCode;
+import com.fptpost.modules.backoffice.model.AccountLock;
+import com.fptpost.modules.backoffice.repository.AccountLockRepository;
 import com.fptpost.modules.backoffice.repository.AdminUserSearchRepository;
 import com.fptpost.modules.identity.enums.UserStatus;
 import com.fptpost.modules.identity.model.Role;
@@ -45,9 +47,13 @@ import java.util.stream.Stream;
 public class UserAdministrationService {
 
     static final Set<String> ROLE_CODES = Set.of("SENDER", "COURIER", "MODERATOR", "ADMIN");
+    static final Set<String> CLOSED = Set.of("COMPLETED", "CANCELLED", "REJECTED");
+    /** Đơn của người gửi đã có tiền ký quỹ hoặc người giao, không tự hủy được khi khóa tài khoản. */
+    static final Set<String> NEEDS_ACTION = Set.of("PENDING_ESCROW", "ESCROWED", "AWAITING_PAYMENT", "SHIPPER_ASSIGNED", "IN_DELIVERY");
     private static final int RECENT_LIMIT = 5;
 
     private final AdminUserSearchRepository search;
+    private final AccountLockRepository locks;
     private final UserRepository users;
     private final UserProfileRepository profiles;
     private final RoleRepository roles;
@@ -161,7 +167,7 @@ public class UserAdministrationService {
         return summary(staff, request.getFullName().strip());
     }
 
-    private AdminUserDetailResponse detail(User user, User admin) {
+    public AdminUserDetailResponse detail(User user, User admin) {
         UserProfile profile = profiles.findById(user.getId()).orElse(null);
         var wallet = wallets.findByUserId(user.getId()).orElse(null);
         var courier = couriers.findByUserId(user.getId()).orElse(null);
@@ -195,7 +201,23 @@ public class UserAdministrationService {
                 .dataRequests(dataRequests.findByUserIdOrderByRequestedAtDescIdDesc(user.getId()).stream()
                         .map(request -> accountRequestPresenter.response(request, now)).toList())
                 .self(user.getId().equals(admin.getId()))
+                .lock(locks.findFirstByUserIdAndUnlockedAtIsNullOrderByLockedAtDesc(user.getId()).map(this::lock).orElse(null))
+                .ordersNeedingAction(Stream.concat(
+                                sent.stream().filter(order -> NEEDS_ACTION.contains(statusName(order))).map(order -> order(order, "SENDER")),
+                                carried.stream().filter(order -> !CLOSED.contains(statusName(order))).map(order -> order(order, "COURIER")))
+                        .toList())
                 .build();
+    }
+
+    private AccountLockResponse lock(AccountLock lock) {
+        String lockedBy = profiles.findById(lock.getLockedBy()).map(UserProfile::getFullName)
+                .orElseGet(() -> users.findById(lock.getLockedBy()).map(User::getEmail).orElse(null));
+        return AccountLockResponse.builder().reason(lock.getReason()).lockedAt(lock.getLockedAt())
+                .lockedUntil(lock.getLockedUntil()).permanent(lock.getLockedUntil() == null).lockedByName(lockedBy).build();
+    }
+
+    private static String statusName(Order order) {
+        return order.getStatus() == null ? "" : order.getStatus().name();
     }
 
     private AdminUserOrderResponse order(Order order, String participation) {

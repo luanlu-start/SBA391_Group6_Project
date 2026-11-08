@@ -29,3 +29,6 @@
 @media (max-width: 600px) {
   .admin-users-filters, .admin-users-dl, .admin-users-staff-form { grid-template-columns: minmax(0, 1fr); }
 }
+.admin-users-blacklist-form { display: grid; grid-template-columns: 1fr 2fr 2fr; gap: var(--space-4); margin-bottom: var(--space-4); align-items: end; }
+.admin-users-blacklist-submit { grid-column: 1 / -1; }
+@media (max-width: 600px) { .admin-users-blacklist-form { grid-template-columns: minmax(0, 1fr); } }
