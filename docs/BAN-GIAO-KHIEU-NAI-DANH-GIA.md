@@ -7,11 +7,11 @@ khiếu nại, đánh giá và điểm uy tín chạy trọn vẹn. Chi tiết e
 
 ## 1. Các nhánh liên quan
 
-| UC | Nhánh | Nội dung chính |
-|---|---|---|
-| UC-51 | `feature/UC-51-ThuanTC-xu-ly-khieu-nai` | Mô hình khiếu nại, hàng đợi kiểm duyệt, phán quyết, kháng nghị, bút toán khi đóng hồ sơ |
-| UC-52 | `feature/UC-52-ThuanTC-boi-thuong-quy-bao-dam` | Quỹ bảo đảm, duyệt và chi bồi thường, hàng đợi khi quỹ thiếu |
-| UC-49 | `feature/UC-49-ThuanTC-diem-uy-tin-xep-hang` | Điểm uy tín, hạng, tạm khóa nhận đơn, job hằng đêm |
+| UC | PR | Nhánh | Nội dung chính |
+|---|---|---|---|
+| UC-51 | #80 | `feature/UC-51-ThuanTC-xu-ly-khieu-nai` | Mô hình khiếu nại, hàng đợi kiểm duyệt, phán quyết, kháng nghị, bút toán khi đóng hồ sơ |
+| UC-52 | #82 | `feature/UC-52-ThuanTC-boi-thuong-quy-bao-dam` | Quỹ bảo đảm, duyệt và chi bồi thường, hàng đợi khi quỹ thiếu |
+| UC-49 | #81 | `feature/UC-49-ThuanTC-diem-uy-tin-xep-hang` | Điểm uy tín, hạng, tạm khóa nhận đơn, job hằng đêm |
 
 UC-52 và UC-49 được tạo từ nhánh UC-51, nên cần merge UC-51 trước. Sau khi UC-51 được merge, hai PR còn lại đổi base về
 `develop`.
