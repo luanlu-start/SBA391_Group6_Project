@@ -11,7 +11,8 @@ export const violationReportApi = {
     const form = new FormData();
     form.append('request', new Blob([JSON.stringify(input)], { type: 'application/json' }));
     files.forEach(file => form.append('files', file));
-    return axiosClient.post<unknown, ApiResponse<MyViolationReport>>('/reports', form);
+    return axiosClient.post<unknown, ApiResponse<MyViolationReport>>('/reports', form,
+      { headers: { 'Content-Type': 'multipart/form-data' } });
   },
   mine: (page = 0) =>
     axiosClient.get<unknown, ApiResponse<PageResponse<MyViolationReport>>>('/me/reports', { params: { page, size: 20 } }),
