@@ -27,6 +27,7 @@ import Alert from '../components/ui/Alert';
 import Input from '../components/ui/Input';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ApiErrorNotice from '../components/ApiErrorNotice';
+import OrderModerationNotice from '../features/order-moderation/components/OrderModerationNotice';
 import type { EscrowResponse } from '../types/payment';
 import { getSessionState } from '../auth/authSession';
 import { ShieldCheck, CheckCircle, AlertTriangle, Send } from 'lucide-react';
@@ -167,7 +168,7 @@ export default function OrderDetailPage() {
     tone: 'neutral',
   };
 
-  const canEdit = order.status === 'PENDING';
+  const canEdit = order.status === 'PENDING' || (order.status === 'FINDING_SHIPPER' && !order.courierId);
   const canCancel = order.status === 'PENDING' || order.status === 'FINDING_SHIPPER';
 
   return (
@@ -215,6 +216,8 @@ export default function OrderDetailPage() {
           </div>
         }
       />
+
+      <OrderModerationNotice orderId={order.id} status={order.status} />
 
       <div className="ui-showcase-grid">
         {/* Left Column: Shipment & Product Details */}

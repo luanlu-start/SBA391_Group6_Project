@@ -12,5 +12,6 @@ public enum OrderStatus {
     SHIPPER_ASSIGNED,   // Đã lựa chọn hoặc chỉ định người giao
     IN_DELIVERY,        // Đang thực hiện giao hàng
     COMPLETED,          // Giao hàng thành công
-    CANCELLED           // Đơn đã bị hủy
+    CANCELLED,          // Đơn đã bị hủy
+    REJECTED            // Kiểm duyệt từ chối do vi phạm (UC-54)
 }

@@ -18,7 +18,8 @@ export type OrderStatus =
   | 'RETURNING'
   | 'RETURNED'
   | 'FAILED'
-  | 'EXPIRED';
+  | 'EXPIRED'
+  | 'REJECTED';
 
 export interface OrderStatusConfig {
   label: string;
@@ -26,7 +27,7 @@ export interface OrderStatusConfig {
 }
 
 export const ORDER_STATUS_MAP: Record<OrderStatus, OrderStatusConfig> = {
-  PENDING: { label: 'Chờ xử lý', tone: 'warning' },
+  PENDING: { label: 'Chờ kiểm duyệt', tone: 'warning' },
   DRAFT: { label: 'Bản nháp', tone: 'neutral' },
   PENDING_CONFIRMATION: { label: 'Chờ xác nhận', tone: 'warning' },
   CONFIRMED: { label: 'Đã xác nhận', tone: 'info' },
@@ -46,6 +47,7 @@ export const ORDER_STATUS_MAP: Record<OrderStatus, OrderStatusConfig> = {
   RETURNED: { label: 'Đã trả hàng', tone: 'danger' },
   FAILED: { label: 'Thất bại', tone: 'danger' },
   EXPIRED: { label: 'Hết hạn', tone: 'danger' },
+  REJECTED: { label: 'Bị từ chối kiểm duyệt', tone: 'danger' },
 };
 
 export type DeliveryUrgency = 'STANDARD' | 'SAME_DAY' | 'EXPRESS_2H';
