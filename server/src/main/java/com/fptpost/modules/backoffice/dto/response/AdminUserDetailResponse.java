@@ -31,4 +31,8 @@ public class AdminUserDetailResponse {
     int activeSessions;
     List<AccountRequestResponse> dataRequests;
     boolean self;
+    /** Lần khóa đang hiệu lực (UC-56). */
+    AccountLockResponse lock;
+    /** Đơn đã có người giao hoặc ký quỹ mà Admin cần chuyển người giao hoặc hủy, hoàn tiền (BR-R-081). */
+    List<AdminUserOrderResponse> ordersNeedingAction;
 }
