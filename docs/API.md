@@ -31,6 +31,26 @@ Mọi mutation ghi audit trong cùng giao dịch SQL, response no-store và ch�
 UC-44 sử dụng snapshot từ `PromotionCatalog` trong module pricing. Luồng áp mã/reserve/redeem
 vào Order/Payment do owner UC-44 tích hợp; quản trị UC-45 chưa thực hiện thao tác đó.
 
+## UC-57 đã triển khai — ADMIN
+
+| Method | Đường dẫn | Chức năng |
+| --- | --- | --- |
+| GET | /api/v1/admin/users | API-144: `q` (email, SĐT dạng 0xxx hoặc +84, họ tên, mã), `role`, `status`, `page`, `size` ≤ 100 |
+| GET | /api/v1/admin/users/{publicId} | API-145: hồ sơ, KYC, người giao, ví, đơn và giao dịch gần đây, phiên, yêu cầu dữ liệu |
+| PUT | /api/v1/admin/users/{publicId}/roles | API-146: `{roles}`; thu hồi mọi phiên của người dùng |
+| GET/POST | /api/v1/admin/staff | API-147: danh sách và tạo tài khoản MODERATOR/ADMIN |
+| GET | /api/v1/admin/account-requests | Yêu cầu xuất/xóa dữ liệu (`status` mặc định PENDING, `type`) |
+| POST | /api/v1/admin/account-requests/{id}/complete | Xuất dữ liệu: cho phép người dùng tải; xóa: ẩn danh tài khoản |
+| POST | /api/v1/admin/account-requests/{id}/reject | `{reason}` gửi tới người dùng |
+| GET | /api/v1/admin/account-requests/{id}/export | Admin xem trước bản sao JSON |
+| GET | /api/v1/me/data-requests/{id}/export | Người dùng tải bản sao trong 7 ngày sau khi được duyệt |
+
+Admin không tự đổi vai trò hay tự xử lý yêu cầu của mình; không gỡ ADMIN của quản trị viên cuối cùng;
+vai trò COURIER chỉ cấp khi đã có hồ sơ người giao (UC-10). Tài khoản nhân sự không có mật khẩu
+được đặt hộ: nhân sự nhận thông báo và tự đặt qua Quên mật khẩu (UC-05).
+Ẩn danh (BR-N-040) chỉ chạy khi ví bằng 0 và không còn đơn đang xử lý; email/SĐT/họ tên/địa chỉ bị xóa
+hoặc thay thế, phiên bị thu hồi, đơn và sổ cái được giữ. Mọi thao tác ghi audit.
+
 ## UC-46 đã triển khai — ADMIN
 
 | Method | Đường dẫn | Chức năng |

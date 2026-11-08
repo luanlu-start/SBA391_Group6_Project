@@ -30,4 +30,6 @@ export const profileService = {
   dataRequests: () => axiosClient.get<unknown, ApiResponse<AccountDataRequest[]>>('/me/data-requests'),
   requestData: (type: 'DATA_EXPORT' | 'ACCOUNT_DELETION', reason: string) =>
     axiosClient.post<unknown, ApiResponse<AccountDataRequest>>(type === 'DATA_EXPORT' ? '/me/data-export' : '/me/delete-request', { reason }),
+  downloadDataExport: (id: string) =>
+    axiosClient.get<unknown, Blob>(`/me/data-requests/${encodeURIComponent(id)}/export`, { responseType: 'blob' }),
 };

@@ -17,4 +17,7 @@ public class AccountDataRequest {
     @Column(columnDefinition = "nvarchar(500)") private String reason;
     @Column(name = "requested_at", nullable = false, columnDefinition = "datetime2(6)") private Instant requestedAt;
     @Column(name = "due_at", columnDefinition = "datetime2(6)") private Instant dueAt;
+    @Column(name = "processed_by") private Long processedBy;
+    @Column(name = "processed_at", columnDefinition = "datetime2(6)") private Instant processedAt;
+    @Column(name = "resolution_note", columnDefinition = "nvarchar(500)") private String resolutionNote;
 }

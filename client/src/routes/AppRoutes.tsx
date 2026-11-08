@@ -25,6 +25,9 @@ import CourierPage from '../pages/CourierPage';
 import LegalPage from '../pages/LegalPage';
 import AdminParametersPage from '../pages/AdminParametersPage';
 import AdminAuditPage from '../pages/AdminAuditPage';
+import AdminUsersPage from '../pages/AdminUsersPage';
+import AdminUserDetailPage from '../pages/AdminUserDetailPage';
+import AdminStaffPage from '../pages/AdminStaffPage';
 import AdminPromotionsPage from '../pages/AdminPromotionsPage';
 import AdminCategoriesPage from '../pages/AdminCategoriesPage';
 import AdminWithdrawalsPage from '../pages/AdminWithdrawalsPage';
@@ -71,6 +74,9 @@ export default function AppRoutes() {
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<Navigate to="params" replace />} />
         <Route path="params" element={<AdminParametersPage />} />
+        <Route path="users" element={<AdminUsersPage />} />
+        <Route path="users/:publicId" element={<AdminUserDetailPage />} />
+        <Route path="staff" element={<AdminStaffPage />} />
         <Route path="audit" element={<AdminAuditPage />} />
         <Route path="promotions" element={<AdminPromotionsPage />} />
         <Route path="categories" element={<AdminCategoriesPage />} />
