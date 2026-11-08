@@ -4,6 +4,7 @@ import MainLayout from '../layouts/MainLayout';
 import AdminLayout from '../layouts/AdminLayout';
 import ModeratorLayout from '../layouts/ModeratorLayout';
 import KycReviewPage from '../pages/KycReviewPage';
+import OrderModerationPage from '../pages/OrderModerationPage';
 import NotificationsPage from '../pages/NotificationsPage';
 import NotificationSettingsPage from '../pages/NotificationSettingsPage';
 import HomePage from '../pages/HomePage';
@@ -63,6 +64,7 @@ export default function AppRoutes() {
       <Route path="/mod" element={<ModeratorLayout />}>
         <Route index element={<Navigate to="kyc" replace />} />
         <Route path="kyc" element={<KycReviewPage />} />
+        <Route path="orders" element={<OrderModerationPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
       <Route path="/admin" element={<AdminLayout />}>

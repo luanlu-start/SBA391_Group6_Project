@@ -51,6 +51,7 @@ public class OrderService {
     private final OrderMapper orderMapper;
     private final PricingCalculatorService pricingCalculatorService;
     private final CourierProfileRepository courierProfileRepository;
+    private final OrderSubmissionScreening orderSubmissionScreening;
 
     @Transactional
     public OrderResponse createOrder(Long senderId, OrderRequest request) {
@@ -80,6 +81,7 @@ public class OrderService {
         }
 
         Order saved = orderRepository.save(order);
+        orderSubmissionScreening.screen(saved);
         return orderMapper.toResponse(saved);
     }
 
@@ -97,7 +99,8 @@ public class OrderService {
             throw new AppException(OrderErrorCode.ORDER_ACCESS_DENIED);
         }
 
-        if (order.getStatus() != OrderStatus.PENDING) {
+        boolean openWithoutCourier = order.getStatus() == OrderStatus.FINDING_SHIPPER && order.getCourierId() == null;
+        if (order.getStatus() != OrderStatus.PENDING && !openWithoutCourier) {
             throw new AppException(OrderErrorCode.ORDER_CANNOT_BE_EDITED);
         }
 
@@ -121,6 +124,7 @@ public class OrderService {
         }
 
         Order updated = orderRepository.save(order);
+        orderSubmissionScreening.screen(updated);
         return orderMapper.toResponse(updated);
     }
 

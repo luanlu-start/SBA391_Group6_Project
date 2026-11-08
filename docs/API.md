@@ -45,6 +45,24 @@ Request/response thực tế tra trong Swagger/OpenAPI của ứng dụng đang 
 quy ước lỗi xem [API-ERRORS.md](API-ERRORS.md).
 Simulation hiện dùng adapter `REFERENCE` trong dev/demo/test/local; production/staging cần Pricing provider thật.
 
+## UC-54 đã triển khai — MODERATOR/ADMIN
+
+| Method | Đường dẫn | Chức năng |
+| --- | --- | --- |
+| GET | /api/v1/mod/orders/pending | API-136: hàng đợi, `q` (mã vận đơn/tên hàng), `page`, `size` ≤ 100; đơn gửi trước hiển thị trước |
+| GET | /api/v1/mod/orders/{orderId} | Chi tiết: nội dung, ảnh, danh mục, từ khóa khớp, số lần người gửi bị từ chối gần đây |
+| POST | /api/v1/mod/orders/{orderId}/approve | API-137: đơn `PENDING → FINDING_SHIPPER` |
+| POST | /api/v1/mod/orders/{orderId}/reject | API-138: `{reason}`, đơn `PENDING → REJECTED` |
+| GET | /api/v1/orders/{orderId}/moderation | Người gửi xem kết quả và lý do; không trả từ khóa đã khớp |
+| GET/POST/DELETE | /api/v1/admin/moderation-keywords | ADMIN quản trị từ khóa `PROHIBITED`/`SUSPICIOUS` (BR-C-012) |
+
+Kiểm duyệt tự động chạy trong giao dịch tạo/sửa đơn (UC-12 bước 7, UC-14 bước 5): đơn có tên, mô tả
+hoặc ghi chú khớp nguyên từ với từ khóa, hoặc danh mục `isProhibited`/`requiresReview`, ở lại `PENDING`
+và vào hàng đợi; đơn sạch chuyển `FINDING_SHIPPER` (lên sàn). Sửa đơn đã được duyệt mà không đổi nội dung
+thì không phải duyệt lại. Người gửi bị từ chối từ `app.moderation.repeat-rejection-threshold` (3) lần trong
+`app.moderation.repeat-rejection-window-days` (30) ngày nhận cảnh báo. Kiểm duyệt viên không xử lý đơn của
+chính mình; mọi quyết định ghi audit và thông báo người gửi (nhóm ORDER).
+
 ## UC-60 đã triển khai — ADMIN
 
 `GET /api/v1/admin/audit-logs` trả `ApiResponse<PageResponse<AuditLogResponse>>`.
