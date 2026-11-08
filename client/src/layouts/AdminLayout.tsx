@@ -1,6 +1,7 @@
 import { Link, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { Bell, Boxes, History, Settings2, ShieldCheck, TicketPercent } from 'lucide-react';
 import NotificationBell from '../features/notifications/NotificationBell';
+import { UserCog, Users } from 'lucide-react';
 import { useAuthentication } from '../auth/useAuthentication';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import EmptyState from '../components/ui/EmptyState';
@@ -17,6 +18,8 @@ export default function AdminLayout() {
 
   return <WorkspaceLayout title="Quản trị FPost"
     navigation={[
+      { label: 'Người dùng', to: '/admin/users', icon: <Users size={17} /> },
+      { label: 'Nhân sự và phân quyền', to: '/admin/staff', icon: <UserCog size={17} /> },
       { label: 'Tham số và biểu phí', to: '/admin/params', icon: <Settings2 size={17} /> },
       { label: 'Nhật ký kiểm toán', to: '/admin/audit', icon: <History size={17} /> },
       { label: 'Quản lý khuyến mãi', to: '/admin/promotions', icon: <TicketPercent size={17} /> },
