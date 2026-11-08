@@ -5,6 +5,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import EmptyState from '../components/ui/EmptyState';
 import WorkspaceLayout from './WorkspaceLayout';
 import NotificationBell from '../features/notifications/NotificationBell';
+import { Flag } from 'lucide-react';
 
 export default function ModeratorLayout() {
   const { user, initializing } = useAuthentication();
@@ -17,6 +18,7 @@ export default function ModeratorLayout() {
   </main>;
 
   return <WorkspaceLayout title="Kiểm duyệt FPost" navigation={[
+    { label: 'Báo cáo vi phạm', to: '/mod/reports', icon: <Flag size={17} /> },
     { label: 'Duyệt hồ sơ xác minh', to: '/mod/kyc', icon: <ShieldCheck size={17} /> },
     { label: 'Thông báo', to: '/notifications', icon: <Bell size={17} /> },
   ]} headerActions={<><NotificationBell /><Link to="/account" className="ui-button ui-button-ghost ui-button-sm">{user.fullName}</Link></>}>

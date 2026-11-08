@@ -6,6 +6,7 @@ import ModeratorLayout from '../layouts/ModeratorLayout';
 import KycReviewPage from '../pages/KycReviewPage';
 import NotificationsPage from '../pages/NotificationsPage';
 import NotificationSettingsPage from '../pages/NotificationSettingsPage';
+import ViolationReportsPage from '../pages/ViolationReportsPage';
 import HomePage from '../pages/HomePage';
 import ProductsPage from '../pages/ProductsPage';
 import NotFoundPage from '../pages/NotFoundPage';
@@ -61,6 +62,7 @@ export default function AppRoutes() {
       <Route path="/reset" element={<ResetPasswordPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/mod" element={<ModeratorLayout />}>
+        <Route path="reports" element={<ViolationReportsPage />} />
         <Route index element={<Navigate to="kyc" replace />} />
         <Route path="kyc" element={<KycReviewPage />} />
         <Route path="*" element={<NotFoundPage />} />
