@@ -7,6 +7,8 @@ import WorkspaceLayout from './WorkspaceLayout';
 import NotificationBell from '../features/notifications/NotificationBell';
 import { Flag } from 'lucide-react';
 
+import { Scale } from 'lucide-react';
+
 export default function ModeratorLayout() {
   const { user, initializing } = useAuthentication();
   const location = useLocation();
@@ -22,6 +24,7 @@ export default function ModeratorLayout() {
     { label: 'Duyệt hồ sơ xác minh', to: '/mod/kyc', icon: <ShieldCheck size={17} /> },
     { label: 'Kiểm duyệt đơn hàng', to: '/mod/orders', icon: <PackageSearch size={17} /> },
     { label: 'Thông báo', to: '/notifications', icon: <Bell size={17} /> },
+    { label: 'Khiếu nại', to: '/mod/complaints', icon: <Scale size={17} /> },
   ]} headerActions={<><NotificationBell /><Link to="/account" className="ui-button ui-button-ghost ui-button-sm">{user.fullName}</Link></>}>
     <Outlet />
   </WorkspaceLayout>;

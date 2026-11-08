@@ -11,6 +11,8 @@ import { Timer } from 'lucide-react';
 import WorkspaceLayout from './WorkspaceLayout';
 import { PackageSearch } from 'lucide-react';
 
+import { Scale } from 'lucide-react';
+
 export default function AdminLayout() {
   const { user, initializing } = useAuthentication();
   const location = useLocation();
@@ -36,6 +38,7 @@ export default function AdminLayout() {
       { label: 'Duyệt hồ sơ KYC', to: '/mod/kyc', icon: <ShieldCheck size={17} /> },
       { label: 'Kiểm duyệt đơn hàng', to: '/mod/orders', icon: <PackageSearch size={17} /> },
       { label: 'Thông báo', to: '/notifications', icon: <Bell size={17} /> },
+      { label: 'Khiếu nại và kháng nghị', to: '/mod/complaints', icon: <Scale size={17} /> },
     ]}
     headerActions={<><NotificationBell /><Link to="/account" className="ui-button ui-button-ghost ui-button-sm">{user.fullName}</Link></>}>
     <Outlet />

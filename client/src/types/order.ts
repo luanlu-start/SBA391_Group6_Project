@@ -13,6 +13,7 @@ export type OrderStatus =
   | 'IN_TRANSIT'
   | 'IN_DELIVERY'
   | 'DELIVERED'
+  | 'DISPUTED'
   | 'COMPLETED'
   | 'CANCELLED'
   | 'RETURNING'
@@ -41,6 +42,7 @@ export const ORDER_STATUS_MAP: Record<OrderStatus, OrderStatusConfig> = {
   IN_TRANSIT: { label: 'Đang vận chuyển', tone: 'warning' },
   IN_DELIVERY: { label: 'Đang giao hàng', tone: 'warning' },
   DELIVERED: { label: 'Đã giao hàng', tone: 'success' },
+  DISPUTED: { label: 'Đang khiếu nại', tone: 'danger' },
   COMPLETED: { label: 'Hoàn thành', tone: 'success' },
   CANCELLED: { label: 'Đã hủy', tone: 'danger' },
   RETURNING: { label: 'Đang trả hàng', tone: 'warning' },
