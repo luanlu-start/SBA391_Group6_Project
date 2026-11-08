@@ -27,11 +27,11 @@ import Alert from '../components/ui/Alert';
 import Input from '../components/ui/Input';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ApiErrorNotice from '../components/ApiErrorNotice';
+import OrderModerationNotice from '../features/order-moderation/components/OrderModerationNotice';
 import type { EscrowResponse } from '../types/payment';
 import { getSessionState } from '../auth/authSession';
 import { ShieldCheck, CheckCircle, AlertTriangle, Send } from 'lucide-react';
 import InviteCourierModal from '../features/order/components/InviteCourierModal';
-import OrderModerationNotice from '../features/order-moderation/components/OrderModerationNotice';
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
