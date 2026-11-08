@@ -30,6 +30,7 @@ import AdminUsersPage from '../pages/AdminUsersPage';
 import AdminUserDetailPage from '../pages/AdminUserDetailPage';
 import AdminStaffPage from '../pages/AdminStaffPage';
 import AdminPromotionsPage from '../pages/AdminPromotionsPage';
+import AdminJobsPage from '../pages/AdminJobsPage';
 import AdminCategoriesPage from '../pages/AdminCategoriesPage';
 import AdminWithdrawalsPage from '../pages/AdminWithdrawalsPage';
 import WalletPage from '../pages/WalletPage';
@@ -81,6 +82,7 @@ export default function AppRoutes() {
         <Route path="staff" element={<AdminStaffPage />} />
         <Route path="audit" element={<AdminAuditPage />} />
         <Route path="promotions" element={<AdminPromotionsPage />} />
+        <Route path="jobs" element={<AdminJobsPage />} />
         <Route path="categories" element={<AdminCategoriesPage />} />
         <Route path="withdrawals" element={<AdminWithdrawalsPage />} />
         <Route path="*" element={<NotFoundPage />} />

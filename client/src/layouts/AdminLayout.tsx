@@ -6,6 +6,7 @@ import { useAuthentication } from '../auth/useAuthentication';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { Flag } from 'lucide-react';
 import EmptyState from '../components/ui/EmptyState';
+import { Timer } from 'lucide-react';
 import WorkspaceLayout from './WorkspaceLayout';
 import { PackageSearch } from 'lucide-react';
 
@@ -26,6 +27,7 @@ export default function AdminLayout() {
       { label: 'Nhật ký kiểm toán', to: '/admin/audit', icon: <History size={17} /> },
       { label: 'Báo cáo vi phạm', to: '/mod/reports', icon: <Flag size={17} /> },
       { label: 'Quản lý khuyến mãi', to: '/admin/promotions', icon: <TicketPercent size={17} /> },
+      { label: 'Tác vụ định kỳ', to: '/admin/jobs', icon: <Timer size={17} /> },
       { label: 'Loại hàng hóa', to: '/admin/categories', icon: <Boxes size={17} /> },
       { label: 'Duyệt rút tiền', to: '/admin/withdrawals', icon: <Banknote size={17} /> },
       { label: 'Duyệt hồ sơ KYC', to: '/mod/kyc', icon: <ShieldCheck size={17} /> },

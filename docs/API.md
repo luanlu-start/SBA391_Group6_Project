@@ -190,6 +190,20 @@ UC-01–06 đã có đăng ký, xác thực email, đăng nhập, refresh rotati
 UC-34, UC-35 và UC-36 đã được triển khai hoàn chỉnh cho cả Backend, Security và Frontend: nạp tiền vào ví qua cổng VNPay (SCR-42), thanh toán và ký quỹ đơn hàng (SCR-22), giải ngân tiền ký quỹ cho shipper (UC-36), quản lý bút toán sổ cái kép (ledger) và xử lý IPN đa mục đích (WALLET_TOPUP / ORDER_ESCROW) bảo đảm tính toàn vẹn (idempotency).
 Product/Activity, Wallet, Escrow và Order Payment yêu cầu Bearer JWT; các endpoint callback VNPay công khai (return/ipn) được cấu hình trong SecurityConfig. Endpoint giải ngân admin yêu cầu role ADMIN.
 
+## UC-63 đã triển khai — ADMIN
+
+| Method | Đường dẫn | Chức năng |
+| --- | --- | --- |
+| GET | /api/v1/admin/jobs | API-162: lịch, lần chạy gần nhất, lần kế tiếp, số lần lỗi liên tiếp, đang chạy |
+| GET | /api/v1/admin/jobs/{name}/runs | Nhật ký chạy (mới nhất trước) |
+| POST | /api/v1/admin/jobs/{name}/run | API-163: chạy thủ công; đang chạy ở instance khác trả `JOB_RUNNING`/409 |
+
+Tác vụ hiện có: `order-expiry` (BR-R-020, đơn đang mở quá `OPEN_DEFAULT` giờ chưa có người giao →
+`EXPIRED`, hết hạn chào giá/lời mời còn chờ, báo người gửi), `offer-expiry` (`BID_TTL`), `invitation-expiry`,
+`job-run-cleanup` (giữ nhật ký 90 ngày). Mỗi tác vụ giữ khóa trong bảng `scheduled_job_locks` bằng câu lệnh
+cập nhật có điều kiện nên mỗi chu kỳ chỉ một instance chạy (BR-N-015); lỗi được thử lại
+(`app.jobs.max-attempts`, mặc định 2) rồi ghi `FAILED` và thông báo Admin. Tắt bộ lập lịch bằng `app.jobs.enabled=false`.
+
 ## API xác thực UC-01–06
 
 Luồng giao diện: `/register` → `/verify` → `/login` → `/account`.

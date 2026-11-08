@@ -8,6 +8,7 @@ public enum OrderStatus {
     PENDING_ESCROW,     // Đơn chờ thanh toán ký quỹ (UC-35)
     ESCROWED,           // Đã thanh toán ký quỹ an toàn (UC-35)
     FINDING_SHIPPER,    // Đang tìm người giao, chờ báo giá
+    EXPIRED,            // Hết thời hạn mở mà chưa có người giao (UC-63, BR-R-020)
     AWAITING_PAYMENT,   // Đã nhận/chọn người giao, chờ người gửi ký quỹ (UC-17)
     SHIPPER_ASSIGNED,   // Đã lựa chọn hoặc chỉ định người giao
     IN_DELIVERY,        // Đang thực hiện giao hàng

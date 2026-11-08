@@ -17,6 +17,8 @@ export const apiErrorMessages: Record<string, string> = {
   KYC_REVIEW_ALREADY_DECIDED: 'Hồ sơ này đã có quyết định. Vui lòng tải lại thông tin mới nhất.',
   KYC_REVIEW_SELF_FORBIDDEN: 'Bạn không được duyệt, từ chối hoặc đánh dấu hồ sơ của chính mình.',
   KYC_REVIEW_ADMIN_REQUIRED: 'Hồ sơ có dấu hiệu cần kiểm tra thêm và phải do quản trị viên quyết định.',
+  JOB_NOT_FOUND: 'Tác vụ định kỳ không tồn tại.',
+  JOB_RUNNING: 'Tác vụ đang được chạy ở nơi khác. Vui lòng thử lại sau ít phút.',
   KYC_REVIEW_INVALID_REASON: 'Hãy chọn lý do trong danh mục và bổ sung nội dung khi được yêu cầu.',
   KYC_REVIEW_INVALID_DOCUMENT: 'Kiểm tra thông tin, thời hạn CCCD và các ảnh trong hồ sơ trước khi duyệt.',
   KYC_REVIEW_APPLICANT_UNAVAILABLE: 'Tài khoản nộp hồ sơ hiện không còn đủ điều kiện để được duyệt.',
