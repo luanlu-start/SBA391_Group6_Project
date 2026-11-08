@@ -111,6 +111,16 @@ public class Order {
     @Column(name = "status", nullable = false, length = 50)
     private OrderStatus status;
 
+    @Column(name = "is_relay")
+    @Builder.Default
+    private Boolean isRelay = false;
+
+    @Column(name = "current_leg_no")
+    private Integer currentLegNo;
+
+    @Column(name = "total_legs")
+    private Integer totalLegs;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -148,6 +158,9 @@ public class Order {
         }
         if (this.urgency == null) {
             this.urgency = DeliveryUrgency.STANDARD;
+        }
+        if (this.isRelay == null) {
+            this.isRelay = false;
         }
     }
 

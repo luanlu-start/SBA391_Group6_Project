@@ -47,7 +47,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/health", "/actuator/health/**", "/api-docs/**", "/swagger-ui/**",
                                 "/swagger-ui.html", "/api/v1/auth/registration-policies", "/api/v1/auth/csrf", "/uploads/**",
-                                "/api/v1/categories").permitAll()
+                                "/api/v1/categories", "/api/v1/relay/meeting-points").permitAll()
                         .requestMatchers("/api/v1/auth/register", "/api/v1/auth/otp/verify", "/api/v1/auth/otp/resend",
                                 "/api/v1/auth/login", "/api/v1/auth/refresh",
                                 "/api/v1/auth/password/forgot", "/api/v1/auth/password/reset").permitAll()
@@ -56,6 +56,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/orders/*/escrow").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/v1/orders/*/payment").hasAnyRole("SENDER", "ADMIN")
                         .requestMatchers("/api/v1/orders/**").permitAll()
+                        .requestMatchers("/api/v1/relay/**", "/api/v1/courier/**").authenticated()
                         .requestMatchers("/api/v1/wallet/**", "/api/wallet/**").authenticated()
                         .requestMatchers(
                                 "/api/payment/**",

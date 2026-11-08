@@ -1,4 +1,4 @@
--- ==============================================================================================
+﻿-- ==============================================================================================
 -- FPTPOST DATABASE SEED DATA SCRIPT (data.sql)
 -- DBMS: Microsoft SQL Server (T-SQL) / Transact-SQL
 -- Mục đích: Khởi tạo dữ liệu mẫu phong phú, chuẩn xác, toàn vẹn quan hệ Khóa ngoại (FK)
@@ -625,5 +625,100 @@ IF NOT EXISTS (SELECT 1 FROM item_categories WHERE code = 'FRAGILE')
 IF NOT EXISTS (SELECT 1 FROM item_categories WHERE code = 'OTHER')
     INSERT INTO item_categories (code, name, description, is_prohibited, requires_review, active, created_at, updated_at)
     VALUES ('OTHER', N'Hàng hóa thông thường khác', N'Các loại hàng hóa tiêu dùng thông thường khác không thuộc danh mục cấm.', 0, 0, 1, SYSUTCDATETIME(), SYSUTCDATETIME());
+
+
+-- ----------------------------------------------------------------------------------------------
+-- 16. BẢNG ĐIỂM HẸN BÀN GIAO AN TOÀN MEETING_POINTS (DB-044, BR-F-061)
+-- ----------------------------------------------------------------------------------------------
+IF NOT EXISTS (SELECT 1 FROM meeting_points WHERE name = N'Cổng chính Đại học FPT - Tòa nhà Alpha')
+    INSERT INTO meeting_points (name, address, latitude, longitude, campus_area, description, has_security_guard, has_surveillance_camera, is_active, created_at, updated_at)
+    VALUES (N'Cổng chính Đại học FPT - Tòa nhà Alpha', N'Khu Công nghệ cao Hòa Lạc, Km29 Đại lộ Thăng Long, Thạch Thất, Hà Nội', 21.0128, 105.5258, N'Khu Công nghệ cao Hòa Lạc', N'Cổng chính trường, có bốt trực bảo vệ 24/7 và hệ thống camera giám sát an ninh toàn cảnh.', 1, 1, 1, SYSUTCDATETIME(), SYSUTCDATETIME());
+
+IF NOT EXISTS (SELECT 1 FROM meeting_points WHERE name = N'Thư viện Đại học FPT - Tòa Gamma')
+    INSERT INTO meeting_points (name, address, latitude, longitude, campus_area, description, has_security_guard, has_surveillance_camera, is_active, created_at, updated_at)
+    VALUES (N'Thư viện Đại học FPT - Tòa Gamma', N'Tầng 1 Tòa Gamma, Campus Hòa Lạc, Thạch Thất, Hà Nội', 21.0135, 105.5265, N'Khu Công nghệ cao Hòa Lạc', N'Sảnh đón thư viện trung tâm, có camera, điều hòa mát mẻ, bảo vệ và bàn chuyển phát nhanh.', 1, 1, 1, SYSUTCDATETIME(), SYSUTCDATETIME());
+
+IF NOT EXISTS (SELECT 1 FROM meeting_points WHERE name = N'Sảnh Dịch vụ Sinh viên - Tòa Beta')
+    INSERT INTO meeting_points (name, address, latitude, longitude, campus_area, description, has_security_guard, has_surveillance_camera, is_active, created_at, updated_at)
+    VALUES (N'Sảnh Dịch vụ Sinh viên - Tòa Beta', N'Tòa Beta, Đại học FPT Hòa Lạc, Hà Nội', 21.0142, 105.5272, N'Khu Công nghệ cao Hòa Lạc', N'Quầy dịch vụ sinh viên một cửa, vị trí thuận tiện giao nhận bưu phẩm, an ninh cao.', 1, 1, 1, SYSUTCDATETIME(), SYSUTCDATETIME());
+
+IF NOT EXISTS (SELECT 1 FROM meeting_points WHERE name = N'Cổng Trường Đại học FPT TP.HCM')
+    INSERT INTO meeting_points (name, address, latitude, longitude, campus_area, description, has_security_guard, has_surveillance_camera, is_active, created_at, updated_at)
+    VALUES (N'Cổng Trường Đại học FPT TP.HCM', N'Đường D1, Khu Công nghệ cao, Phường Long Thạnh Mỹ, TP. Thủ Đức, TP.HCM', 10.8415, 106.8098, N'TP. Hồ Chí Minh', N'Cổng số 1 mặt tiền đường D1, bảo vệ chốt trực 24/24, đèn chiếu sáng và camera an ninh.', 1, 1, 1, SYSUTCDATETIME(), SYSUTCDATETIME());
+
+IF NOT EXISTS (SELECT 1 FROM meeting_points WHERE name = N'Sảnh Tòa nhà FPT Complex Đà Nẵng')
+    INSERT INTO meeting_points (name, address, latitude, longitude, campus_area, description, has_security_guard, has_surveillance_camera, is_active, created_at, updated_at)
+    VALUES (N'Sảnh Tòa nhà FPT Complex Đà Nẵng', N'Đường Nam Kỳ Khởi Nghĩa, Khu đô thị FPT City, Ngũ Hành Sơn, Đà Nẵng', 15.9688, 108.2608, N'FPT City Đà Nẵng', N'Sảnh lễ tân FPT Complex, có quầy an ninh và kiểm soát thẻ ra vào, camera chất lượng cao.', 1, 1, 1, SYSUTCDATETIME(), SYSUTCDATETIME());
+
+-- ----------------------------------------------------------------------------------------------
+-- 17. ĐƠN HÀNG GIAO TIẾP SỨC MẪU (DB-014, DB-022, DB-023, UC-33, BR-F-060, BR-R-048)
+-- ----------------------------------------------------------------------------------------------
+IF NOT EXISTS (SELECT 1 FROM orders WHERE order_code = 'FPT-261107-RELAY1')
+BEGIN
+    INSERT INTO orders (
+        order_code, sender_id, courier_id, pickup_address, pickup_latitude, pickup_longitude,
+        delivery_address, delivery_latitude, delivery_longitude, receiver_name, receiver_phone,
+        product_name, product_description, quantity, weight_kg, declared_value, price_suggested,
+        price_agreed, urgency, delivery_note, status, is_relay, current_leg_no, total_legs,
+        created_at, updated_at
+    )
+    SELECT
+        'FPT-261107-RELAY1', u_sen.id, u_cou1.id,
+        N'Ký túc xá Dom A, Đại học FPT Hòa Lạc, Hà Nội', 21.0145, 105.5280,
+        N'Tòa nhà Keangnam Landmark 72, Nam Từ Liêm, Hà Nội', 21.0173, 105.7840,
+        N'Hoàng Văn Nam', '0912345678',
+        N'Bộ giáo trình Lập trình di động và Linh kiện IoT', N'Giáo trình học tập và hộp linh kiện vi điều khiển STM32',
+        1, 1.800, 750000.00, 55000.00, 55000.00, 'STANDARD',
+        N'Đơn giao tiếp sức qua điểm hẹn Cổng Alpha. Vui lòng kiểm tra kỹ linh kiện khi bàn giao.',
+        'IN_DELIVERY', 1, 1, 2, SYSUTCDATETIME(), SYSUTCDATETIME()
+    FROM users u_sen
+    CROSS JOIN users u_cou1
+    WHERE u_sen.email = 'sender@fptpost.vn' AND u_cou1.email = 'courier@fptpost.vn';
+
+    DECLARE @RelayOrder1Id BIGINT = (SELECT id FROM orders WHERE order_code = 'FPT-261107-RELAY1');
+    DECLARE @MeetingPoint1Id BIGINT = (SELECT id FROM meeting_points WHERE name = N'Cổng chính Đại học FPT - Tòa nhà Alpha');
+    DECLARE @Courier1Id BIGINT = (SELECT id FROM users WHERE email = 'courier@fptpost.vn');
+    DECLARE @Courier2Id BIGINT = (SELECT id FROM users WHERE email = 'courier2@fptpost.vn');
+
+    -- Chặng 1: KTX Dom A -> Cổng Alpha (Courier 1 đang giữ hàng, sẵn sàng bàn giao)
+    INSERT INTO order_legs (
+        order_id, leg_no, courier_id, courier_name, courier_phone,
+        start_address, start_latitude, start_longitude,
+        end_address, end_latitude, end_longitude,
+        meeting_point_id, distance_km, fee, status,
+        started_at, created_at, updated_at
+    ) VALUES (
+        @RelayOrder1Id, 1, @Courier1Id, N'Trần Văn Shipper', '+84902345678',
+        N'Ký túc xá Dom A, Đại học FPT Hòa Lạc, Hà Nội', 21.0145, 105.5280,
+        N'Cổng chính Đại học FPT - Tòa nhà Alpha', 21.0128, 105.5258,
+        @MeetingPoint1Id, 1.20, 25000.00, 'READY_FOR_HANDOVER',
+        DATEADD(minute, -25, SYSUTCDATETIME()), SYSUTCDATETIME(), SYSUTCDATETIME()
+    );
+
+    -- Chặng 2: Cổng Alpha -> Keangnam Landmark 72 (Courier 2 nhận tiếp sức)
+    INSERT INTO order_legs (
+        order_id, leg_no, courier_id, courier_name, courier_phone,
+        start_address, start_latitude, start_longitude,
+        end_address, end_latitude, end_longitude,
+        meeting_point_id, distance_km, fee, status,
+        started_at, created_at, updated_at
+    ) VALUES (
+        @RelayOrder1Id, 2, @Courier2Id, N'Lê Tốc Hành Shipper', '+84908889900',
+        N'Cổng chính Đại học FPT - Tòa nhà Alpha', 21.0128, 105.5258,
+        N'Tòa nhà Keangnam Landmark 72, Nam Từ Liêm, Hà Nội', 21.0173, 105.7840,
+        NULL, 31.30, 30000.00, 'PENDING',
+        NULL, SYSUTCDATETIME(), SYSUTCDATETIME()
+    );
+
+    -- Tạo sẵn 1 mã QR bàn giao còn hiệu lực (10 phút) cho Chặng 1
+    DECLARE @Leg1Id BIGINT = (SELECT id FROM order_legs WHERE order_id = @RelayOrder1Id AND leg_no = 1);
+    INSERT INTO handover_tokens (
+        order_id, leg_id, leg_no, token_code, purpose,
+        generated_by_courier_id, expires_at, attempts, is_used, created_at
+    ) VALUES (
+        @RelayOrder1Id, @Leg1Id, 1, 'HO-FPTRELAY', 'HANDOVER',
+        @Courier1Id, DATEADD(minute, 10, SYSUTCDATETIME()), 0, 0, SYSUTCDATETIME()
+    );
+END;
 
 PRINT '--> [FPTPOST] Data seed script completed successfully!';
