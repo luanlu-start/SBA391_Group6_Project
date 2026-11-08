@@ -59,7 +59,7 @@ public class LedgerTransaction {
     @Column(name = "created_by")
     private Long createdBy;
 
-    @Column(name = "description", length = 500)
+    @Column(name = "description", length = 500, columnDefinition = "nvarchar(500)")
     private String description;
 
     @Column(name = "created_at", nullable = false, updatable = false)
