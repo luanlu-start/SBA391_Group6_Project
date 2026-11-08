@@ -108,6 +108,9 @@ app:
     login-lock-minutes: 15
     max-devices: 5
     cookie-secure: ${AUTH_COOKIE_SECURE:false}
+  payout:
+    # manual: Admin transfers and enters the reference; mock: settles instantly for demos.
+    provider: ${PAYOUT_PROVIDER:manual}
 
 # VNPay Payment Gateway Configuration
 vnpay:

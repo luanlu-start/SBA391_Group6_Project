@@ -96,12 +96,18 @@ const TX_TYPE_LABELS: Record<LedgerTransactionType, { label: string; tone: 'succ
   ESCROW_REFUND: { label: 'Hoàn tiền ký quỹ', tone: 'info' },
   WITHDRAWAL_REQUEST: { label: 'Yêu cầu rút tiền', tone: 'warning' },
   WITHDRAWAL_CANCEL: { label: 'Hoàn trả rút tiền', tone: 'info' },
+  WITHDRAWAL_REFUND: { label: 'Hoàn tiền rút không thành công', tone: 'info' },
+  WITHDRAWAL_PAYOUT: { label: 'Chi trả rút tiền', tone: 'neutral' },
 };
 
 const WDR_STATUS_CONFIG: Record<WithdrawalStatus, { label: string; tone: 'warning' | 'success' | 'danger' | 'neutral' }> = {
   PENDING_REVIEW: { label: 'Chờ duyệt', tone: 'warning' },
-  APPROVED: { label: 'Đã duyệt & chi trả', tone: 'success' },
+  APPROVED_L1: { label: 'Chờ duyệt cấp 2', tone: 'warning' },
+  APPROVED: { label: 'Đã duyệt, chờ chi', tone: 'warning' },
+  PROCESSING: { label: 'Đang chi trả', tone: 'warning' },
+  PAID: { label: 'Đã chi trả', tone: 'success' },
   REJECTED: { label: 'Bị từ chối', tone: 'danger' },
+  FAILED: { label: 'Chi thất bại, đã hoàn ví', tone: 'danger' },
   CANCELLED: { label: 'Đã hủy', tone: 'neutral' },
 };
 
@@ -801,6 +807,16 @@ export default function WalletPage() {
                           {wdr.rejectionReason && (
                             <div style={{ fontSize: '0.75rem', color: 'var(--accent-rose)', marginTop: '2px' }}>
                               Lý do: {wdr.rejectionReason}
+                            </div>
+                          )}
+                          {wdr.failureReason && (
+                            <div style={{ fontSize: '0.75rem', color: 'var(--accent-rose)', marginTop: '2px' }}>
+                              Nguyên nhân: {wdr.failureReason}
+                            </div>
+                          )}
+                          {wdr.payoutReference && (
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                              Mã tham chiếu: {wdr.payoutReference}
                             </div>
                           )}
                         </td>

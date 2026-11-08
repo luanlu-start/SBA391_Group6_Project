@@ -26,6 +26,7 @@ import AdminParametersPage from '../pages/AdminParametersPage';
 import AdminAuditPage from '../pages/AdminAuditPage';
 import AdminPromotionsPage from '../pages/AdminPromotionsPage';
 import AdminCategoriesPage from '../pages/AdminCategoriesPage';
+import AdminWithdrawalsPage from '../pages/AdminWithdrawalsPage';
 import WalletPage from '../pages/WalletPage';
 import OrderPaymentPage from '../pages/OrderPaymentPage';
 import VNPayReturnPage from '../pages/VNPayReturnPage';
@@ -71,6 +72,7 @@ export default function AppRoutes() {
         <Route path="audit" element={<AdminAuditPage />} />
         <Route path="promotions" element={<AdminPromotionsPage />} />
         <Route path="categories" element={<AdminCategoriesPage />} />
+        <Route path="withdrawals" element={<AdminWithdrawalsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
       <Route path="/" element={<MainLayout />}>

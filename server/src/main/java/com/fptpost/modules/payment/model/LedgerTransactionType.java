@@ -32,5 +32,15 @@ public enum LedgerTransactionType {
     /**
      * Hủy yêu cầu rút tiền, hoàn trả tiền về ví (UC-40).
      */
-    WITHDRAWAL_CANCEL
+    WITHDRAWAL_CANCEL,
+
+    /**
+     * Yêu cầu rút bị từ chối hoặc chi thất bại, hoàn tiền về ví (UC-41).
+     */
+    WITHDRAWAL_REFUND,
+
+    /**
+     * Chi trả yêu cầu rút tiền về tài khoản ngân hàng (UC-41).
+     */
+    WITHDRAWAL_PAYOUT
 }
