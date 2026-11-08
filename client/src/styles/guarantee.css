@@ -1,0 +1,37 @@
+.guarantee-muted { color: var(--text-secondary); font-size: .875rem; overflow-wrap: anywhere; }
+.guarantee-label { color: var(--text-secondary); font-size: .8125rem; font-weight: 600; }
+.guarantee-cell { display: grid; gap: var(--space-1); min-width: 150px; }
+.guarantee-amount { justify-items: end; font-variant-numeric: tabular-nums; }
+
+.guarantee-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: var(--space-4); }
+.guarantee-tile {
+  display: grid; gap: var(--space-1); padding: var(--space-4);
+  background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);
+}
+.guarantee-tile strong { font-size: 1.5rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+
+.guarantee-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 340px); gap: var(--space-5); align-items: start; }
+.guarantee-filters { display: flex; gap: var(--space-4); margin-bottom: var(--space-4); }
+.guarantee-filters .ui-field { min-width: 200px; }
+
+.guarantee-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); margin: 0;
+  padding: var(--space-3); background: var(--bg-tertiary); border-radius: var(--radius-md); }
+.guarantee-facts dt { color: var(--text-secondary); font-size: .8125rem; }
+.guarantee-facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.guarantee-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--space-2); }
+
+.guarantee-movements { display: grid; gap: var(--space-2); list-style: none; margin: 0; padding: 0; }
+.guarantee-movements li { display: grid; grid-template-columns: 140px minmax(0, 1fr) auto; gap: var(--space-3); align-items: baseline;
+  padding-bottom: var(--space-2); border-bottom: 1px solid var(--border-subtle); }
+.guarantee-movements li > span:nth-child(2) { overflow-wrap: anywhere; }
+.guarantee-in, .guarantee-out { font-weight: 600; font-variant-numeric: tabular-nums; }
+.guarantee-in { color: var(--accent-emerald); }
+.guarantee-out { color: var(--accent-rose); }
+
+@media (max-width: 960px) {
+  .guarantee-layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+  .guarantee-facts { grid-template-columns: minmax(0, 1fr); }
+  .guarantee-movements li { grid-template-columns: minmax(0, 1fr); gap: var(--space-1); }
+}

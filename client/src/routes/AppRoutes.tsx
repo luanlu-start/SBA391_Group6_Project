@@ -39,6 +39,7 @@ import ComplaintQueuePage from '../pages/ComplaintQueuePage';
 import ComplaintReviewPage from '../pages/ComplaintReviewPage';
 import ComplaintDetailPage from '../pages/ComplaintDetailPage';
 import MyComplaintsPage from '../pages/MyComplaintsPage';
+import AdminGuaranteePage from '../pages/AdminGuaranteePage';
 import CourierOrderDetailPage from "../pages/CourierOrderDetailPage";
 import CourierMarketplacePage from '../pages/CourierMarketplacePage';
 import CreateTripPage from '../pages/CreateTripPage';
@@ -75,6 +76,7 @@ export default function AppRoutes() {
         <Route index element={<Navigate to="params" replace />} />
         <Route path="params" element={<AdminParametersPage />} />
         <Route path="audit" element={<AdminAuditPage />} />
+        <Route path="guarantee" element={<AdminGuaranteePage />} />
         <Route path="promotions" element={<AdminPromotionsPage />} />
         <Route path="categories" element={<AdminCategoriesPage />} />
         <Route path="*" element={<NotFoundPage />} />

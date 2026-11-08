@@ -45,6 +45,12 @@ export const apiErrorMessages: Record<string, string> = {
   COMPLAINT_FILTER_INVALID: 'Bộ lọc hàng đợi khiếu nại không hợp lệ.',
   COMPLAINT_ORDER_INVALID: 'Đơn chưa đủ điều kiện khiếu nại.',
   COMPLAINT_ALREADY_OPEN: 'Bạn đã có một khiếu nại chưa kết thúc cho đơn này.',
+  COMPENSATION_NOT_FOUND: 'Khiếu nại này không có đề nghị bồi thường.',
+  COMPENSATION_STATE_INVALID: 'Đề nghị bồi thường đã được xử lý. Vui lòng tải lại danh sách.',
+  COMPENSATION_AMOUNT_INVALID: 'Số tiền duyệt phải từ 1 ₫ đến mức đề nghị trong phán quyết.',
+  COMPENSATION_SELF_FORBIDDEN: 'Bạn không được duyệt khoản bồi thường cho chính mình.',
+  COMPENSATION_NOTE_REQUIRED: 'Nhập lý do khi từ chối bồi thường.',
+  COMPENSATION_FILTER_INVALID: 'Bộ lọc trạng thái bồi thường không hợp lệ.',
 
   PROFILE_AGE_INVALID: 'Người dùng phải đủ 18 tuổi.',
   PROFILE_CONTACT_INVALID: 'Vui lòng nhập email hoặc số di động Việt Nam hợp lệ.',
