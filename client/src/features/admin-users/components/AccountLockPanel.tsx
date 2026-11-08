@@ -25,7 +25,7 @@ const durations = [
 
 interface Props {
   detail: AdminUserDetail;
-  onChanged: (detail: AdminUserDetail, message: string) => void;
+  onChanged: (detail: AdminUserDetail) => void;
 }
 
 export default function AccountLockPanel({ detail, onChanged }: Props) {
@@ -34,6 +34,7 @@ export default function AccountLockPanel({ detail, onChanged }: Props) {
   const [blacklistPhone, setBlacklistPhone] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
+  const [notice, setNotice] = useState('');
   const account = detail.account;
   const locked = account.status === 'LOCKED';
   const disabled = detail.self || account.status === 'DELETED';
@@ -42,13 +43,15 @@ export default function AccountLockPanel({ detail, onChanged }: Props) {
     event.preventDefault();
     setSaving(true);
     setError(null);
+    setNotice('');
     try {
       const response = locked
         ? await adminUserApi.unlock(account.publicId, reason.trim())
         : await adminUserApi.lock(account.publicId, reason.trim(), duration ? Number(duration) : null, blacklistPhone);
       setReason('');
       setBlacklistPhone(false);
-      onChanged(response.data, locked ? 'Đã mở khóa tài khoản.' : 'Đã khóa tài khoản và thu hồi mọi phiên đăng nhập.');
+      setNotice(locked ? 'Đã mở khóa tài khoản.' : 'Đã khóa tài khoản và thu hồi mọi phiên đăng nhập.');
+      onChanged(response.data);
     } catch (cause) {
       setError(getApiError(cause));
     } finally {
@@ -76,6 +79,7 @@ export default function AccountLockPanel({ detail, onChanged }: Props) {
         value={reason} disabled={disabled || saving} onChange={event => setReason(event.target.value)} />
       {!locked && <Checkbox label="Thêm số điện thoại vào danh sách đen" checked={blacklistPhone} disabled={disabled || saving}
         onChange={event => setBlacklistPhone(event.target.checked)} />}
+      {notice && <Alert tone="success">{notice}</Alert>}
       {error && <ApiErrorNotice message={error.message} correlationId={error.correlationId} />}
       <div><Button type="submit" variant={locked ? 'secondary' : 'danger'} icon={locked ? <LockOpen size={16} /> : <Lock size={16} />}
         loading={saving} disabled={disabled || !reason.trim()}>{locked ? 'Mở khóa' : 'Khóa tài khoản'}</Button></div>

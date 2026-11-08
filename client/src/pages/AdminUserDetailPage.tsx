@@ -92,7 +92,7 @@ export default function AdminUserDetailPage() {
             Lưu vai trò</Button></div>
         </div>
       </SectionCard>
-      <AccountLockPanel detail={detail} onChanged={(next, message) => { setDetail(next); setRoles(next.account.roles); setNotice(message); }} />
+      <AccountLockPanel detail={detail} onChanged={next => { setDetail(next); setRoles(next.account.roles); }} />
       <SectionCard title="Ví">
         <dl className="admin-users-dl">
           <div><dt>Khả dụng</dt><dd>{formatAdminMoney(detail.walletAvailable)}</dd></div>
