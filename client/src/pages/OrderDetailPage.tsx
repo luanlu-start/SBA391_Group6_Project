@@ -13,7 +13,7 @@ import {
   Pencil,
   XCircle,
 } from 'lucide-react';
-import type { Order } from '../types/order';
+import type { Order, OrderLeg } from '../types/order';
 import { ORDER_STATUS_MAP } from '../types/order';
 import { orderApi } from '../api/orderApi';
 import type { ApiError } from '../api/ApiError';
@@ -31,7 +31,7 @@ import OrderModerationNotice from '../features/order-moderation/components/Order
 import type { EscrowResponse } from '../types/payment';
 import { getSessionState } from '../auth/authSession';
 import ReportViolationButton from '../features/violation-reports/components/ReportViolationButton';
-import { ShieldCheck, CheckCircle, AlertTriangle, Send } from 'lucide-react';
+import { ShieldCheck, CheckCircle, AlertTriangle, Send, GitFork } from 'lucide-react';
 import InviteCourierModal from '../features/order/components/InviteCourierModal';
 import SuggestedCouriersCard from '../features/matching/components/SuggestedCouriersCard';
 
@@ -46,6 +46,8 @@ export default function OrderDetailPage() {
   const [releasing, setReleasing] = useState(false);
   const [releaseSuccess, setReleaseSuccess] = useState<string | null>(null);
   const [releaseError, setReleaseError] = useState<string | null>(null);
+  const [legs, setLegs] = useState<OrderLeg[]>([]);
+  const [loadingLegs, setLoadingLegs] = useState(false);
 
   const currentUser = getSessionState().user;
   const isAdmin = currentUser?.roles?.includes('ADMIN') ?? false;
@@ -78,6 +80,13 @@ export default function OrderDetailPage() {
         if (mounted) {
           setOrder(res.data);
           fetchEscrow(id);
+          if (res.data.isRelay) {
+            setLoadingLegs(true);
+            orderApi.getOrderLegs(id)
+              .then(legsRes => { if (mounted) setLegs(legsRes.data); })
+              .catch(e => console.error("Lỗi tải chặng tiếp sức:", e))
+              .finally(() => { if (mounted) setLoadingLegs(false); });
+          }
         }
       })
       .catch(cause => {
@@ -185,6 +194,11 @@ export default function OrderDetailPage() {
             <Badge dot tone={statusConfig.tone}>
               {statusConfig.label}
             </Badge>
+            {order.isRelay && (
+              <Badge tone="info">
+                TIẾP SỨC
+              </Badge>
+            )}
             {canEdit && (
               <Button
                 variant="secondary"
@@ -270,6 +284,122 @@ export default function OrderDetailPage() {
               </div>
             </div>
           </SectionCard>
+
+          {/* Hành trình tiếp sức (Relay Delivery - BR-F-062) */}
+          {order.isRelay && (
+            <SectionCard
+              title="Hành trình giao tiếp sức (Relay Delivery)"
+              description="Hành trình được chia thành các chặng giao tiếp sức độc lập qua điểm hẹn an toàn"
+            >
+              <div className="ui-stack" style={{ gap: '14px' }}>
+                <div
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-sm, 6px)',
+                    background: 'var(--brand-soft, rgba(243, 112, 33, 0.12))',
+                    border: '1px solid var(--brand-border, rgba(243, 112, 33, 0.3))',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    color: 'var(--text-accent, #ffb17d)',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  <GitFork size={16} style={{ color: 'var(--primary, #f37021)', flexShrink: 0 }} />
+                  <span>
+                    Đơn hàng chia thành <strong>{legs.length > 0 ? legs.length : 2} chặng</strong>. Cước phí được chia theo tỷ lệ quãng đường (BR-R-047).
+                  </span>
+                </div>
+
+                {loadingLegs ? (
+                  <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>
+                    <LoadingSpinner />
+                    <span style={{ marginLeft: '8px' }}>Đang tải tiến trình từng chặng…</span>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {legs.map(leg => {
+                      const legStatus = ORDER_STATUS_MAP[leg.status] || {
+                        label: leg.status,
+                        tone: 'neutral' as const,
+                      };
+                      return (
+                        <div
+                          key={leg.id || leg.legNo}
+                          style={{
+                            padding: '12px 14px',
+                            borderRadius: 'var(--radius-md, 10px)',
+                            background: 'var(--bg-tertiary, #242d39)',
+                            border: '1px solid var(--border-subtle, #333d4c)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px',
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span
+                                style={{
+                                  background: 'var(--primary, #f37021)',
+                                  color: '#fff',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 700,
+                                  padding: '2px 8px',
+                                  borderRadius: 'var(--radius-full, 999px)',
+                                }}
+                              >
+                                Chặng {leg.legNo}
+                              </span>
+                              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                {leg.distanceKm} km
+                              </span>
+                            </div>
+                            <Badge dot tone={legStatus.tone}>
+                              {legStatus.label}
+                            </Badge>
+                          </div>
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.85rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                              <MapPin size={14} style={{ color: 'var(--primary)', marginTop: '2px', flexShrink: 0 }} />
+                              <span style={{ color: 'var(--text-secondary)' }}>
+                                <strong style={{ color: 'var(--text-primary)' }}>Điểm đi:</strong> {leg.pickupAddress}
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                              <MapPin size={14} style={{ color: 'var(--accent-emerald)', marginTop: '2px', flexShrink: 0 }} />
+                              <span style={{ color: 'var(--text-secondary)' }}>
+                                <strong style={{ color: 'var(--text-primary)' }}>Điểm đến:</strong> {leg.deliveryAddress}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div
+                            style={{
+                              marginTop: '4px',
+                              paddingTop: '6px',
+                              borderTop: '1px dashed var(--border-subtle, #333d4c)',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              fontSize: '0.8rem',
+                            }}
+                          >
+                            <span style={{ color: 'var(--text-muted)' }}>
+                              Bưu tá chặng: {leg.courierId ? '#' + leg.courierId : 'Chưa có tài xế nhận'}
+                            </span>
+                            <span style={{ fontWeight: 600, color: 'var(--accent-emerald)' }}>
+                              Cước chặng: {Number(leg.legFee).toLocaleString('vi-VN')} đ
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </SectionCard>
+          )}
 
           {/* Gợi ý tài xế có chuyến đi tiện đường */}
           {order.status === 'FINDING_SHIPPER' && (

@@ -45,4 +45,5 @@ public class OrderResponse {
     private Instant updatedAt;
     private Instant endedAt;
     private List<String> imageUrls;
+    private Boolean isRelay;
 }
