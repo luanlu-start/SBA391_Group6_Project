@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
 import MainLayout from '../layouts/MainLayout';
+import AccountLayout from '../layouts/AccountLayout';
 import AdminLayout from '../layouts/AdminLayout';
 import ModeratorLayout from '../layouts/ModeratorLayout';
 import KycReviewPage from '../pages/KycReviewPage';
@@ -141,18 +142,20 @@ export default function AppRoutes() {
         <Route path="courier/trips" element={<CourierTripsPage />} />
         <Route path="courier/trips/new" element={<CreateTripPage />} />
         <Route path="verify" element={<VerifyOtpPage />} />
-        <Route path="account" element={<AccountPage />} />
-        <Route path="me/rewards" element={<RewardsPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="me/notification-settings" element={<NotificationSettingsPage />} />
-        <Route path="me/security" element={<SecurityPage />} />
-        <Route path="me/profile" element={<ProfilePage />} />
-        <Route path="me/addresses" element={<AddressesPage />} />
-        <Route path="me/kyc" element={<KycPage />} />
-        <Route path="me/complaints" element={<MyComplaintsPage />} />
-        <Route path="complaints/:id" element={<ComplaintDetailPage />} />
-        <Route path="me/courier-register" element={<CourierRegisterPage />} />
-        <Route path="courier" element={<CourierPage />} />
+        <Route element={<AccountLayout />}>
+          <Route path="account" element={<AccountPage />} />
+          <Route path="me/rewards" element={<RewardsPage />} />
+          <Route path="me/security" element={<SecurityPage />} />
+          <Route path="me/profile" element={<ProfilePage />} />
+          <Route path="me/addresses" element={<AddressesPage />} />
+          <Route path="me/kyc" element={<KycPage />} />
+          <Route path="me/complaints" element={<MyComplaintsPage />} />
+          <Route path="complaints/:id" element={<ComplaintDetailPage />} />
+          <Route path="me/courier-register" element={<CourierRegisterPage />} />
+          <Route path="courier" element={<CourierPage />} />
+        </Route>
         <Route path="legal" element={<LegalPage />} />
         <Route path="orders/:orderId/chat" element={<ChatPage />} />
         <Route path="*" element={<NotFoundPage />} />
