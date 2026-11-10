@@ -11,6 +11,7 @@ import PageHeader from '../components/ui/PageHeader';
 import SectionCard from '../components/ui/SectionCard';
 import Button from '../components/ui/Button';
 import ConfirmPickupPanel from '../components/order/ConfirmPickupPanel';
+import DeliveryIncidentPanel from '../components/order/DeliveryIncidentPanel';
 
 export default function CourierAssignedOrdersPage() {
   const navigate = useNavigate();
@@ -90,6 +91,8 @@ export default function CourierAssignedOrdersPage() {
                     onSuccess={() => void loadOrders()}
                   />
                 )}
+
+                <DeliveryIncidentPanel orderId={order.id} canReport={order.status === 'IN_DELIVERY'} />
 
                 {/* UC-24: Chat Sender - Courier */}
                 <Button

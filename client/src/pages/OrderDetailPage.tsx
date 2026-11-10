@@ -14,6 +14,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import type { Order } from '../types/order';
+import DeliveryIncidentPanel from '../components/order/DeliveryIncidentPanel';
 import { ORDER_STATUS_MAP } from '../types/order';
 import { orderApi } from '../api/orderApi';
 import type { ApiError } from '../api/ApiError';
@@ -213,6 +214,8 @@ export default function OrderDetailPage() {
           </div>
         }
       />
+
+      {currentUser && <DeliveryIncidentPanel orderId={order.id} />}
 
       <div className="ui-showcase-grid">
         {/* Left Column: Shipment & Product Details */}
