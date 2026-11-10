@@ -1,7 +1,8 @@
 import axiosClient from './axiosClient';
 import type { ApiResponse, PageResponse } from '../types/api';
 import type {
-  AccountRequestItem, AccountRequestStatus, AccountRole, AdminUserDetail, AdminUserQuery, AdminUserSummary, StaffCreationInput,
+  AccountRequestItem, AccountRequestStatus, AccountRole, AdminUserDetail, AdminUserQuery, AdminUserSummary, BlacklistKind,
+  StaffCreationInput,
 } from '../types/adminUsers';
 
 const userPath = (publicId: string) => `/admin/users/${encodeURIComponent(publicId)}`;
@@ -26,4 +27,10 @@ export const adminUserApi = {
     axiosClient.post<unknown, ApiResponse<AccountRequestItem>>(`${requestPath(id)}/reject`, { reason }),
   previewExport: (id: string) =>
     axiosClient.get<unknown, Blob>(`${requestPath(id)}/export`, { responseType: 'blob' }),
+  lock: (publicId: string, reason: string, durationHours: number | null, blacklistPhone: boolean) =>
+    axiosClient.post<unknown, ApiResponse<AdminUserDetail>>(`${userPath(publicId)}/lock`, { reason, durationHours, blacklistPhone }),
+  unlock: (publicId: string, reason: string) =>
+    axiosClient.post<unknown, ApiResponse<AdminUserDetail>>(`${userPath(publicId)}/unlock`, { reason }),
+  blacklist: (kind: BlacklistKind, value: string, reason: string) =>
+    axiosClient.post<unknown, void>('/admin/blacklist', { kind, value, reason }),
 };
