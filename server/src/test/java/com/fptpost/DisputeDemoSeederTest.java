@@ -1,5 +1,9 @@
 package com.fptpost;
 
+import com.fptpost.modules.chat.model.ChatMessage;
+import com.fptpost.modules.chat.model.ChatRoom;
+import com.fptpost.modules.chat.repository.ChatMessageRepository;
+import com.fptpost.modules.chat.repository.ChatRoomRepository;
 import com.fptpost.modules.dispute.config.DemoAccountLookup;
 import com.fptpost.modules.dispute.config.DisputeDemoSeeder;
 import com.fptpost.modules.dispute.enums.ComplaintStatus;
@@ -23,6 +27,7 @@ import com.fptpost.modules.payment.service.LedgerService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -32,6 +37,13 @@ import java.util.Locale;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 class DisputeDemoSeederTest extends IdentityFeatureHttpTest {
     @Autowired DemoAccountLookup lookup;
@@ -46,10 +58,17 @@ class DisputeDemoSeederTest extends IdentityFeatureHttpTest {
     @Autowired ComplaintEvidenceRepository complaintEvidence;
     @Autowired NotificationEventRepository notifications;
     @Autowired NotificationDeliveryRepository deliveries;
+    ChatRoomRepository chatRooms = mock(ChatRoomRepository.class);
+    ChatMessageRepository chatMessages = mock(ChatMessageRepository.class);
     User sender;
 
     @BeforeEach void demoAccounts() {
         clean();
+        when(chatRooms.save(any())).thenAnswer(invocation -> {
+            ChatRoom room = invocation.getArgument(0);
+            room.setId("room-1");
+            return room;
+        });
         deliveries.deleteAll(); notifications.deleteAll();
         sender = account("sender@fptpost.vn", "SENDER", 1);
         account("courier@fptpost.vn", "COURIER", 2);
@@ -86,13 +105,30 @@ class DisputeDemoSeederTest extends IdentityFeatureHttpTest {
                         == transaction.getEntries().stream().mapToLong(LedgerEntry::getCredit).sum()));
         assertThat(balanced).isTrue();
 
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Iterable<ChatMessage>> chat = ArgumentCaptor.forClass(Iterable.class);
+        verify(chatMessages).saveAll(chat.capture());
+        assertThat(chat.getValue()).hasSize(4).allMatch(message -> "room-1".equals(message.getRoomId()));
+        assertThat(chat.getValue()).extracting(ChatMessage::getAuthorId).contains(sender.getId(), open.getCourierId());
+
         seeder().seed();
         assertThat(orders.count()).isEqualTo(8);
         assertThat(complaints.count()).isEqualTo(2);
+        verify(chatRooms, times(1)).save(any());
+    }
+
+    @Test void chatStoreFailureDoesNotUndoTheComplaintData() {
+        doThrow(new IllegalStateException("chat store down")).when(chatRooms).save(any());
+
+        seeder().seed();
+
+        assertThat(complaints.count()).isEqualTo(2);
+        verifyNoInteractions(chatMessages);
     }
 
     private DisputeDemoSeeder seeder() {
-        return new DisputeDemoSeeder(lookup, orders, escrows, ledgerService, lifecycle, transactions, identityClock);
+        return new DisputeDemoSeeder(lookup, orders, escrows, ledgerService, lifecycle, transactions, identityClock,
+                chatRooms, chatMessages);
     }
 
     private User account(String email, String role, int offset) {

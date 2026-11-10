@@ -1,6 +1,10 @@
 package com.fptpost.modules.dispute.config;
 
 import com.fptpost.common.file.dto.ValidatedImage;
+import com.fptpost.modules.chat.model.ChatMessage;
+import com.fptpost.modules.chat.model.ChatRoom;
+import com.fptpost.modules.chat.repository.ChatMessageRepository;
+import com.fptpost.modules.chat.repository.ChatRoomRepository;
 import com.fptpost.modules.dispute.dto.request.OpenComplaintCommand;
 import com.fptpost.modules.dispute.enums.ComplaintOutcome;
 import com.fptpost.modules.dispute.enums.ComplaintReason;
@@ -45,7 +49,8 @@ import java.util.UUID;
  * Chạy sau khi ứng dụng sẵn sàng, chỉ ở profile dev/demo/local, và chỉ bổ sung phần còn thiếu nên khởi động lại không tạo trùng:
  * <ul>
  *   <li>6 đơn đã hoàn tất của người giao demo, để điểm uy tín có dữ liệu;</li>
- *   <li>một khiếu nại đang mở trên đơn có bảo hiểm, để chạy trọn luồng tiếp nhận → phán quyết → kháng nghị → đóng hồ sơ;</li>
+ *   <li>một khiếu nại đang mở trên đơn có bảo hiểm, kèm chat của đơn, để chạy trọn luồng tiếp nhận → phán quyết → kháng nghị
+ *   → đóng hồ sơ;</li>
  *   <li>một khiếu nại đã đóng có đề nghị bồi thường, để Quỹ bảo đảm có khoản chờ duyệt.</li>
  * </ul>
  */
@@ -68,22 +73,29 @@ public class DisputeDemoSeeder {
     private final ComplaintLifecycle lifecycle;
     private final PlatformTransactionManager transactionManager;
     private final Clock clock;
+    private final ChatRoomRepository chatRooms;
+    private final ChatMessageRepository chatMessages;
 
     @EventListener(ApplicationReadyEvent.class)
     public void seed() {
+        Order disputed;
         try {
-            new TransactionTemplate(transactionManager).executeWithoutResult(status -> seedMissing());
+            disputed = new TransactionTemplate(transactionManager).execute(status -> seedMissing());
         } catch (RuntimeException exception) {
             log.warn("Complaint demo data was not created", exception);
+            return;
         }
+        if (disputed != null) seedChat(disputed);
     }
 
-    void seedMissing() {
+    /** Bổ sung phần dữ liệu còn thiếu; trả về đơn vừa mở khiếu nại để tạo chat mẫu, hoặc {@code null}. */
+    Order seedMissing() {
         Long sender = lookup.idByEmail(SENDER).orElse(null);
         Long courier = lookup.idByEmail(COURIER).orElse(null);
         Long moderator = lookup.idByEmail(MODERATOR).orElse(null);
-        if (sender == null || courier == null) return;
+        if (sender == null || courier == null) return null;
         Instant now = clock.instant();
+        Order disputed = null;
 
         for (long done = lookup.countOrders("DEMO-HT-%"); done < COMPLETED_HISTORY; done++) {
             Order order = order("DEMO-HT-" + (done + 1), sender, courier, OrderStatus.COMPLETED, "Tài liệu hồ sơ " + (done + 1),
@@ -98,6 +110,7 @@ public class DisputeDemoSeeder {
             lifecycle.open(new OpenComplaintCommand(order.getId(), sender, ComplaintReason.DAMAGED,
                     "Hộp móp một góc, một bên tai nghe không lên tiếng khi nhận hàng.", List.of(evidence())));
             log.info("Created demo complaint on order {}", order.getOrderCode());
+            disputed = order;
         }
 
         if (lookup.countOrders("DEMO-BT-%") == 0) {
@@ -120,6 +133,32 @@ public class DisputeDemoSeeder {
             lifecycle.close(complaint, now);
             log.info("Created closed demo complaint with compensation on order {}", order.getOrderCode());
         }
+        return disputed;
+    }
+
+    /** Chat của đơn đang khiếu nại, để kiểm duyệt viên có lịch sử đối chiếu. Kho chat lỗi thì bỏ qua, không ảnh hưởng hồ sơ. */
+    private void seedChat(Order order) {
+        Instant pickedUp = order.getCreatedAt().plus(Duration.ofHours(2));
+        try {
+            ChatRoom room = chatRooms.save(ChatRoom.builder().orderId(order.getId()).senderId(order.getSenderId())
+                    .courierId(order.getCourierId()).createdAt(pickedUp).lastMessageAt(pickedUp.plus(Duration.ofHours(4)))
+                    .build());
+            chatMessages.saveAll(List.of(
+                    chat(room, order.getCourierId(), 1, "Mình đã lấy hàng, khoảng 2 tiếng nữa giao tới nhé.", pickedUp),
+                    chat(room, order.getSenderId(), 2, "Ok bạn, tai nghe dễ vỡ nên nhẹ tay giúp mình.",
+                            pickedUp.plus(Duration.ofMinutes(10))),
+                    chat(room, order.getCourierId(), 3, "Mình giao xong rồi, người nhận đã nhận hàng.",
+                            pickedUp.plus(Duration.ofHours(2))),
+                    chat(room, order.getSenderId(), 4, "Người nhận báo hộp móp một góc và một bên tai nghe không lên tiếng.",
+                            pickedUp.plus(Duration.ofHours(4)))));
+        } catch (RuntimeException exception) {
+            log.warn("Demo chat for order {} was not created", order.getOrderCode());
+        }
+    }
+
+    private static ChatMessage chat(ChatRoom room, Long author, int sequence, String content, Instant createdAt) {
+        return ChatMessage.builder().roomId(room.getId()).authorId(author).clientMessageId("demo-" + sequence)
+                .content(content).createdAt(createdAt).build();
     }
 
     private Order order(String code, Long sender, Long courier, OrderStatus status, String product, BigDecimal declared,
