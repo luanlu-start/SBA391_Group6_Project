@@ -14,7 +14,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = {"images", "legs"})
+@ToString(exclude = "images")
 @EqualsAndHashCode(of = "id")
 @Entity
 @Table(name = "orders", indexes = {
@@ -129,19 +129,6 @@ public class Order {
 
     @Column(name = "ended_at")
     private Instant endedAt;
-
-    @Builder.Default
-    @Column(name = "is_relay", nullable = false)
-    private Boolean isRelay = false;
-
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @Builder.Default
-    private List<OrderLeg> legs = new ArrayList<>();
-
-    public void addLeg(OrderLeg leg) {
-        legs.add(leg);
-        leg.setOrder(this);
-    }
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default

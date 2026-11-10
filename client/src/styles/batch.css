@@ -280,6 +280,12 @@
 }
 
 /* Stops Timeline */
+.batch-map-marker-start,
+.batch-stop-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
 .batch-stops-timeline {
   display: flex;
   flex-direction: column;
@@ -390,11 +396,14 @@
   border-radius: var(--radius-md, 10px);
   overflow: hidden;
   border: 1px solid var(--border-subtle, #333d4c);
+  isolation: isolate;
+  z-index: 0;
 }
 
 .batch-map-container {
   width: 100%;
   height: 100%;
+  position: relative;
   z-index: 1;
 }
 
@@ -409,9 +418,10 @@
   padding: 8px 12px;
   display: flex;
   gap: 14px;
-  z-index: 1000;
+  z-index: 10;
   font-size: 0.8rem;
   color: var(--text-secondary, #b0bdd2);
+  pointer-events: none;
 }
 
 .legend-item {

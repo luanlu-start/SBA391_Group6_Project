@@ -13,6 +13,11 @@ public interface IRelayService {
     List<MeetingPointResponse> getSafeMeetingPoints(String campusArea);
 
     /**
+     * Đánh dấu người giao đã đến điểm hẹn bàn giao an toàn (chuyển sang Sẵn sàng bàn giao).
+     */
+    OrderLegResponse markReadyForHandover(Long orderId, Integer legNo, User courier);
+
+    /**
      * Tạo mã QR bàn giao chặng (hiệu lực 10 phút theo PRM-097).
      * Dành cho người giao chặng hiện tại xuất trình cho người giao chặng tiếp theo.
      */
@@ -45,7 +50,13 @@ public interface IRelayService {
     List<OrderLegResponse> getCourierRelayLegs(User courier);
 
     /**
-     * Tạo đơn hàng giao tiếp sức (hỗ trợ UC-32 / chạy thử nghiệm / dữ liệu thực tế).
+     * Ước tính cước phí đơn giao tiếp sức chia theo tỷ lệ quãng đường từng chặng (UC-32 / BR-R-047).
+     */
+    RelayPricingEstimateResponse estimateRelayPricing(RelayPricingEstimateRequest request);
+
+    /**
+     * Tạo đơn hàng giao tiếp sức (UC-32 / BR-F-059, BR-R-047).
      */
     RelayOrderDetailResponse createRelayOrder(RelayOrderCreateRequest request, User sender);
+
 }

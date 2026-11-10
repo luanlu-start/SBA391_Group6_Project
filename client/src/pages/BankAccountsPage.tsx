@@ -178,7 +178,7 @@ export default function BankAccountsPage() {
   return (
     <div className="ui-stack" style={{ maxWidth: 960, margin: '0 auto' }}>
       <PageHeader
-        eyebrow="Ví FPTPost · UC-39"
+        eyebrow="Ví FPTPost"
         title="Tài khoản ngân hàng nhận tiền"
         description="Liên kết tài khoản ngân hàng chính chủ khớp với hồ sơ KYC để nhận tiền rút từ ví."
         actions={
@@ -224,7 +224,7 @@ export default function BankAccountsPage() {
 
       <SectionCard
         title="Liên kết tài khoản ngân hàng mới"
-        description="Tên chủ tài khoản phải trùng khớp với họ tên trên hồ sơ KYC đã duyệt (BR-R-058). Số tài khoản được mã hóa AES-256-GCM khi lưu trữ."
+        description="Tên chủ tài khoản phải trùng khớp với họ tên trên hồ sơ KYC đã duyệt. Số tài khoản được mã hóa AES-256-GCM khi lưu trữ."
         actions={<Badge tone="info" dot>Bảo mật 24h Cooldown</Badge>}
       >
         <form onSubmit={handleCreate} className="ui-stack">
@@ -292,7 +292,7 @@ export default function BankAccountsPage() {
           >
             <ShieldCheck size={18} color="var(--primary)" />
             <span>
-              Theo quy tắc an toàn <strong>BR-R-058</strong>, tài khoản ngân hàng mới thêm phải chờ đủ{' '}
+              Theo quy định an toàn, tài khoản ngân hàng mới thêm phải chờ đủ{' '}
               <strong>24 giờ</strong> trước khi có thể tạo lệnh rút tiền.
             </span>
           </div>

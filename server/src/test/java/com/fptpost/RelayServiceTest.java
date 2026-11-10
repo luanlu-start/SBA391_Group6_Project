@@ -57,6 +57,9 @@ public class RelayServiceTest {
     @Mock
     private UserProfileRepository userProfileRepository;
 
+    @Mock
+    private com.fptpost.modules.order.service.PricingCalculatorService pricingCalculatorService;
+
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
 
@@ -258,5 +261,53 @@ public class RelayServiceTest {
         assertEquals("Hư hại bao bì", response.getIncidentType());
         assertEquals(LegStatus.INCIDENT, leg1.getStatus());
         verify(handoverIncidentRepository, times(1)).save(any(HandoverIncident.class));
+    }
+
+    @Test
+    @DisplayName("Ước tính cước phí tiếp sức chia theo tỷ lệ quãng đường (UC-32, BR-R-047)")
+    void testEstimateRelayPricing_Success() {
+        when(pricingCalculatorService.estimatePrice(any(com.fptpost.modules.order.dto.PricingEstimateRequest.class)))
+                .thenAnswer(i -> {
+                    com.fptpost.modules.order.dto.PricingEstimateRequest r = i.getArgument(0);
+                    if (r.getDistanceKm() != null) {
+                        return com.fptpost.modules.order.dto.PricingEstimateResponse.builder()
+                                .distanceKm(r.getDistanceKm())
+                                .totalEstimatedPrice(new BigDecimal("60000"))
+                                .build();
+                    }
+                    return com.fptpost.modules.order.dto.PricingEstimateResponse.builder()
+                            .distanceKm(new BigDecimal("15.0"))
+                            .totalEstimatedPrice(new BigDecimal("30000"))
+                            .build();
+                });
+
+        RelayPricingEstimateRequest request = RelayPricingEstimateRequest.builder()
+                .pickupLat(new BigDecimal("21.0145"))
+                .pickupLng(new BigDecimal("105.5280"))
+                .deliveryLat(new BigDecimal("21.0173"))
+                .deliveryLng(new BigDecimal("105.7840"))
+                .weightKg(new BigDecimal("2.0"))
+                .relayPoints(List.of(
+                        RelayPointDto.builder()
+                                .address("Điểm hẹn Alpha")
+                                .latitude(new BigDecimal("21.0128"))
+                                .longitude(new BigDecimal("105.5258"))
+                                .name("Cổng chính Alpha")
+                                .build()
+                ))
+                .build();
+
+        RelayPricingEstimateResponse response = relayService.estimateRelayPricing(request);
+
+        assertNotNull(response);
+        assertEquals(new BigDecimal("30.00"), response.getTotalDistanceKm());
+        assertEquals(new BigDecimal("60000"), response.getTotalEstimatedPrice());
+        assertEquals(2, response.getLegs().size());
+
+        // Tổng cước các chặng phải đúng bằng tổng cước đơn hàng (BR-R-047)
+        BigDecimal sumFees = response.getLegs().stream()
+                .map(LegPricingBreakdownDto::getEstimatedFee)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        assertEquals(response.getTotalEstimatedPrice(), sumFees);
     }
 }

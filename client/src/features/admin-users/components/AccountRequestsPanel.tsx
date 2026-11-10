@@ -65,7 +65,7 @@ export default function AccountRequestsPanel() {
 
   const open = (item: AccountRequestItem) => item.status === 'PENDING' || item.status === 'PROCESSING';
 
-  return <SectionCard title="Yêu cầu xuất/xóa dữ liệu" description="Xử lý trong 30 ngày (BR-N-040). Xóa tài khoản ẩn danh dữ liệu cá nhân, giữ đơn và sổ cái."
+  return <SectionCard title="Yêu cầu xuất/xóa dữ liệu" description="Xử lý trong 30 ngày. Xóa tài khoản ẩn danh dữ liệu cá nhân, giữ đơn và sổ cái."
     actions={<Select label="Trạng thái" value={filter} onChange={event => setFilter(event.target.value as Filter)}>
       <option value="PENDING">Chờ xử lý</option><option value="COMPLETED">Hoàn tất</option>
       <option value="REJECTED">Bị từ chối</option><option value="ALL">Tất cả</option>

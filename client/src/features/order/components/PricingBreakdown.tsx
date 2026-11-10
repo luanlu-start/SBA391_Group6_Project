@@ -83,7 +83,7 @@ export default function PricingBreakdown({ pricing, relayPricing, isRelay, loadi
                   letterSpacing: '0.05em',
                 }}
               >
-                Tổng cước tiếp sức (UC-32 / BR-R-047)
+                Tổng cước giao tiếp sức
               </span>
               <span
                 style={{
@@ -141,7 +141,7 @@ export default function PricingBreakdown({ pricing, relayPricing, isRelay, loadi
         {/* Phân chia chi tiết theo chặng */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-accent, #ffb17d)' }}>
-            Chi tiết chia cước cho tài xế từng chặng (BR-R-047):
+            Chi tiết chia cước cho tài xế từng chặng:
           </div>
 
           {relayPricing.legs.map(leg => (
@@ -252,7 +252,7 @@ export default function PricingBreakdown({ pricing, relayPricing, isRelay, loadi
               letterSpacing: '0.05em',
             }}
           >
-            Tổng cước tạm tính (UC-11)
+            Tổng cước tạm tính
           </span>
           <div
             style={{

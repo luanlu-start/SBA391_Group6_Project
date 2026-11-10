@@ -224,6 +224,7 @@ export interface RelayPoint {
   latitude: number;
   longitude: number;
   name?: string;
+  meetingPointId?: number;
 }
 
 export interface OrderLeg {

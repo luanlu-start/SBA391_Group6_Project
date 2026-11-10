@@ -55,7 +55,7 @@ export default function CourierMarketplacePage(): React.ReactElement {
     const [totalPages, setTotalPages] = useState<number>(1);
     const [totalElements, setTotalElements] = useState<number>(0);
 
-    // Xử lý nhận đơn (UC-17)
+    // Xử lý nhận đơn
     const [selectedOrderToAccept, setSelectedOrderToAccept] = useState<MarketPlaceOrder | null>(null);
     const [accepting, setAccepting] = useState<boolean>(false);
     const [acceptSuccessMessage, setAcceptSuccessMessage] = useState<string | null>(null);
@@ -391,7 +391,7 @@ export default function CourierMarketplacePage(): React.ReactElement {
 
                         <div className="filter-actions">
                             <div className="filter-select-wrapper">
-                                <Select label="Sắp xếp đơn hàng" value={sort} onChange={handleSortChange}>
+                                <Select label="Sắp xếp" value={sort} onChange={handleSortChange}>
                                     <option value="createdAt,desc">Mới nhất trước</option>
                                     <option value="weightKg,asc">Khối lượng: Nhẹ đến nặng</option>
                                     <option value="weightKg,desc">Khối lượng: Nặng đến nhẹ</option>

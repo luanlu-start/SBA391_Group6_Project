@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Layers,
@@ -86,14 +86,26 @@ export default function CourierBatchPage() {
     try {
       setLoadingBatches(true);
       const res = await batchApi.getMyBatches({ size: 20 });
-      if (res.data?.content) {
-        setMyBatches(res.data.content);
-        if (res.data.content.length > 0 && !activeBatchDetail) {
-          setActiveBatchDetail(res.data.content[0]);
+      let list: DeliveryBatch[] = [];
+      if (res && res.data) {
+        if (Array.isArray(res.data.content)) {
+          list = res.data.content;
+        } else if (Array.isArray(res.data)) {
+          list = res.data;
         }
+      } else if (res && Array.isArray((res as unknown as { content: DeliveryBatch[] }).content)) {
+        list = (res as unknown as { content: DeliveryBatch[] }).content;
       }
-    } catch {
-      // Bỏ qua nếu lỗi
+      if (list.length > 0) {
+        setMyBatches(list);
+        setActiveBatchDetail(prev => {
+          if (!prev) return list[0];
+          const found = list.find(b => b.id === prev.id);
+          return found || list[0];
+        });
+      }
+    } catch (err) {
+      console.error('Lỗi khi tải danh sách lượt giao gộp:', err);
     } finally {
       setLoadingBatches(false);
     }
@@ -104,6 +116,25 @@ export default function CourierBatchPage() {
     fetchMyTrips();
     fetchMyBatches();
   }, []);
+
+  // Lấy tập các orderId đã từng nằm trong các lượt giao hiện có (trừ các lượt giao bị hủy)
+  const batchedOrderIds = useMemo(() => {
+    const ids = new Set<number>();
+    myBatches.forEach(b => {
+      if (b.status !== 'CANCELLED') {
+        b.orders?.forEach(o => ids.add(o.orderId));
+        b.stops?.forEach(s => {
+          if (s.orderId) ids.add(s.orderId);
+        });
+      }
+    });
+    return ids;
+  }, [myBatches]);
+
+  // Danh sách đơn hàng thực sự khả dụng (lọc bỏ triệt để các đơn đã nằm trong lượt giao)
+  const availableOrders = useMemo(() => {
+    return eligibleOrders.filter(o => !batchedOrderIds.has(o.id));
+  }, [eligibleOrders, batchedOrderIds]);
 
   // Chọn / bỏ chọn đơn hàng
   const toggleOrderSelection = (id: number) => {
@@ -124,7 +155,7 @@ export default function CourierBatchPage() {
   };
 
   const selectAllEligible = () => {
-    const ids = eligibleOrders.slice(0, 5).map(o => o.id);
+    const ids = availableOrders.slice(0, 5).map(o => o.id);
     setSelectedOrderIds(ids);
     setOptResult(null);
   };
@@ -135,7 +166,7 @@ export default function CourierBatchPage() {
   };
 
   // Tính tổng tải trọng các đơn được chọn
-  const selectedOrders = eligibleOrders.filter(o => selectedOrderIds.includes(o.id));
+  const selectedOrders = availableOrders.filter(o => selectedOrderIds.includes(o.id));
   const totalSelectedWeight = selectedOrders.reduce((sum, o) => sum + (Number(o.weightKg) || 0), 0);
 
   const selectedTrip = myTrips.find(t => t.id === selectedTripId);
@@ -200,11 +231,15 @@ export default function CourierBatchPage() {
 
       const res = await batchApi.create(payload);
       if (res.data) {
-        setAlertInfo({ type: 'success', text: `Tạo lượt giao gộp thành công! Mã lượt giao: ${res.data.batchCode}` });
+        const createdBatch = res.data;
+        setAlertInfo({ type: 'success', text: `Tạo lượt giao gộp thành công! Mã lượt giao: ${createdBatch.batchCode}` });
         setSelectedOrderIds([]);
         setOptResult(null);
         setBatchName('');
         setBatchNotes('');
+        // Cập nhật ngay lập tức vào state để người dùng thấy ngay lượt giao vừa tạo
+        setMyBatches(prev => [createdBatch, ...prev.filter(b => b.id !== createdBatch.id)]);
+        setActiveBatchDetail(createdBatch);
         // Chuyển tab sang quản lý lượt giao
         setActiveTab('LIST');
         fetchMyBatches();
@@ -392,8 +427,8 @@ export default function CourierBatchPage() {
                     <Package size={20} color="#f37021" /> Chọn đơn hàng cần gộp
                   </h3>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <span className="batch-panel-badge">{eligibleOrders.length} đơn sẵn sàng</span>
-                    {eligibleOrders.length > 0 && (
+                    <span className="batch-panel-badge">{availableOrders.length} đơn sẵn sàng</span>
+                    {availableOrders.length > 0 && (
                       <button
                         type="button"
                         onClick={selectAllEligible}
@@ -449,11 +484,11 @@ export default function CourierBatchPage() {
                     <RefreshCw className="animate-spin" size={24} style={{ margin: '0 auto 10px' }} />
                     <p>Đang tải danh sách đơn hàng của bạn…</p>
                   </div>
-                ) : eligibleOrders.length === 0 ? (
+                ) : availableOrders.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '40px 20px', color: '#8e9eb8' }}>
                     <Truck size={40} style={{ margin: '0 auto 12px', opacity: 0.5 }} />
                     <p style={{ margin: 0, fontWeight: 600 }}>Bạn chưa có đơn hàng nào đang nhận để gộp.</p>
-                    <p style={{ fontSize: '0.85rem', marginTop: '6px' }}>Hãy ghé Sàn đơn để nhận các đơn hàng tiện đường trước khi lập lộ trình gộp.</p>
+                    <p style={{ fontSize: '0.85rem', marginTop: '6px' }}>Các đơn hàng đã nằm trong lượt giao sẽ không hiển thị tại đây.</p>
                     <Link to="/courier/market" className="batch-btn-primary" style={{ marginTop: '16px', textDecoration: 'none' }}>
                       Xem sàn đơn ngay
                     </Link>
@@ -472,7 +507,7 @@ export default function CourierBatchPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {eligibleOrders.map(order => {
+                        {availableOrders.map(order => {
                           const isSelected = selectedOrderIds.includes(order.id);
                           return (
                             <tr
@@ -717,8 +752,9 @@ export default function CourierBatchPage() {
 
                 {myBatches.map(batch => {
                   const isSelected = activeBatchDetail?.id === batch.id;
-                  const completedStops = batch.stops.filter(s => s.status === 'COMPLETED').length;
-                  const progressPct = batch.stops.length > 0 ? Math.round((completedStops / batch.stops.length) * 100) : 0;
+                  const stops = batch.stops || [];
+                  const completedStops = stops.filter(s => s.status === 'COMPLETED').length;
+                  const progressPct = stops.length > 0 ? Math.round((completedStops / stops.length) * 100) : 0;
 
                   return (
                     <div
@@ -768,74 +804,97 @@ export default function CourierBatchPage() {
               {/* Chi tiết đợt giao được chọn */}
               <div className="batch-map-column">
                 {activeBatchDetail ? (
-                  <div className="batch-panel batch-sticky-panel">
-                    <div className="batch-panel-header">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {/* Khối 1: Bản đồ lộ trình di chuyển */}
+                    <div className="batch-panel">
+                      <div className="batch-panel-header">
+                        <div>
+                          <h3 className="batch-panel-title">
+                            <Navigation size={18} color="#f37021" /> {activeBatchDetail.batchName}
+                          </h3>
+                          <span style={{ fontSize: '0.8rem', color: '#8e9eb8', fontFamily: 'monospace' }}>
+                            Mã: {activeBatchDetail.batchCode}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => openGoogleMapsRoute(activeBatchDetail.stops || [])}
+                          className="batch-btn-secondary"
+                          style={{ padding: '6px 12px', fontSize: '0.85rem' }}
+                        >
+                          <ExternalLink size={14} /> Chỉ đường
+                        </button>
+                      </div>
+
+                      {/* Bản đồ của batch */}
                       <div>
-                        <h3 className="batch-panel-title">
-                          <Navigation size={18} color="#f37021" /> {activeBatchDetail.batchName}
-                        </h3>
-                        <span style={{ fontSize: '0.8rem', color: '#8e9eb8', fontFamily: 'monospace' }}>
-                          Mã: {activeBatchDetail.batchCode}
+                        <BatchRouteMap stops={activeBatchDetail.stops || []} />
+                      </div>
+                    </div>
+
+                    {/* Khối 2: Danh sách các điểm dừng trong lộ trình (Khối riêng biệt) */}
+                    <div className="batch-panel">
+                      <div className="batch-panel-header" style={{ marginBottom: '16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <ListOrdered size={18} color="#6cdeb4" />
+                          <h3 className="batch-panel-title" style={{ margin: 0 }}>
+                            Các điểm dừng trong lộ trình
+                          </h3>
+                        </div>
+                        <span
+                          style={{
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            color: '#6cdeb4',
+                            background: 'rgba(108, 222, 180, 0.12)',
+                            padding: '4px 10px',
+                            borderRadius: '12px',
+                            border: '1px solid rgba(108, 222, 180, 0.25)',
+                          }}
+                        >
+                          {(activeBatchDetail.stops || []).filter(s => s.status === 'COMPLETED').length}/{(activeBatchDetail.stops || []).length} điểm hoàn thành
                         </span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => openGoogleMapsRoute(activeBatchDetail.stops)}
-                        className="batch-btn-secondary"
-                        style={{ padding: '6px 12px', fontSize: '0.85rem' }}
-                      >
-                        <ExternalLink size={14} /> Chỉ đường
-                      </button>
-                    </div>
 
-                    {/* Bản đồ của batch */}
-                    <div style={{ marginBottom: '16px' }}>
-                      <BatchRouteMap stops={activeBatchDetail.stops} />
-                    </div>
+                      <div className="batch-stops-timeline" style={{ maxHeight: '420px', overflowY: 'auto', paddingRight: '4px', margin: 0 }}>
+                        {(activeBatchDetail.stops || []).map(stop => {
+                          const isPickup = stop.stopType === 'PICKUP';
+                          const isCompleted = stop.status === 'COMPLETED';
 
-                    {/* Danh sách các điểm dừng với nút hoàn thành */}
-                    <h4 style={{ fontSize: '0.95rem', fontWeight: 700, margin: '0 0 12px', color: '#f1f4fb' }}>
-                      Các điểm dừng trong lộ trình:
-                    </h4>
-
-                    <div className="batch-stops-timeline" style={{ maxHeight: '380px', overflowY: 'auto', paddingRight: '4px' }}>
-                      {activeBatchDetail.stops.map(stop => {
-                        const isPickup = stop.stopType === 'PICKUP';
-                        const isCompleted = stop.status === 'COMPLETED';
-
-                        return (
-                          <div
-                            key={stop.id ?? `${stop.stopType}_${stop.orderId}`}
-                            className={`batch-stop-item ${isCompleted ? 'completed' : ''}`}
-                          >
-                            <div className={`batch-stop-badge-number ${isPickup ? 'pickup' : 'delivery'}`}>
-                              {isCompleted ? <CheckCircle2 size={16} /> : stop.stopOrder}
-                            </div>
-                            <div className="batch-stop-info">
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <span className={`batch-stop-type-tag ${isPickup ? 'pickup' : 'delivery'}`}>
-                                  Chặng #{stop.stopOrder}: {isPickup ? 'Lấy hàng' : 'Giao hàng'}
-                                </span>
-                                {!isCompleted && (
-                                  <button
-                                    type="button"
-                                    onClick={() => stop.id && handleCompleteStop(stop.id)}
-                                    className="batch-btn-secondary"
-                                    style={{ padding: '2px 8px', fontSize: '0.75rem', borderColor: '#6cdeb4', color: '#6cdeb4' }}
-                                  >
-                                    Đã xong
-                                  </button>
-                                )}
+                          return (
+                            <div
+                              key={stop.id ?? `${stop.stopType}_${stop.orderId}`}
+                              className={`batch-stop-item ${isCompleted ? 'completed' : ''}`}
+                            >
+                              <div className={`batch-stop-badge-number ${isPickup ? 'pickup' : 'delivery'}`}>
+                                {isCompleted ? <CheckCircle2 size={16} /> : stop.stopOrder}
                               </div>
-                              <div className="batch-stop-address">{stop.address}</div>
-                              <div className="batch-stop-meta">
-                                <span><strong>Đơn:</strong> {stop.orderCode}</span>
-                                {stop.contactName && <span><strong>Liên hệ:</strong> {stop.contactName} {stop.contactPhone && `(${stop.contactPhone})`}</span>}
+                              <div className="batch-stop-info">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                  <span className={`batch-stop-type-tag ${isPickup ? 'pickup' : 'delivery'}`}>
+                                    Chặng #{stop.stopOrder}: {isPickup ? 'Lấy hàng' : 'Giao hàng'}
+                                  </span>
+                                  {!isCompleted && (
+                                    <button
+                                      type="button"
+                                      onClick={() => stop.id && handleCompleteStop(stop.id)}
+                                      className="batch-btn-secondary"
+                                      style={{ padding: '2px 8px', fontSize: '0.75rem', borderColor: '#6cdeb4', color: '#6cdeb4' }}
+                                    >
+                                      Đã xong
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="batch-stop-address">{stop.address}</div>
+                                <div className="batch-stop-meta">
+                                  <span><strong>Đơn:</strong> {stop.orderCode}</span>
+                                  {stop.contactName && <span><strong>Liên hệ:</strong> {stop.contactName} {stop.contactPhone && `(${stop.contactPhone})`}</span>}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 ) : (

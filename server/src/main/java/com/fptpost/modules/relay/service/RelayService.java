@@ -9,8 +9,12 @@ import com.fptpost.modules.identity.repository.UserRepository;
 import com.fptpost.modules.order.exception.OrderErrorCode;
 import com.fptpost.modules.order.model.DeliveryUrgency;
 import com.fptpost.modules.order.model.Order;
+import com.fptpost.modules.order.model.OrderImage;
 import com.fptpost.modules.order.model.OrderStatus;
 import com.fptpost.modules.order.repository.OrderRepository;
+import com.fptpost.modules.order.service.PricingCalculatorService;
+import com.fptpost.modules.order.dto.PricingEstimateRequest;
+import com.fptpost.modules.order.dto.PricingEstimateResponse;
 import com.fptpost.modules.relay.dto.*;
 import com.fptpost.modules.relay.model.*;
 import com.fptpost.modules.relay.repository.*;
@@ -20,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
@@ -41,6 +46,7 @@ public class RelayService implements IRelayService {
     private final HandoverIncidentRepository handoverIncidentRepository;
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
+    private final PricingCalculatorService pricingCalculatorService;
     private final ObjectMapper objectMapper;
 
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -70,6 +76,59 @@ public class RelayService implements IRelayService {
 
     @Override
     @Transactional
+    public OrderLegResponse markReadyForHandover(Long orderId, Integer legNo, User courier) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new AppException(OrderErrorCode.ORDER_NOT_FOUND));
+
+        OrderLeg leg = orderLegRepository.findByOrderIdAndLegNo(orderId, legNo)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thông tin chặng " + legNo));
+
+        if (leg.getCourierId() == null || !leg.getCourierId().equals(courier.getId())) {
+            throw new AppException(GlobalErrorCode.FORBIDDEN);
+        }
+
+        if (leg.getStatus() == LegStatus.HANDED_OVER || leg.getStatus() == LegStatus.COMPLETED) {
+            throw new IllegalArgumentException("Chặng này đã được bàn giao hoặc hoàn tất");
+        }
+
+        leg.setStatus(LegStatus.READY_FOR_HANDOVER);
+        orderLegRepository.save(leg);
+
+        boolean isFinalLeg = order.getTotalLegs() != null && Objects.equals(order.getTotalLegs(), leg.getLegNo());
+        boolean hasNextLeg = !isFinalLeg;
+
+        return OrderLegResponse.builder()
+                .id(leg.getId())
+                .orderId(order.getId())
+                .orderCode(order.getOrderCode())
+                .productName(order.getProductName())
+                .legNo(leg.getLegNo())
+                .courierId(leg.getCourierId())
+                .courierName(leg.getCourierName())
+                .courierPhone(leg.getCourierPhone())
+                .startAddress(leg.getStartAddress())
+                .startLatitude(leg.getStartLatitude())
+                .startLongitude(leg.getStartLongitude())
+                .endAddress(leg.getEndAddress())
+                .endLatitude(leg.getEndLatitude())
+                .endLongitude(leg.getEndLongitude())
+                .meetingPoint(leg.getMeetingPoint() != null ? mapToMeetingPointResponse(leg.getMeetingPoint()) : null)
+                .distanceKm(leg.getDistanceKm())
+                .fee(leg.getFee())
+                .status(leg.getStatus())
+                .startedAt(leg.getStartedAt())
+                .handedOverAt(leg.getHandedOverAt())
+                .completedAt(leg.getCompletedAt())
+                .handoverNote(leg.getHandoverNote())
+                .isCurrentLeg(true)
+                .isFinalLeg(isFinalLeg)
+                .canHandover(hasNextLeg)
+                .canReceiveHandover(false)
+                .build();
+    }
+
+    @Override
+    @Transactional
     public HandoverTokenResponse generateHandoverToken(Long orderId, Integer legNo, User courier) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new AppException(OrderErrorCode.ORDER_NOT_FOUND));
@@ -89,7 +148,7 @@ public class RelayService implements IRelayService {
 
         // Kiểm tra chặng tiếp theo có tồn tại không
         orderLegRepository.findByOrderIdAndLegNo(orderId, legNo + 1)
-                .orElseThrow(() -> new IllegalArgumentException("Đơn hàng không có chặng kế tiếp để bàn giao"));
+                .orElseThrow(() -> new IllegalArgumentException("Chặng này là chặng cuối cùng của đơn hàng, bưu kiện sẽ được giao trực tiếp cho người nhận"));
 
         // Hủy hoặc vô hiệu các token cũ chưa sử dụng của chặng này
         handoverTokenRepository.findTopByOrderIdAndLegNoAndIsUsedFalseAndExpiresAtAfterOrderByCreatedAtDesc(
@@ -117,7 +176,7 @@ public class RelayService implements IRelayService {
 
         handoverTokenRepository.save(token);
 
-        // Chuyển trạng thái chặng hiện tại sang READY_FOR_HANDOVER nếu đang IN_TRANSIT
+        // Chuyển trạng thái chặng hiện tại sang READY_FOR_HANDOVER nếu đang IN_TRANSIT hoặc ASSIGNED
         if (currentLeg.getStatus() == LegStatus.IN_TRANSIT || currentLeg.getStatus() == LegStatus.ASSIGNED) {
             currentLeg.setStatus(LegStatus.READY_FOR_HANDOVER);
             orderLegRepository.save(currentLeg);
@@ -197,7 +256,7 @@ public class RelayService implements IRelayService {
 
         // Tìm chặng kế tiếp
         OrderLeg nextLeg = orderLegRepository.findByOrderIdAndLegNo(orderId, legNo + 1)
-                .orElseThrow(() -> new IllegalArgumentException("Đơn hàng không có chặng kế tiếp để nhận bàn giao"));
+                .orElseThrow(() -> new IllegalArgumentException("Chặng này là chặng cuối cùng của đơn hàng, bưu kiện sẽ được giao trực tiếp cho người nhận"));
 
         // Người quét mã phải là người giao chặng tiếp theo (hoặc tiếp nhận chặng này nếu chưa được gán)
         if (nextLeg.getCourierId() != null && !nextLeg.getCourierId().equals(courier.getId())) {
@@ -349,7 +408,9 @@ public class RelayService implements IRelayService {
 
         List<OrderLegResponse> legResponses = legs.stream().map(leg -> {
             boolean isCurrentLeg = Objects.equals(order.getCurrentLegNo(), leg.getLegNo());
-            boolean canHandover = isCurrentLeg && user != null && Objects.equals(leg.getCourierId(), user.getId())
+            boolean isFinalLeg = order.getTotalLegs() != null && Objects.equals(leg.getLegNo(), order.getTotalLegs());
+            boolean hasNextLeg = !isFinalLeg;
+            boolean canHandover = isCurrentLeg && hasNextLeg && user != null && Objects.equals(leg.getCourierId(), user.getId())
                     && (leg.getStatus() == LegStatus.IN_TRANSIT || leg.getStatus() == LegStatus.READY_FOR_HANDOVER || leg.getStatus() == LegStatus.ASSIGNED);
 
             // Chặng tiếp theo có thể nhận bàn giao nếu chặng trước đó đang READY_FOR_HANDOVER hoặc IN_TRANSIT
@@ -389,6 +450,7 @@ public class RelayService implements IRelayService {
                     .completedAt(leg.getCompletedAt())
                     .handoverNote(leg.getHandoverNote())
                     .isCurrentLeg(isCurrentLeg)
+                    .isFinalLeg(isFinalLeg)
                     .canHandover(canHandover)
                     .canReceiveHandover(canReceiveHandover)
                     .build();
@@ -438,7 +500,9 @@ public class RelayService implements IRelayService {
         return legs.stream().map(leg -> {
             Order order = leg.getOrder();
             boolean isCurrentLeg = Objects.equals(order.getCurrentLegNo(), leg.getLegNo());
-            boolean canHandover = isCurrentLeg
+            boolean isFinalLeg = order != null && order.getTotalLegs() != null && Objects.equals(leg.getLegNo(), order.getTotalLegs());
+            boolean hasNextLeg = !isFinalLeg;
+            boolean canHandover = isCurrentLeg && hasNextLeg
                     && (leg.getStatus() == LegStatus.IN_TRANSIT || leg.getStatus() == LegStatus.READY_FOR_HANDOVER || leg.getStatus() == LegStatus.ASSIGNED);
 
             return OrderLegResponse.builder()
@@ -465,6 +529,7 @@ public class RelayService implements IRelayService {
                     .completedAt(leg.getCompletedAt())
                     .handoverNote(leg.getHandoverNote())
                     .isCurrentLeg(isCurrentLeg)
+                    .isFinalLeg(isFinalLeg)
                     .canHandover(canHandover)
                     .canReceiveHandover(false)
                     .build();
@@ -472,14 +537,245 @@ public class RelayService implements IRelayService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public RelayPricingEstimateResponse estimateRelayPricing(RelayPricingEstimateRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Dữ liệu ước tính cước phí tiếp sức không hợp lệ");
+        }
+
+        List<RelayPointDto> points = request.getRelayPoints() != null ? request.getRelayPoints() : Collections.emptyList();
+        if (points.isEmpty()) {
+            throw new IllegalArgumentException("Cần ít nhất một điểm tiếp sức trung gian để tính cước tiếp sức");
+        }
+
+        if (points.size() > 2) {
+            throw new IllegalArgumentException("Hệ thống chỉ hỗ trợ tối đa 3 chặng tiếp sức (tối đa 2 điểm hẹn trung gian)");
+        }
+
+        int totalLegs = points.size() + 1;
+        List<BigDecimal> legDistances = new ArrayList<>();
+        List<String[]> legAddresses = new ArrayList<>();
+
+        // Chặng 1: Pickup -> Relay Point 0
+        RelayPointDto firstPoint = points.get(0);
+        BigDecimal dist1 = calculateDistanceBetween(
+                request.getPickupLat(), request.getPickupLng(),
+                firstPoint.getLatitude(), firstPoint.getLongitude()
+        );
+        legDistances.add(dist1);
+        legAddresses.add(new String[]{
+                "Điểm lấy hàng",
+                firstPoint.getAddress() != null && !firstPoint.getAddress().isBlank() ? firstPoint.getAddress() : "Điểm tiếp sức 1"
+        });
+
+        // Chặng trung gian (nếu có 2 điểm hẹn): Point 0 -> Point 1
+        for (int i = 0; i < points.size() - 1; i++) {
+            RelayPointDto pA = points.get(i);
+            RelayPointDto pB = points.get(i + 1);
+            BigDecimal distMid = calculateDistanceBetween(pA.getLatitude(), pA.getLongitude(), pB.getLatitude(), pB.getLongitude());
+            legDistances.add(distMid);
+            legAddresses.add(new String[]{
+                    pA.getAddress() != null && !pA.getAddress().isBlank() ? pA.getAddress() : "Điểm tiếp sức " + (i + 1),
+                    pB.getAddress() != null && !pB.getAddress().isBlank() ? pB.getAddress() : "Điểm tiếp sức " + (i + 2)
+            });
+        }
+
+        // Chặng cuối: Point (last) -> Delivery
+        RelayPointDto lastPoint = points.get(points.size() - 1);
+        BigDecimal distLast = calculateDistanceBetween(
+                lastPoint.getLatitude(), lastPoint.getLongitude(),
+                request.getDeliveryLat(), request.getDeliveryLng()
+        );
+        legDistances.add(distLast);
+        legAddresses.add(new String[]{
+                lastPoint.getAddress() != null && !lastPoint.getAddress().isBlank() ? lastPoint.getAddress() : "Điểm tiếp sức cuối",
+                "Điểm giao hàng"
+        });
+
+        BigDecimal totalDistance = legDistances.stream()
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        // Tính tổng giá cước theo toàn bộ lộ trình
+        PricingEstimateRequest pricingReq = PricingEstimateRequest.builder()
+                .distanceKm(totalDistance)
+                .weightKg(request.getWeightKg() != null ? request.getWeightKg() : BigDecimal.ONE)
+                .declaredValue(request.getDeclaredValue() != null ? request.getDeclaredValue() : BigDecimal.ZERO)
+                .urgency(request.getUrgency() != null ? request.getUrgency() : DeliveryUrgency.STANDARD)
+                .build();
+
+        PricingEstimateResponse totalPricing = pricingCalculatorService.estimatePrice(pricingReq);
+        BigDecimal totalEstimatedPrice = totalPricing.getTotalEstimatedPrice();
+
+        // Phân chia cước phí theo tỷ lệ quãng đường từng chặng (BR-R-047)
+        double totalDistDouble = Math.max(0.1, totalDistance.doubleValue());
+        double totalPriceDouble = totalEstimatedPrice.doubleValue();
+
+        List<LegPricingBreakdownDto> legBreakdowns = new ArrayList<>();
+        BigDecimal accumulatedFee = BigDecimal.ZERO;
+        int accumulatedPercentage = 0;
+
+        for (int i = 0; i < totalLegs; i++) {
+            int legNo = i + 1;
+            BigDecimal dist = legDistances.get(i);
+            String fromAddr = legAddresses.get(i)[0];
+            String toAddr = legAddresses.get(i)[1];
+
+            BigDecimal legFee;
+            int percentage;
+
+            if (i < totalLegs - 1) {
+                double ratio = dist.doubleValue() / totalDistDouble;
+                double rawFee = totalPriceDouble * ratio;
+                long roundedFee = Math.round(rawFee / 500.0) * 500;
+                if (roundedFee < 5000) roundedFee = 5000;
+                legFee = BigDecimal.valueOf(roundedFee);
+                accumulatedFee = accumulatedFee.add(legFee);
+
+                percentage = (int) Math.round(ratio * 100.0);
+                accumulatedPercentage += percentage;
+            } else {
+                // Chặng cuối nhận phần còn lại để đảm bảo tổng cước các chặng = tổng cước đơn hàng (BR-R-047)
+                legFee = totalEstimatedPrice.subtract(accumulatedFee);
+                if (legFee.compareTo(BigDecimal.valueOf(5000)) < 0) {
+                    legFee = BigDecimal.valueOf(5000);
+                }
+                percentage = Math.max(1, 100 - accumulatedPercentage);
+            }
+
+            legBreakdowns.add(LegPricingBreakdownDto.builder()
+                    .legNo(legNo)
+                    .fromAddress(fromAddr)
+                    .toAddress(toAddr)
+                    .distanceKm(dist)
+                    .estimatedFee(legFee)
+                    .percentage(percentage)
+                    .build());
+        }
+
+        return RelayPricingEstimateResponse.builder()
+                .totalDistanceKm(totalDistance)
+                .totalEstimatedPrice(totalEstimatedPrice)
+                .urgency(request.getUrgency() != null ? request.getUrgency() : DeliveryUrgency.STANDARD)
+                .legs(legBreakdowns)
+                .build();
+    }
+
+    private BigDecimal calculateDistanceBetween(BigDecimal lat1, BigDecimal lng1, BigDecimal lat2, BigDecimal lng2) {
+        if (lat1 != null && lng1 != null && lat2 != null && lng2 != null) {
+            PricingEstimateRequest req = PricingEstimateRequest.builder()
+                    .pickupLat(lat1)
+                    .pickupLng(lng1)
+                    .deliveryLat(lat2)
+                    .deliveryLng(lng2)
+                    .build();
+            PricingEstimateResponse res = pricingCalculatorService.estimatePrice(req);
+            if (res != null && res.getDistanceKm() != null && res.getDistanceKm().compareTo(BigDecimal.ZERO) > 0) {
+                return res.getDistanceKm();
+            }
+        }
+        return BigDecimal.valueOf(10.0);
+    }
+
+    private List<RelayOrderCreateRequest.LegPlanDto> buildLegsFromRelayPoints(RelayOrderCreateRequest request) {
+        RelayPricingEstimateRequest estimateReq = RelayPricingEstimateRequest.builder()
+                .pickupLat(request.getPickupLatitude())
+                .pickupLng(request.getPickupLongitude())
+                .deliveryLat(request.getDeliveryLatitude())
+                .deliveryLng(request.getDeliveryLongitude())
+                .weightKg(request.getWeightKg())
+                .declaredValue(request.getDeclaredValue())
+                .urgency(request.getUrgency())
+                .relayPoints(request.getRelayPoints())
+                .build();
+
+        RelayPricingEstimateResponse estimateRes = estimateRelayPricing(estimateReq);
+        if (request.getTotalPrice() == null) {
+            request.setTotalPrice(estimateRes.getTotalEstimatedPrice());
+        }
+
+        List<RelayOrderCreateRequest.LegPlanDto> legs = new ArrayList<>();
+        List<RelayPointDto> points = request.getRelayPoints();
+
+        for (int i = 0; i < estimateRes.getLegs().size(); i++) {
+            LegPricingBreakdownDto breakdown = estimateRes.getLegs().get(i);
+            int legNo = i + 1;
+
+            String startAddress;
+            BigDecimal startLat;
+            BigDecimal startLng;
+            String endAddress;
+            BigDecimal endLat;
+            BigDecimal endLng;
+            Long meetingPointId = null;
+
+            if (i == 0) {
+                startAddress = request.getPickupAddress();
+                startLat = request.getPickupLatitude();
+                startLng = request.getPickupLongitude();
+                RelayPointDto p = points.get(0);
+                endAddress = p.getAddress();
+                endLat = p.getLatitude();
+                endLng = p.getLongitude();
+                meetingPointId = p.getMeetingPointId();
+            } else if (i == estimateRes.getLegs().size() - 1) {
+                RelayPointDto prev = points.get(points.size() - 1);
+                startAddress = prev.getAddress();
+                startLat = prev.getLatitude();
+                startLng = prev.getLongitude();
+                endAddress = request.getDeliveryAddress();
+                endLat = request.getDeliveryLatitude();
+                endLng = request.getDeliveryLongitude();
+            } else {
+                RelayPointDto prev = points.get(i - 1);
+                RelayPointDto next = points.get(i);
+                startAddress = prev.getAddress();
+                startLat = prev.getLatitude();
+                startLng = prev.getLongitude();
+                endAddress = next.getAddress();
+                endLat = next.getLatitude();
+                endLng = next.getLongitude();
+                meetingPointId = next.getMeetingPointId();
+            }
+
+            legs.add(RelayOrderCreateRequest.LegPlanDto.builder()
+                    .legNo(legNo)
+                    .meetingPointId(meetingPointId)
+                    .startAddress(startAddress)
+                    .startLatitude(startLat)
+                    .startLongitude(startLng)
+                    .endAddress(endAddress)
+                    .endLatitude(endLat)
+                    .endLongitude(endLng)
+                    .distanceKm(breakdown.getDistanceKm())
+                    .fee(breakdown.getEstimatedFee())
+                    .build());
+        }
+
+        return legs;
+    }
+
+    @Override
     @Transactional
     public RelayOrderDetailResponse createRelayOrder(RelayOrderCreateRequest request, User sender) {
         if (request.getLegs() == null || request.getLegs().isEmpty()) {
-            throw new IllegalArgumentException("Đơn hàng tiếp sức phải có ít nhất 2 chặng");
+            if (request.getRelayPoints() != null && !request.getRelayPoints().isEmpty()) {
+                request.setLegs(buildLegsFromRelayPoints(request));
+            } else {
+                throw new IllegalArgumentException("Đơn hàng tiếp sức phải có ít nhất 2 chặng hoặc điểm tiếp sức trung gian");
+            }
         }
 
         if (request.getLegs().size() > MAX_RELAY_LEGS) {
             throw new IllegalArgumentException("Đơn hàng tiếp sức chỉ hỗ trợ tối đa " + MAX_RELAY_LEGS + " chặng");
+        }
+
+        BigDecimal finalPrice = request.getFinalPrice();
+        if (finalPrice == null) {
+            finalPrice = request.getLegs().stream()
+                    .map(RelayOrderCreateRequest.LegPlanDto::getFee)
+                    .filter(Objects::nonNull)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
         }
 
         String orderCode = "FPT-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd")) + "-" + generateOrderSuffix();
@@ -497,18 +793,26 @@ public class RelayService implements IRelayService {
                 .receiverPhone(request.getReceiverPhone())
                 .productName(request.getProductName())
                 .productDescription(request.getProductDescription())
-                .quantity(1)
+                .quantity(request.getQuantity() != null ? request.getQuantity() : 1)
                 .weightKg(request.getWeightKg())
                 .declaredValue(request.getDeclaredValue())
-                .priceSuggested(request.getTotalPrice())
-                .priceAgreed(request.getTotalPrice())
-                .urgency(DeliveryUrgency.STANDARD)
+                .priceSuggested(finalPrice)
+                .priceAgreed(finalPrice)
+                .urgency(request.getUrgency() != null ? request.getUrgency() : DeliveryUrgency.STANDARD)
                 .deliveryNote(request.getDeliveryNote())
-                .status(OrderStatus.IN_DELIVERY)
+                .status(OrderStatus.FINDING_SHIPPER)
                 .isRelay(true)
                 .currentLegNo(1)
                 .totalLegs(request.getLegs().size())
                 .build();
+
+        if (request.getImageUrls() != null) {
+            for (String imgUrl : request.getImageUrls()) {
+                if (imgUrl != null && !imgUrl.isBlank()) {
+                    order.addImage(OrderImage.builder().imageUrl(imgUrl.trim()).build());
+                }
+            }
+        }
 
         orderRepository.save(order);
 
@@ -522,7 +826,6 @@ public class RelayService implements IRelayService {
                 meetingPoint = meetingPointRepository.findById(legPlan.getMeetingPointId()).orElse(null);
             }
 
-            LegStatus legStatus = (legNo == 1) ? LegStatus.IN_TRANSIT : LegStatus.PENDING;
             Long courierId = legPlan.getAssignedCourierId();
             String courierName = null;
             String courierPhone = null;
@@ -534,6 +837,8 @@ public class RelayService implements IRelayService {
                     courierPhone = cUser.getPhone();
                 }
             }
+
+            LegStatus legStatus = courierId != null ? LegStatus.ASSIGNED : LegStatus.PENDING;
 
             OrderLeg leg = OrderLeg.builder()
                     .order(order)
@@ -551,19 +856,58 @@ public class RelayService implements IRelayService {
                     .distanceKm(legPlan.getDistanceKm())
                     .fee(legPlan.getFee())
                     .status(legStatus)
-                    .startedAt(legNo == 1 ? Instant.now() : null)
+                    .startedAt(null)
                     .build();
 
             savedLegs.add(orderLegRepository.save(leg));
         }
 
-        // Gán tài xế chặng 1 cho đơn hàng
         if (!savedLegs.isEmpty() && savedLegs.get(0).getCourierId() != null) {
             order.setCourierId(savedLegs.get(0).getCourierId());
             orderRepository.save(order);
         }
 
         return getRelayOrderDetails(order.getId(), sender);
+    }
+
+
+
+    private OrderLegResponse mapToOrderLegResponse(OrderLeg leg) {
+        Order order = leg.getOrder();
+        boolean isCurrentLeg = order != null && Objects.equals(order.getCurrentLegNo(), leg.getLegNo());
+        boolean isFinalLeg = order != null && order.getTotalLegs() != null && Objects.equals(leg.getLegNo(), order.getTotalLegs());
+        boolean hasNextLeg = !isFinalLeg;
+        boolean canHandover = isCurrentLeg && hasNextLeg
+                && (leg.getStatus() == LegStatus.IN_TRANSIT || leg.getStatus() == LegStatus.READY_FOR_HANDOVER || leg.getStatus() == LegStatus.ASSIGNED);
+
+        return OrderLegResponse.builder()
+                .id(leg.getId())
+                .orderId(order != null ? order.getId() : null)
+                .orderCode(order != null ? order.getOrderCode() : null)
+                .productName(order != null ? order.getProductName() : null)
+                .legNo(leg.getLegNo())
+                .courierId(leg.getCourierId())
+                .courierName(leg.getCourierName())
+                .courierPhone(leg.getCourierPhone())
+                .startAddress(leg.getStartAddress())
+                .startLatitude(leg.getStartLatitude())
+                .startLongitude(leg.getStartLongitude())
+                .endAddress(leg.getEndAddress())
+                .endLatitude(leg.getEndLatitude())
+                .endLongitude(leg.getEndLongitude())
+                .meetingPoint(leg.getMeetingPoint() != null ? mapToMeetingPointResponse(leg.getMeetingPoint()) : null)
+                .distanceKm(leg.getDistanceKm())
+                .fee(leg.getFee())
+                .status(leg.getStatus())
+                .startedAt(leg.getStartedAt())
+                .handedOverAt(leg.getHandedOverAt())
+                .completedAt(leg.getCompletedAt())
+                .handoverNote(leg.getHandoverNote())
+                .isCurrentLeg(isCurrentLeg)
+                    .isFinalLeg(isFinalLeg)
+                .canHandover(canHandover)
+                .canReceiveHandover(false)
+                .build();
     }
 
     private MeetingPointResponse mapToMeetingPointResponse(MeetingPoint point) {

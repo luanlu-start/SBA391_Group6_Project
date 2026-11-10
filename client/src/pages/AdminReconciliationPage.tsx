@@ -185,7 +185,7 @@ export default function AdminReconciliationPage() {
   return (
     <div className="ui-stack">
       <PageHeader
-        eyebrow="Quản trị Tài chính · UC-43"
+        eyebrow="Quản trị Tài chính"
         title="Đối soát giao dịch hằng ngày & Bất biến sổ cái"
         description="Đối chiếu giao dịch cổng VNPay với sổ cái kép nội bộ, kiểm tra bất biến Tổng Nợ = Tổng Có và xử lý dòng lệch bằng bút toán điều chỉnh."
         actions={
@@ -278,7 +278,7 @@ export default function AdminReconciliationPage() {
       {/* Manual Run Reconciliation Bar (API-107) */}
       <SectionCard
         title="Chạy đối soát giao dịch theo ngày"
-        description="Hệ thống đối chiếu toàn bộ giao dịch VNPay và Sổ cái trong ngày báo cáo. Nếu có dòng lệch, hệ thống cảnh báo Admin và không tự động sửa số dư ví (BR-R-062)."
+        description="Hệ thống đối chiếu toàn bộ giao dịch VNPay và Sổ cái trong ngày báo cáo. Nếu có dòng lệch, hệ thống cảnh báo Admin và không tự động sửa số dư ví."
       >
         <form onSubmit={handleRunReconciliation} className="tx-filter-bar">
           <div className="tx-filter-item">
@@ -416,7 +416,7 @@ export default function AdminReconciliationPage() {
       {selectedReport && (
         <SectionCard
           title={`Chi tiết dòng đối soát — Ngày ${selectedReport.reportDate} (Báo cáo #${selectedReport.id})`}
-          description="Các dòng lệch cần Admin kiểm tra và tạo bút toán điều chỉnh trên sổ cái kép (BR-F-083)."
+          description="Các dòng lệch cần Admin kiểm tra và tạo bút toán điều chỉnh trên sổ cái kép."
         >
           {!selectedReport.items || selectedReport.items.length === 0 ? (
             <p className="ui-muted">Không có giao dịch phát sinh trong ngày báo cáo này.</p>
@@ -503,7 +503,7 @@ export default function AdminReconciliationPage() {
       <Modal
         isOpen={!!adjustingItem}
         onClose={() => !adjustSubmitting && setAdjustingItem(null)}
-        title="Tạo bút toán điều chỉnh dòng lệch (UC-43)"
+        title="Tạo bút toán điều chỉnh dòng lệch"
         description={
           adjustingItem
             ? `Xử lý dòng lệch ${adjustingItem.txnRef} (${adjustingItem.discrepancyType}) bằng bút toán sổ cái kép bất biến.`
@@ -515,7 +515,7 @@ export default function AdminReconciliationPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
               <AlertTriangle size={16} />
               <span>
-                Theo quy tắc <strong>BR-N-039</strong>, lịch sử sổ cái không bị sửa/xóa; hệ thống sẽ ghi một bút toán điều chỉnh mới cân bằng Nợ/Có.
+                Theo quy định hệ thống, lịch sử sổ cái không bị sửa/xóa; hệ thống sẽ ghi một bút toán điều chỉnh mới cân bằng Nợ/Có.
               </span>
             </div>
           </Alert>

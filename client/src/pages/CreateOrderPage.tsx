@@ -14,9 +14,10 @@ export default function CreateOrderPage() {
 
   function handleSuccess(order: Order) {
     setCreatedOrder(order);
+    const targetId = order.id || (order as unknown as { orderId?: number }).orderId;
     // Tự động chuyển hướng đến trang chi tiết sau 1.5 giây
     setTimeout(() => {
-      navigate(`/sender/orders/${order.id}`);
+      navigate(`/sender/orders/${targetId}`);
     }, 1500);
   }
 

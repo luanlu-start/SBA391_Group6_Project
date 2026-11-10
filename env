@@ -1,0 +1,26 @@
+# Local Docker ports: defaults are already occupied on this machine.
+FRONTEND_PORT=5173
+BACKEND_PORT=8080
+MONGO_PORT=37017
+BACKEND_PROFILES=dev,demo
+
+SQLSERVER_PORT=31433
+SQLSERVER_PASSWORD=sa
+
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=fptpost1@gmail.com
+SMTP_PASSWORD=ufoc hxim weku hmpk
+SMTP_AUTH=true
+SMTP_STARTTLS=true
+
+MAIL_FROM=fptpost1@gmail.com
+MAIL_FROM_NAME=FPTPost
+JWT_SECRET=awrbkO6DzgEjwZLjM+tSBsDsxHtFEWCWXAeEYV+dZME=
+SQLSERVER_URL=jdbc:sqlserver://host.docker.internal:1433;databaseName=group6_project_db;encrypt=true;trustServerCertificate=true
+SQLSERVER_USERNAME=sa
+VNPAY_TMN_CODE=B91MXQ5Y
+VNPAY_HASH_SECRET=HDMKJXGPKGDZUQJDDBEFKXEIXZYWSNCM
+KYC_ENCRYPTION_KEYS={"local-v1":"SmznZkDj9t9HHmI8ZXGdnbI6C+B8yjqgq5AoswUk8jo="}
+KYC_ACTIVE_KEY_ID=local-v1
+KYC_HASH_KEY=MvTVZpQW9Bgtv9hkNEqFWW6lNav7BGpi3+C3gGVX4IY=

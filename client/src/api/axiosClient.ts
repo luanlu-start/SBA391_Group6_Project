@@ -61,7 +61,8 @@ axiosClient.interceptors.response.use(
     ) : [];
     
     if (error.response) {
-      message = (code && apiErrorMessages[code]) || data?.detail || data?.title
+      const firstErrorMsg = errors.length > 0 ? (errors[0].message || errors[0].code) : undefined;
+      message = firstErrorMsg || (code && apiErrorMessages[code]) || data?.detail || data?.title
         || `Máy chủ trả về lỗi ${error.response.status}.`;
       
       if (error.response.status === 401 && !isPublicAuthentication(config?.url)) clearAuthentication();

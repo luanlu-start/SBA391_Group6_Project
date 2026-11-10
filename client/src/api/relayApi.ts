@@ -17,6 +17,11 @@ export const relayApi = {
     return axiosClient.get<unknown, ApiResponse<OrderLeg[]>>('/courier/relay-legs');
   },
 
+  // Đánh dấu đã đến điểm hẹn bàn giao (chuyển sang Sẵn sàng bàn giao)
+  markReadyForHandover: (orderId: number | string, legNo: number) => {
+    return axiosClient.patch<unknown, ApiResponse<OrderLeg>>(`/orders/${orderId}/legs/${legNo}/ready`);
+  },
+
   // Lấy chi tiết đơn hàng tiếp sức, các chặng và lịch sử bàn giao
   getRelayOrder: (orderId: number | string) => {
     return axiosClient.get<unknown, ApiResponse<RelayOrderDetail>>(`/orders/${orderId}/legs`);

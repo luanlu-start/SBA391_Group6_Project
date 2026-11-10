@@ -64,9 +64,13 @@ public class BatchService implements IBatchService {
 
         List<Order> courierOrders = orderRepository.findByCourierIdOrderByCreatedAtDesc(courier.getId());
 
-        // Lọc các đơn hàng chưa hoàn thành, chưa hủy và đang trong giai đoạn giao nhận
+        // Lấy tất cả các đơn hàng đã từng được đưa vào bất kỳ lượt giao nào chưa bị hủy (kể cả đang thực hiện hoặc đã hoàn thành)
+        Set<Long> batchedOrderIds = stopRepository.findBatchedOrderIds();
+
+        // Lọc các đơn hàng chưa hoàn thành, chưa hủy và chưa từng nằm trong bất kỳ lượt giao gộp nào
         return courierOrders.stream()
                 .filter(o -> o.getStatus() != OrderStatus.COMPLETED && o.getStatus() != OrderStatus.CANCELLED)
+                .filter(o -> !batchedOrderIds.contains(o.getId()))
                 .map(this::mapToEligibleOrderResponse)
                 .collect(Collectors.toList());
     }
@@ -141,6 +145,15 @@ public class BatchService implements IBatchService {
 
         List<Order> orders = orderRepository.findAllById(orderIds);
         validateCourierOwnership(orders, orderIds, courier.getId());
+
+        // Ngăn ngừa trùng lặp: Chặn tuyệt đối nếu đơn hàng đã từng nằm trong một lượt giao khác trên hệ thống
+        Set<Long> batchedOrderIds = stopRepository.findBatchedOrderIds();
+        for (Order o : orders) {
+            if (batchedOrderIds.contains(o.getId())) {
+                throw new AppException(GlobalErrorCode.INVALID_REQUEST,
+                        "Đơn hàng " + o.getOrderCode() + " đã nằm trong một lượt giao gộp trên hệ thống, không thể gộp lại.");
+            }
+        }
 
         // Kiểm tra sức chứa theo BR-R-046
         Trip trip = null;
@@ -262,7 +275,7 @@ public class BatchService implements IBatchService {
         if (courier == null) {
             throw new AppException(GlobalErrorCode.UNAUTHORIZED);
         }
-        Page<DeliveryBatch> batches = batchRepository.findByCourierIdOrderByCreatedAtDesc(courier.getId(), pageable);
+        Page<DeliveryBatch> batches = batchRepository.findByCourierId(courier.getId(), pageable);
         return batches.map(this::mapToDeliveryBatchResponse);
     }
 
@@ -280,6 +293,24 @@ public class BatchService implements IBatchService {
         targetStop.setCompletedAt(Instant.now());
         stopRepository.save(targetStop);
 
+        // Cập nhật trạng thái của đơn hàng liên quan tới điểm dừng
+        Order stopOrder = targetStop.getOrder();
+        if (stopOrder != null) {
+            if (targetStop.getStopType() == BatchStopType.PICKUP) {
+                // Đã lấy hàng -> cập nhật sang IN_DELIVERY nếu đơn chưa hoàn tất
+                if (stopOrder.getStatus() != OrderStatus.COMPLETED) {
+                    stopOrder.setStatus(OrderStatus.IN_DELIVERY);
+                    orderRepository.save(stopOrder);
+                    log.info("Điểm lấy hàng hoàn tất: Đơn hàng {} chuyển sang trạng thái IN_DELIVERY", stopOrder.getOrderCode());
+                }
+            } else if (targetStop.getStopType() == BatchStopType.DELIVERY) {
+                // Đã giao hàng tận nơi -> cập nhật sang COMPLETED
+                stopOrder.setStatus(OrderStatus.COMPLETED);
+                orderRepository.save(stopOrder);
+                log.info("Điểm giao hàng hoàn tất: Đơn hàng {} chuyển sang trạng thái COMPLETED", stopOrder.getOrderCode());
+            }
+        }
+
         // Kiểm tra xem tất cả các điểm dừng đã hoàn thành chưa
         boolean allCompleted = batch.getStops().stream()
                 .allMatch(s -> s.getStatus() == BatchStopStatus.COMPLETED || s.getStatus() == BatchStopStatus.SKIPPED);
@@ -287,6 +318,15 @@ public class BatchService implements IBatchService {
         if (allCompleted) {
             batch.setStatus(DeliveryBatchStatus.COMPLETED);
             batchRepository.save(batch);
+
+            // Đảm bảo tất cả các đơn hàng thuộc batch đều được đánh dấu COMPLETED
+            for (DeliveryBatchStop s : batch.getStops()) {
+                if (s.getOrder() != null && s.getOrder().getStatus() != OrderStatus.COMPLETED) {
+                    s.getOrder().setStatus(OrderStatus.COMPLETED);
+                    orderRepository.save(s.getOrder());
+                }
+            }
+            log.info("Lượt giao gộp mã {} đã hoàn thành toàn bộ các điểm dừng", batch.getBatchCode());
         }
 
         return mapToDeliveryBatchResponse(batch);
@@ -301,7 +341,6 @@ public class BatchService implements IBatchService {
         return mapToDeliveryBatchResponse(updated);
     }
 
-    // =========================================================================
     // =========================================================================
     // THUẬT TOÁN TỐI ƯU HÓA LỘ TRÌNH (Contraction Hierarchies & CRP Routing)
     // =========================================================================
@@ -394,6 +433,7 @@ public class BatchService implements IBatchService {
 
         return new OptimizationResult(stopResponses, plan.getTotalDistanceKm(), plan.getTotalDurationMinutes(), plan.getRoutingAlgorithm());
     }
+
     // =========================================================================
     // VALIDATIONS VÀ MAPPERS
     // =========================================================================
@@ -512,13 +552,13 @@ public class BatchService implements IBatchService {
     }
 
     private DeliveryBatchResponse mapToDeliveryBatchResponse(DeliveryBatch b) {
-        List<BatchStopResponse> stops = b.getStops().stream()
+        List<BatchStopResponse> stops = (b.getStops() != null) ? b.getStops().stream()
                 .map(this::mapToBatchStopResponse)
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()) : Collections.emptyList();
 
-        List<BatchOrderSummaryResponse> orders = b.getOrders().stream()
+        List<BatchOrderSummaryResponse> orders = (b.getOrders() != null) ? b.getOrders().stream()
                 .map(this::mapToBatchOrderSummaryResponse)
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()) : Collections.emptyList();
 
         return DeliveryBatchResponse.builder()
                 .id(b.getId())

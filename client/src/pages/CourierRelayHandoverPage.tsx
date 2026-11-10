@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   GitCommit,
   QrCode,
@@ -14,9 +15,16 @@ import {
   Package,
   Layers,
   Clock,
-  Info
+  Info,
+  ScanLine,
+  X,
+  ArrowRight,
+  ClipboardCopy,
+  ChevronRight,
+  Check
 } from 'lucide-react';
 import { relayApi } from '../api/relayApi';
+import { getApiError } from '../api/ApiError';
 import type {
   OrderLeg,
   MeetingPoint,
@@ -31,16 +39,18 @@ import '../styles/relay.css';
 type ActiveTab = 'my-legs' | 'show-qr' | 'confirm-receive' | 'meeting-points' | 'incident';
 
 export default function CourierRelayHandoverPage() {
+  const [searchParams] = useSearchParams();
+  const orderIdParam = searchParams.get('orderId');
   const [activeTab, setActiveTab] = useState<ActiveTab>('my-legs');
 
-  // Dữ liệu danh sách chặng
+  // Dữ liệu danh sách chặng & điểm hẹn
   const [legs, setLegs] = useState<OrderLeg[]>([]);
   const [meetingPoints, setMeetingPoints] = useState<MeetingPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Chọn chặng để xuất trình QR hoặc nhận bàn giao
+  // Chặng đang được chọn để thao tác
   const [selectedLeg, setSelectedLeg] = useState<OrderLeg | null>(null);
   const [handoverToken, setHandoverToken] = useState<HandoverToken | null>(null);
   const [tokenLoading, setTokenLoading] = useState(false);
@@ -53,20 +63,25 @@ export default function CourierRelayHandoverPage() {
   const [submittingHandover, setSubmittingHandover] = useState(false);
   const [handoverSuccessResult, setHandoverSuccessResult] = useState<HandoverConfirmResponse | null>(null);
 
+  // Camera Scanner modal
+  const [isCameraScanning, setIsCameraScanning] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
   // Form báo cáo sự cố
   const [incidentType, setIncidentType] = useState('Hàng hóa bị móp méo / rách bao bì');
   const [incidentDesc, setIncidentDesc] = useState('');
   const [incidentPhoto, setIncidentPhoto] = useState('');
   const [submittingIncident, setSubmittingIncident] = useState(false);
 
-  // Chi tiết đơn hàng tiếp sức
+  // Modal chi tiết đơn hàng
   const [viewingDetailOrder, setViewingDetailOrder] = useState<RelayOrderDetail | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const incidentFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Tải dữ liệu ban đầu
+  // Tải dữ liệu các chặng và điểm hẹn ban đầu
   const loadData = async () => {
     setLoading(true);
     setFeedbackMessage(null);
@@ -76,12 +91,28 @@ export default function CourierRelayHandoverPage() {
         relayApi.getSafeMeetingPoints(),
       ]);
 
-      setLegs(legsRes.data || []);
+      const legsList = legsRes.data || [];
+      setLegs(legsList);
       setMeetingPoints(pointsRes.data || []);
 
-      // Nếu chưa chọn chặng, chọn chặng đầu tiên có thể thao tác
-      if (legsRes.data && legsRes.data.length > 0 && !selectedLeg) {
-        setSelectedLeg(legsRes.data[0]);
+      if (orderIdParam) {
+        const found = legsList.find((l) => String(l.orderId) === String(orderIdParam));
+        if (found) {
+          setSelectedLeg(found);
+          if (found.canHandover && !found.isFinalLeg && found.status !== 'HANDED_OVER' && found.status !== 'COMPLETED') {
+            setActiveTab('show-qr');
+          } else if (found.status === 'PENDING') {
+            setActiveTab('confirm-receive');
+          }
+        } else if (legsList.length > 0 && !selectedLeg) {
+          setSelectedLeg(legsList[0]);
+        }
+      } else if (legsList.length > 0 && !selectedLeg) {
+        setSelectedLeg(legsList[0]);
+      } else if (selectedLeg) {
+        // Cập nhật lại thông tin selectedLeg sau khi tải lại dữ liệu
+        const updated = legsList.find((l) => l.id === selectedLeg.id);
+        if (updated) setSelectedLeg(updated);
       }
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } }; message?: string };
@@ -97,10 +128,31 @@ export default function CourierRelayHandoverPage() {
 
   useEffect(() => {
     void loadData();
+    return () => {
+      stopCameraScanner();
+    };
   }, []);
 
-  // Xử lý tạo / làm mới mã QR bàn giao
+  // Tạo / làm mới mã xác thực bàn giao chặng
   const handleGenerateToken = async (orderId: number, legNo: number) => {
+    if (!selectedLeg) return;
+
+    if (selectedLeg.status === 'HANDED_OVER' || selectedLeg.status === 'COMPLETED') {
+      setFeedbackMessage({
+        type: 'error',
+        text: 'Chặng này đã được bàn giao thành công trước đó.',
+      });
+      return;
+    }
+
+    if (selectedLeg.isFinalLeg || !selectedLeg.canHandover) {
+      setFeedbackMessage({
+        type: 'error',
+        text: 'Chặng này là chặng cuối cùng của đơn hàng, bưu kiện sẽ được giao trực tiếp cho người nhận.',
+      });
+      return;
+    }
+
     setTokenLoading(true);
     setFeedbackMessage(null);
     try {
@@ -111,30 +163,69 @@ export default function CourierRelayHandoverPage() {
         text: 'Đã tạo mã xác nhận bàn giao mới thành công (hiệu lực 10 phút).',
       });
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } }; message?: string };
+      const apiErr = getApiError(err);
       setFeedbackMessage({
         type: 'error',
-        text: error?.response?.data?.message || 'Lỗi khi tạo mã bàn giao.',
+        text: apiErr.message || 'Lỗi khi tạo mã bàn giao.',
       });
     } finally {
       setTokenLoading(false);
     }
   };
 
-  // Mở tab xuất trình QR cho 1 chặng cụ thể
+  // Đánh dấu đã đến điểm hẹn (Sẵn sàng bàn giao)
+  const handleMarkReady = async (leg: OrderLeg) => {
+    try {
+      await relayApi.markReadyForHandover(leg.orderId, leg.legNo);
+      setFeedbackMessage({
+        type: 'success',
+        text: `Đã cập nhật chặng ${leg.legNo} sang trạng thái Sẵn sàng bàn giao tại điểm hẹn.`,
+      });
+      void loadData();
+      void handleOpenShowQr(leg);
+    } catch (err: unknown) {
+      const apiErr = getApiError(err);
+      setFeedbackMessage({
+        type: 'error',
+        text: apiErr.message || 'Lỗi khi cập nhật trạng thái sẵn sàng bàn giao.',
+      });
+    }
+  };
+
+  // Mở tab xuất trình QR cho chặng đang bàn giao
   const handleOpenShowQr = async (leg: OrderLeg) => {
     setSelectedLeg(leg);
     setActiveTab('show-qr');
     setFeedbackMessage(null);
 
-    // Thử lấy mã token còn hiệu lực trước
+    // 1. Nếu chặng đã bàn giao hoặc hoàn tất: không tạo token mới
+    if (leg.status === 'HANDED_OVER' || leg.status === 'COMPLETED') {
+      setHandoverToken(null);
+      setTokenLoading(false);
+      return;
+    }
+
+    // 2. Nếu là chặng cuối cùng: giao trực tiếp cho người nhận, không có chặng kế tiếp để bàn giao
+    if (leg.isFinalLeg || leg.canHandover === false) {
+      setHandoverToken(null);
+      setTokenLoading(false);
+      return;
+    }
+
+    // 3. Nếu chặng chưa bắt đầu: không tạo token
+    if (leg.status === 'PENDING') {
+      setHandoverToken(null);
+      setTokenLoading(false);
+      return;
+    }
+
+    // 4. Chặng hợp lệ đang vận chuyển: lấy hoặc tạo mã QR
     setTokenLoading(true);
     try {
       const res = await relayApi.getActiveHandoverToken(leg.orderId, leg.legNo);
       if (res.data) {
         setHandoverToken(res.data);
       } else {
-        // Nếu chưa có, tự động tạo mới
         await handleGenerateToken(leg.orderId, leg.legNo);
       }
     } catch {
@@ -144,7 +235,7 @@ export default function CourierRelayHandoverPage() {
     }
   };
 
-  // Mở tab nhận bàn giao cho 1 chặng
+  // Mở tab nhận bàn giao cho chặng tiếp theo
   const handleOpenReceiveHandover = (leg: OrderLeg) => {
     setSelectedLeg(leg);
     setActiveTab('confirm-receive');
@@ -155,7 +246,7 @@ export default function CourierRelayHandoverPage() {
     setFeedbackMessage(null);
   };
 
-  // Mở tab báo cáo sự cố cho 1 chặng
+  // Mở tab báo cáo sự cố
   const handleOpenIncident = (leg: OrderLeg) => {
     setSelectedLeg(leg);
     setActiveTab('incident');
@@ -164,7 +255,7 @@ export default function CourierRelayHandoverPage() {
     setFeedbackMessage(null);
   };
 
-  // Xem chi tiết toàn bộ các chặng của đơn
+  // Xem chi tiết toàn bộ các chặng và lịch sử bàn giao
   const handleViewOrderDetails = async (orderId: number) => {
     try {
       const res = await relayApi.getRelayOrder(orderId);
@@ -179,7 +270,7 @@ export default function CourierRelayHandoverPage() {
     }
   };
 
-  // Xử lý upload ảnh chứng minh bàn giao
+  // Upload ảnh chứng minh kiện hàng tại điểm hẹn
   const handleUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -189,15 +280,14 @@ export default function CourierRelayHandoverPage() {
       const url = await relayApi.uploadHandoverPhoto(file);
       setProofPhotoUrl(url);
     } catch {
-      // Dự phòng URL ảnh nếu chưa cấu hình upload cloud
-      const mockUrl = URL.createObjectURL(file);
-      setProofPhotoUrl(mockUrl);
+      const fallbackUrl = URL.createObjectURL(file);
+      setProofPhotoUrl(fallbackUrl);
     } finally {
       setUploadingPhoto(false);
     }
   };
 
-  // Xử lý gửi xác nhận bàn giao chặng
+  // Gửi xác nhận bàn giao chặng
   const handleConfirmHandover = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedLeg) return;
@@ -205,7 +295,7 @@ export default function CourierRelayHandoverPage() {
     if (!inputCode.trim()) {
       setFeedbackMessage({
         type: 'error',
-        text: 'Vui lòng nhập mã xác nhận bàn giao hoặc quét mã QR.',
+        text: 'Vui lòng nhập hoặc quét mã xác nhận bàn giao.',
       });
       return;
     }
@@ -213,23 +303,22 @@ export default function CourierRelayHandoverPage() {
     setSubmittingHandover(true);
     setFeedbackMessage(null);
 
-    // Xác định chặng cần xác nhận bàn giao: nếu đang ở chặng tiếp theo (legNo 2), chặng cần bàn giao là legNo 1
+    // Xác định chặng cần xác nhận bàn giao: nếu đang ở chặng tiếp nhận (chặng > 1), chặng cần bàn giao là chặng trước đó
     const targetLegNo = selectedLeg.legNo > 1 ? selectedLeg.legNo - 1 : selectedLeg.legNo;
 
     try {
       const res = await relayApi.confirmHandover(selectedLeg.orderId, targetLegNo, {
         tokenCode: inputCode.trim(),
         photoUrl: proofPhotoUrl || 'https://fptpost.vn/uploads/proof_sample.jpg',
-        notes: handoverNotes || 'Đã kiểm tra kiện hàng tại điểm hẹn, tình trạng nguyên vẹn.',
+        notes: handoverNotes || 'Đã kiểm tra kiện hàng tại điểm hẹn, bao bì nguyên vẹn.',
       });
 
       setHandoverSuccessResult(res.data);
       setFeedbackMessage({
         type: 'success',
-        text: 'Bàn giao chặng thành công! Trách nhiệm vận chuyển đã được chuyển giao cho bạn.',
+        text: 'Bàn giao chặng thành công! Trách nhiệm vận chuyển đã chuyển giao sang bạn.',
       });
 
-      // Tải lại danh sách chặng
       void loadData();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } }; message?: string };
@@ -242,7 +331,7 @@ export default function CourierRelayHandoverPage() {
     }
   };
 
-  // Xử lý gửi báo cáo sự cố bàn giao
+  // Báo cáo sự cố tại điểm hẹn (Luồng ngoại lệ)
   const handleSendIncident = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedLeg) return;
@@ -255,7 +344,7 @@ export default function CourierRelayHandoverPage() {
       return;
     }
 
-    setSubmittingIncident(false);
+    setSubmittingIncident(true);
     try {
       await relayApi.reportIncident(selectedLeg.orderId, selectedLeg.legNo, {
         incidentType,
@@ -265,7 +354,7 @@ export default function CourierRelayHandoverPage() {
 
       setFeedbackMessage({
         type: 'success',
-        text: 'Đã gửi báo cáo sự cố thành công. Bộ phận vận hành sẽ liên hệ hỗ trợ bạn.',
+        text: 'Đã gửi báo cáo sự cố thành công. Bộ phận vận hành sẽ liên hệ hỗ trợ bạn kịp thời.',
       });
       setActiveTab('my-legs');
       void loadData();
@@ -280,7 +369,95 @@ export default function CourierRelayHandoverPage() {
     }
   };
 
-  // Helper hiển thị huy hiệu trạng thái
+  // Quản lý Camera Scanner trực tiếp
+  const startCameraScanner = async () => {
+    setIsCameraScanning(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+
+      // Quét tự động bằng BarcodeDetector nếu trình duyệt hỗ trợ
+      if ('BarcodeDetector' in window) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const barcodeDetector = new (window as any).BarcodeDetector({ formats: ['qr_code'] });
+        const scanInterval = setInterval(async () => {
+          if (!videoRef.current || !streamRef.current) {
+            clearInterval(scanInterval);
+            return;
+          }
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const barcodes = await barcodeDetector.detect(videoRef.current);
+            if (barcodes && barcodes.length > 0) {
+              const rawValue: string = barcodes[0].rawValue;
+              extractAndApplyTokenCode(rawValue);
+              clearInterval(scanInterval);
+              stopCameraScanner();
+            }
+          } catch {
+            // Bỏ qua lỗi từng frame
+          }
+        }, 400);
+      }
+    } catch {
+      setFeedbackMessage({
+        type: 'error',
+        text: 'Không thể truy cập camera. Vui lòng cấp quyền hoặc nhập mã xác thực thủ công.',
+      });
+      setIsCameraScanning(false);
+    }
+  };
+
+  const stopCameraScanner = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    setIsCameraScanning(false);
+  };
+
+  const extractAndApplyTokenCode = (raw: string) => {
+    try {
+      if (raw.includes('{') && raw.includes('}')) {
+        const parsed = JSON.parse(raw) as { tokenCode?: string; orderId?: number; legNo?: number };
+        if (parsed.tokenCode) {
+          setInputCode(parsed.tokenCode.toUpperCase());
+          if (parsed.orderId) {
+            const matchLeg = legs.find((l) => l.orderId === parsed.orderId);
+            if (matchLeg) setSelectedLeg(matchLeg);
+          }
+          return;
+        }
+      }
+      if (raw.startsWith('RELAY:')) {
+        const parts = raw.split(':');
+        if (parts.length >= 4) {
+          const ordId = Number(parts[1]);
+          const code = parts[3];
+          setInputCode(code.trim().toUpperCase());
+          const matchLeg = legs.find((l) => l.orderId === ordId);
+          if (matchLeg) setSelectedLeg(matchLeg);
+          return;
+        }
+      }
+      const match = /HO-[A-Z0-9]{8}/i.exec(raw);
+      if (match) {
+        setInputCode(match[0].toUpperCase());
+        return;
+      }
+      setInputCode(raw.trim().toUpperCase());
+    } catch {
+      setInputCode(raw.trim().toUpperCase());
+    }
+  };
+
+  // Helper hiển thị huy hiệu trạng thái chặng
   const renderStatusBadge = (status: string) => {
     switch (status) {
       case 'IN_TRANSIT':
@@ -300,7 +477,7 @@ export default function CourierRelayHandoverPage() {
 
   return (
     <div className="relay-page-container">
-      {/* Header bar */}
+      {/* Header Bar */}
       <div className="relay-header-bar">
         <div className="relay-header-title">
           <h1>
@@ -308,21 +485,23 @@ export default function CourierRelayHandoverPage() {
             Giao hàng tiếp sức
           </h1>
           <p>
-            Chuyển giao trách nhiệm kiện hàng giữa các người giao tại điểm hẹn an toàn đã được kiểm duyệt.
+            Chuyển giao trách nhiệm bưu kiện giữa các người giao tại điểm hẹn an toàn đã được kiểm duyệt.
           </p>
         </div>
 
-        <Button
-          variant="secondary"
-          icon={<RefreshCw size={16} className={refreshing ? 'spin' : ''} />}
-          onClick={() => {
-            setRefreshing(true);
-            void loadData();
-          }}
-          disabled={loading || refreshing}
-        >
-          Làm mới
-        </Button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <Button
+            variant="secondary"
+            icon={<RefreshCw size={16} className={refreshing ? 'spin' : ''} />}
+            onClick={() => {
+              setRefreshing(true);
+              void loadData();
+            }}
+            disabled={loading || refreshing}
+          >
+            Làm mới
+          </Button>
+        </div>
       </div>
 
       {/* Thông báo phản hồi */}
@@ -354,8 +533,16 @@ export default function CourierRelayHandoverPage() {
           type="button"
           className={`relay-tab-btn ${activeTab === 'show-qr' ? 'active' : ''}`}
           onClick={() => {
-            if (selectedLeg) {
-              void handleOpenShowQr(selectedLeg);
+            const activeHandoverLeg = legs.find(
+              (l) => l.canHandover && !l.isFinalLeg && l.status !== 'HANDED_OVER' && l.status !== 'COMPLETED'
+            );
+            const targetLeg =
+              selectedLeg && selectedLeg.canHandover && !selectedLeg.isFinalLeg
+                ? selectedLeg
+                : activeHandoverLeg || selectedLeg || (legs.length > 0 ? legs[0] : null);
+
+            if (targetLeg) {
+              void handleOpenShowQr(targetLeg);
             } else {
               setActiveTab('show-qr');
             }
@@ -368,7 +555,19 @@ export default function CourierRelayHandoverPage() {
         <button
           type="button"
           className={`relay-tab-btn ${activeTab === 'confirm-receive' ? 'active' : ''}`}
-          onClick={() => setActiveTab('confirm-receive')}
+          onClick={() => {
+            const pendingLeg = legs.find((l) => l.status === 'PENDING' || l.canReceiveHandover);
+            const targetLeg =
+              selectedLeg && (selectedLeg.status === 'PENDING' || selectedLeg.canReceiveHandover)
+                ? selectedLeg
+                : pendingLeg || selectedLeg || (legs.length > 0 ? legs[0] : null);
+
+            if (targetLeg) {
+              handleOpenReceiveHandover(targetLeg);
+            } else {
+              setActiveTab('confirm-receive');
+            }
+          }}
         >
           <CheckCircle2 size={17} />
           Xác nhận nhận hàng
@@ -402,14 +601,22 @@ export default function CourierRelayHandoverPage() {
               {loading ? (
                 <p style={{ color: 'var(--text-muted)' }}>Đang tải danh sách chặng tiếp sức...</p>
               ) : legs.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)' }}>
-                  <Package size={40} style={{ opacity: 0.3, marginBottom: '10px' }} />
-                  <p>Bạn chưa có chặng giao tiếp sức nào được phân công.</p>
-                  <p style={{ fontSize: '0.85rem' }}>Các đơn hàng nhiều chặng sẽ hiển thị tại đây khi bạn nhận chặng.</p>
+                <div style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--text-muted)' }}>
+                  <Package size={48} style={{ opacity: 0.35, marginBottom: '14px', color: 'var(--primary)' }} />
+                  <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '1rem', marginBottom: '6px' }}>
+                    Bạn chưa có chặng giao tiếp sức nào được phân công
+                  </p>
+                  <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', maxWidth: '440px', margin: '0 auto' }}>
+                    Khi bạn nhận đơn tiếp sức từ sàn hoặc được phân công chặng vận chuyển, thông tin hành trình và điểm hẹn an toàn sẽ hiển thị tại đây.
+                  </p>
                 </div>
               ) : (
                 legs.map((leg) => {
                   const isSelected = selectedLeg?.id === leg.id;
+                  const canMarkReady = (leg.status === 'IN_TRANSIT' || leg.status === 'ASSIGNED') && leg.canHandover;
+                  const isHandedOverOrDone = leg.status === 'HANDED_OVER' || leg.status === 'COMPLETED';
+                  const isFinal = Boolean(leg.isFinalLeg);
+
                   return (
                     <div
                       key={leg.id}
@@ -419,7 +626,7 @@ export default function CourierRelayHandoverPage() {
                     >
                       <div className="leg-card-header">
                         <div className="leg-card-num">
-                          <span>Chặng {leg.legNo}</span>
+                          <span>Chặng {leg.legNo} {isFinal && <span style={{ color: '#60a5fa', fontSize: '0.8rem', fontWeight: 600 }}>(Chặng cuối)</span>}</span>
                           <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>
                             • {leg.orderCode}
                           </span>
@@ -444,9 +651,9 @@ export default function CourierRelayHandoverPage() {
                           <span className="point-icon mid">2</span>
                           <div className="point-text">
                             <small>
-                              {leg.meetingPoint ? 'Điểm hẹn bàn giao an toàn:' : 'Điểm kết thúc chặng:'}
+                              {isFinal ? 'Địa chỉ người nhận cuối cùng:' : leg.meetingPoint ? 'Điểm hẹn bàn giao an toàn:' : 'Điểm kết thúc chặng:'}
                             </small>
-                            <span style={{ color: leg.meetingPoint ? 'var(--primary)' : 'inherit' }}>
+                            <span style={{ color: isFinal ? '#60a5fa' : leg.meetingPoint ? 'var(--primary)' : 'inherit', fontWeight: isFinal ? 600 : 'normal' }}>
                               {leg.endAddress}
                             </span>
                           </div>
@@ -471,7 +678,7 @@ export default function CourierRelayHandoverPage() {
                           {leg.distanceKm && <span> • {leg.distanceKm} km</span>}
                         </div>
 
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                           <button
                             type="button"
                             className="ui-button ui-button-secondary ui-button-sm"
@@ -483,7 +690,23 @@ export default function CourierRelayHandoverPage() {
                             <Info size={14} /> Chi tiết
                           </button>
 
-                          {leg.canHandover && (
+                          {canMarkReady && !isFinal && (
+                            <button
+                              type="button"
+                              className="ui-button ui-button-secondary ui-button-sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handleMarkReady(leg);
+                              }}
+                              style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}
+                              title="Chuyển trạng thái sang Sẵn sàng bàn giao"
+                            >
+                              <MapPin size={14} /> Đã đến điểm hẹn
+                            </button>
+                          )}
+
+                          {/* Nút Bàn giao ngay chỉ hiển thị cho các chặng trung gian chưa hoàn tất */}
+                          {leg.canHandover && !isHandedOverOrDone && !isFinal && (
                             <button
                               type="button"
                               className="ui-button ui-button-primary ui-button-sm"
@@ -494,6 +717,25 @@ export default function CourierRelayHandoverPage() {
                             >
                               <QrCode size={14} /> Bàn giao ngay
                             </button>
+                          )}
+
+                          {/* Đối với chặng cuối đang vận chuyển: hiển thị nhãn giao hàng cho người nhận */}
+                          {isFinal && leg.status === 'IN_TRANSIT' && (
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: '0.8rem',
+                                color: '#60a5fa',
+                                background: 'rgba(96, 165, 250, 0.1)',
+                                padding: '4px 10px',
+                                borderRadius: '6px',
+                                border: '1px solid rgba(96, 165, 250, 0.25)',
+                              }}
+                            >
+                              <Check size={14} /> Giao cho người nhận
+                            </span>
                           )}
 
                           {leg.status === 'PENDING' && (
@@ -538,16 +780,55 @@ export default function CourierRelayHandoverPage() {
                   {renderStatusBadge(selectedLeg.status)}
                 </div>
 
+                {/* Sơ đồ tiến trình trực quan của đơn hàng tiếp sức */}
+                <div className="relay-stepper">
+                  <div className="stepper-node">
+                    <div className="stepper-node-icon completed">1</div>
+                    <div className="stepper-node-title">Chặng 1</div>
+                    <div className="stepper-node-sub">Điểm lấy hàng</div>
+                  </div>
+
+                  <div className={`stepper-connector ${selectedLeg.status === 'HANDED_OVER' || selectedLeg.status === 'COMPLETED' ? 'completed' : ''}`} />
+
+                  <div className="stepper-node">
+                    <div className={`stepper-node-icon ${selectedLeg.status === 'READY_FOR_HANDOVER' ? 'active' : selectedLeg.status === 'HANDED_OVER' ? 'completed' : 'pending'}`}>
+                      <MapPin size={16} />
+                    </div>
+                    <div className="stepper-node-title">Điểm hẹn</div>
+                    <div className="stepper-node-sub">{selectedLeg.meetingPoint?.name || 'Bàn giao an toàn'}</div>
+                  </div>
+
+                  <div className={`stepper-connector ${selectedLeg.status === 'COMPLETED' ? 'completed' : ''}`} />
+
+                  <div className="stepper-node">
+                    <div className={`stepper-node-icon ${selectedLeg.status === 'COMPLETED' ? 'completed' : 'pending'}`}>2</div>
+                    <div className="stepper-node-title">Chặng 2</div>
+                    <div className="stepper-node-sub">Người nhận cuối</div>
+                  </div>
+                </div>
+
                 <div style={{ marginBottom: '16px' }}>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Kiện hàng:</div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Bưu kiện vận chuyển:</div>
                   <div style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                     {selectedLeg.productName}
                   </div>
                 </div>
 
-                {selectedLeg.meetingPoint && (
+                {/* Điểm hẹn an toàn hoặc địa chỉ giao cuối */}
+                {selectedLeg.isFinalLeg ? (
+                  <div className="handover-point-hint" style={{ borderColor: 'rgba(96, 165, 250, 0.3)', background: 'rgba(96, 165, 250, 0.08)' }}>
+                    <Package size={20} style={{ color: '#60a5fa', marginTop: '2px', flexShrink: 0 }} />
+                    <div>
+                      <strong style={{ color: '#60a5fa' }}>Chặng cuối - Giao trực tiếp cho người nhận</strong>
+                      <p>{selectedLeg.endAddress}</p>
+                      <p style={{ marginTop: '4px', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                        Kiện hàng sẽ được giao thẳng cho người nhận tại địa chỉ trên. Không cần bàn giao tiếp sức.
+                      </p>
+                    </div>
+                  </div>
+                ) : selectedLeg.meetingPoint && (
                   <div className="handover-point-hint">
-                    <ShieldCheck size={20} style={{ color: '#6cdeb4', marginTop: '2px' }} />
+                    <ShieldCheck size={20} style={{ color: '#6cdeb4', marginTop: '2px', flexShrink: 0 }} />
                     <div>
                       <strong>Điểm hẹn an toàn: {selectedLeg.meetingPoint.name}</strong>
                       <p>{selectedLeg.meetingPoint.address}</p>
@@ -587,13 +868,27 @@ export default function CourierRelayHandoverPage() {
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  <Button
-                    variant="primary"
-                    icon={<QrCode size={16} />}
-                    onClick={() => void handleOpenShowQr(selectedLeg)}
-                  >
-                    Xuất trình mã bàn giao
-                  </Button>
+                  {(selectedLeg.status === 'IN_TRANSIT' || selectedLeg.status === 'ASSIGNED') && selectedLeg.canHandover && !selectedLeg.isFinalLeg && (
+                    <Button
+                      variant="secondary"
+                      icon={<MapPin size={16} />}
+                      onClick={() => void handleMarkReady(selectedLeg)}
+                      style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}
+                    >
+                      Đã đến điểm hẹn
+                    </Button>
+                  )}
+
+                  {/* Nút xuất trình chỉ hiển thị khi không phải chặng cuối và chưa hoàn tất */}
+                  {selectedLeg.canHandover && !selectedLeg.isFinalLeg && selectedLeg.status !== 'HANDED_OVER' && selectedLeg.status !== 'COMPLETED' && (
+                    <Button
+                      variant="primary"
+                      icon={<QrCode size={16} />}
+                      onClick={() => void handleOpenShowQr(selectedLeg)}
+                    >
+                      Xuất trình mã bàn giao
+                    </Button>
+                  )}
 
                   <Button
                     variant="secondary"
@@ -624,11 +919,11 @@ export default function CourierRelayHandoverPage() {
                 <span>Quy trình chuyển giao trách nhiệm chặng</span>
               </div>
               <ol style={{ paddingLeft: '20px', color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.7' }}>
-                <li>Hai người giao di chuyển tới điểm hẹn an toàn đã được xác định.</li>
-                <li>Người giao trước bấm <strong>Xuất trình mã bàn giao</strong> để mở mã QR có hiệu lực 10 phút.</li>
-                <li>Người giao tiếp theo dùng camera quét mã QR hoặc nhập chuỗi mã 8 ký tự.</li>
-                <li>Chụp ảnh tình trạng kiện hàng tại điểm hẹn làm bằng chứng bàn giao.</li>
-                <li>Bấm xác nhận: Hệ thống ghi nhận hoàn thành chặng trước và kích hoạt trách nhiệm cho chặng tiếp theo.</li>
+                <li>Người giao di chuyển tới điểm hẹn an toàn và bấm <strong>Đã đến điểm hẹn</strong>.</li>
+                <li>Hệ thống chuyển trạng thái chặng sang <strong>Sẵn sàng bàn giao</strong> và hiển thị mã QR có hiệu lực 10 phút.</li>
+                <li>Người giao tiếp theo dùng camera quét mã QR hoặc nhập chuỗi mã xác nhận 8 ký tự.</li>
+                <li>Chụp ảnh tình trạng kiện hàng tại điểm hẹn làm bằng chứng xác thực bàn giao.</li>
+                <li>Xác nhận: Trách nhiệm chặng trước hoàn thành, chặng tiếp theo kích hoạt giao hàng ngay.</li>
               </ol>
             </div>
           </div>
@@ -642,7 +937,7 @@ export default function CourierRelayHandoverPage() {
         <div style={{ maxWidth: '640px', margin: '0 auto' }}>
           <div className="relay-card">
             <div className="relay-card-title">
-              <span>Mã QR Bàn Giao Chặng {selectedLeg?.legNo}</span>
+              <span>Mã xác thực bàn giao chặng {selectedLeg?.legNo}</span>
               <button
                 type="button"
                 className="ui-button ui-button-ghost ui-button-sm"
@@ -659,12 +954,72 @@ export default function CourierRelayHandoverPage() {
               </div>
             )}
 
-            {tokenLoading ? (
+            {/* Trường hợp 0: Chưa chọn chặng */}
+            {!selectedLeg ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
+                <p style={{ marginBottom: '16px' }}>Vui lòng chọn một chặng từ danh sách để xuất trình mã bàn giao.</p>
+                <Button variant="secondary" onClick={() => setActiveTab('my-legs')}>
+                  Xem danh sách chặng
+                </Button>
+              </div>
+            ) : selectedLeg.status === 'HANDED_OVER' || selectedLeg.status === 'COMPLETED' ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                <CheckCircle2 size={56} style={{ color: '#6cdeb4', marginBottom: '16px' }} />
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#6cdeb4', marginBottom: '8px' }}>
+                  Chặng này đã bàn giao thành công
+                </h3>
+                <p style={{ color: 'var(--text-secondary)', maxWidth: '420px', margin: '0 auto 16px auto', fontSize: '0.92rem' }}>
+                  Trách nhiệm bưu kiện của chặng này đã được chuyển giao an toàn cho người giao chặng tiếp theo.
+                </p>
+                {selectedLeg.handedOverAt && (
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '24px' }}>
+                    Thời gian bàn giao: {new Date(selectedLeg.handedOverAt).toLocaleString('vi-VN')}
+                  </div>
+                )}
+                <Button variant="secondary" onClick={() => setActiveTab('my-legs')}>
+                  Quay lại danh sách chặng
+                </Button>
+              </div>
+            ) : selectedLeg && (selectedLeg.isFinalLeg || selectedLeg.canHandover === false) ? (
+              /* Trường hợp 2: Chặng cuối cùng của đơn hàng */
+              <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                <Package size={56} style={{ color: '#60a5fa', marginBottom: '16px' }} />
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
+                  Đây là chặng cuối cùng của đơn hàng
+                </h3>
+                <p style={{ color: 'var(--text-secondary)', maxWidth: '440px', margin: '0 auto 16px auto', fontSize: '0.92rem' }}>
+                  Chặng {selectedLeg.legNo} là chặng giao hàng đến địa chỉ người nhận cuối cùng. Bưu kiện sẽ được giao trực tiếp cho người nhận thay vì bàn giao cho người giao khác.
+                </p>
+                <div style={{ background: 'var(--bg-tertiary)', padding: '14px', borderRadius: '10px', maxWidth: '440px', margin: '0 auto 20px auto', textAlign: 'left' }}>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Địa chỉ giao hàng cho khách:</div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px' }}>{selectedLeg.endAddress}</div>
+                </div>
+                <Button variant="secondary" onClick={() => setActiveTab('my-legs')}>
+                  Quay lại danh sách chặng
+                </Button>
+              </div>
+            ) : selectedLeg && selectedLeg.status === 'PENDING' ? (
+              /* Trường hợp 3: Chặng chưa đến lượt thực hiện */
+              <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                <Clock size={56} style={{ color: 'var(--text-muted)', marginBottom: '16px' }} />
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
+                  Chặng này chưa tới lượt bàn giao
+                </h3>
+                <p style={{ color: 'var(--text-secondary)', maxWidth: '420px', margin: '0 auto 20px auto', fontSize: '0.9rem' }}>
+                  Chặng này đang ở trạng thái chờ chặng trước hoàn tất. Bạn chỉ có thể xuất trình mã bàn giao khi đang thực hiện giao chặng này.
+                </p>
+                <Button variant="secondary" onClick={() => setActiveTab('my-legs')}>
+                  Quay lại danh sách chặng
+                </Button>
+              </div>
+            ) : tokenLoading ? (
+              /* Trường hợp 4: Đang tải / sinh token */
               <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
                 <RefreshCw size={32} className="spin" style={{ marginBottom: '10px' }} />
-                <p>Đang tạo mã xác nhận bàn giao an toàn...</p>
+                <p>Đang tạo mã xác nhận bàn giao bảo mật...</p>
               </div>
             ) : handoverToken ? (
+              /* Trường hợp 5: Hiển thị mã QR và token hợp lệ */
               <HandoverQrDisplay
                 token={handoverToken}
                 onRefresh={() => {
@@ -675,6 +1030,7 @@ export default function CourierRelayHandoverPage() {
                 refreshing={tokenLoading}
               />
             ) : (
+              /* Trường hợp 6: Chưa có mã (và chặng hợp lệ để tạo mã) */
               <div style={{ textAlign: 'center', padding: '30px' }}>
                 <p style={{ color: 'var(--text-muted)', marginBottom: '16px' }}>
                   Chưa có mã bàn giao nào được tạo cho chặng này.
@@ -718,7 +1074,7 @@ export default function CourierRelayHandoverPage() {
                   Bàn giao chặng thành công!
                 </h3>
                 <p style={{ color: 'var(--text-secondary)', marginBottom: '20px' }}>
-                  Bạn đã tiếp nhận thành công trách nhiệm vận chuyển kiện hàng cho chặng tiếp theo.
+                  Bạn đã tiếp nhận thành công trách nhiệm vận chuyển bưu kiện cho chặng tiếp theo.
                 </p>
 
                 <div
@@ -737,7 +1093,7 @@ export default function CourierRelayHandoverPage() {
 
                   <div style={{ marginBottom: '10px' }}>
                     <small style={{ color: 'var(--text-muted)' }}>Chặng đã bàn giao:</small>
-                    <div>Chặng {handoverSuccessResult.completedLegNo} đã hoàn tất</div>
+                    <div>Chặng {handoverSuccessResult.completedLegNo} đã hoàn tất bàn giao</div>
                   </div>
 
                   <div style={{ marginBottom: '10px' }}>
@@ -782,20 +1138,33 @@ export default function CourierRelayHandoverPage() {
                       {selectedLeg.orderCode} - {selectedLeg.productName}
                     </div>
                     <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                      Chặng bàn giao: Chặng {selectedLeg.legNo > 1 ? selectedLeg.legNo - 1 : 1} → Tiếp nhận chặng {selectedLeg.legNo}
+                      Chặng bàn giao: Chặng {selectedLeg.legNo > 1 ? selectedLeg.legNo - 1 : 1} <ArrowRight size={13} style={{ display: 'inline', margin: '0 4px' }} /> Tiếp nhận chặng {selectedLeg.legNo}
                     </div>
                   </div>
                 )}
 
+                {/* Nhập mã xác nhận hoặc quét camera */}
                 <div className="confirm-form-group">
-                  <label className="confirm-form-label">
-                    Mã xác nhận bàn giao <span style={{ color: '#ffa6b3' }}>*</span>
-                  </label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <label className="confirm-form-label" style={{ margin: 0 }}>
+                      Mã xác nhận bàn giao <span style={{ color: '#ffa6b3' }}>*</span>
+                    </label>
+
+                    <button
+                      type="button"
+                      className="ui-button ui-button-secondary ui-button-sm"
+                      onClick={startCameraScanner}
+                      style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px' }}
+                    >
+                      <ScanLine size={14} /> Quét bằng Camera
+                    </button>
+                  </div>
+
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <input
                       type="text"
                       className="confirm-form-input"
-                      placeholder="Nhập mã 8 ký tự (ví dụ: HO-FPTRELAY)"
+                      placeholder="Nhập mã 8 ký tự (ví dụ: HO-ABC12345)"
                       value={inputCode}
                       onChange={(e) => setInputCode(e.target.value.toUpperCase())}
                       style={{ textTransform: 'uppercase', fontFamily: 'var(--font-mono, monospace)', fontWeight: 600 }}
@@ -807,21 +1176,23 @@ export default function CourierRelayHandoverPage() {
                       onClick={async () => {
                         try {
                           const text = await navigator.clipboard.readText();
-                          if (text) setInputCode(text.trim().toUpperCase());
+                          if (text) extractAndApplyTokenCode(text);
                         } catch {
                           // Bỏ qua lỗi truy cập clipboard
                         }
                       }}
                       title="Dán từ bộ nhớ tạm"
                     >
-                      Dán
+                      <ClipboardCopy size={16} /> Dán
                     </button>
                   </div>
-                  <small style={{ color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+
+                  <small style={{ color: 'var(--text-muted)', marginTop: '6px', display: 'block' }}>
                     Mã xác nhận do người giao chặng trước xuất trình (mỗi mã có hiệu lực trong 10 phút).
                   </small>
                 </div>
 
+                {/* Chụp ảnh kiện hàng lúc nhận */}
                 <div className="confirm-form-group">
                   <label className="confirm-form-label">Ảnh kiểm tra kiện hàng tại điểm hẹn</label>
                   <input
@@ -859,6 +1230,7 @@ export default function CourierRelayHandoverPage() {
                   )}
                 </div>
 
+                {/* Ghi chú */}
                 <div className="confirm-form-group">
                   <label className="confirm-form-label">Ghi chú tình trạng hàng khi nhận</label>
                   <textarea
@@ -912,7 +1284,7 @@ export default function CourierRelayHandoverPage() {
 
             <p style={{ color: 'var(--text-secondary)', marginBottom: '20px', fontSize: '0.92rem' }}>
               Các địa điểm công cộng có nhân viên an ninh, camera giám sát 24/7 và quầy dịch vụ sinh viên
-              quanh các cơ sở trường, giúp việc chuyển giao bưu phẩm giữa các đối tác diễn ra an toàn, minh bạch.
+              quanh các cơ sở trường, giúp việc chuyển giao bưu kiện giữa các người giao diễn ra an toàn, minh bạch.
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '16px' }}>
@@ -1077,6 +1449,43 @@ export default function CourierRelayHandoverPage() {
       )}
 
       {/* ========================================================================= */}
+      {/* MODAL QUÉT MÃ QR BẰNG CAMERA TRỰC TIẾP */}
+      {/* ========================================================================= */}
+      {isCameraScanning && (
+        <div className="qr-scanner-overlay" onClick={stopCameraScanner}>
+          <div className="qr-scanner-card" onClick={(e) => e.stopPropagation()}>
+            <div className="qr-scanner-header">
+              <h3>
+                <ScanLine size={20} className="text-primary" />
+                Quét mã QR bàn giao
+              </h3>
+              <button
+                type="button"
+                className="ui-button ui-button-ghost ui-button-sm"
+                onClick={stopCameraScanner}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="qr-scanner-viewport">
+              <video ref={videoRef} className="qr-scanner-video" playsInline />
+              <div className="qr-scanner-target">
+                <div className="qr-laser-line" />
+              </div>
+            </div>
+
+            <div className="qr-scanner-footer">
+              <p>Hướng camera vào mã QR của người giao trước để tự động quét mã.</p>
+              <Button variant="secondary" onClick={stopCameraScanner}>
+                Đóng camera
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
       {/* MODAL CHI TIẾT TOÀN BỘ CÁC CHẶNG CỦA ĐƠN HÀNG TIẾP SỨC */}
       {/* ========================================================================= */}
       {detailModalOpen && viewingDetailOrder && (
@@ -1179,7 +1588,7 @@ export default function CourierRelayHandoverPage() {
                     <div className="history-content">
                       <div className="history-header">
                         <span className="history-parties">
-                          {hist.fromCourierName} → {hist.toCourierName}
+                          {hist.fromCourierName} <ChevronRight size={14} style={{ display: 'inline' }} /> {hist.toCourierName}
                         </span>
                         <span className="history-time">
                           {new Date(hist.handoverTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}

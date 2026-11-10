@@ -37,6 +37,7 @@ public class OrderLegResponse {
     private Instant completedAt;
     private String handoverNote;
     private Boolean isCurrentLeg;
+    private Boolean isFinalLeg;
     private Boolean canHandover;
     private Boolean canReceiveHandover;
 }

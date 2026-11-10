@@ -45,6 +45,7 @@ export interface OrderLeg {
   completedAt?: string;
   handoverNote?: string;
   isCurrentLeg?: boolean;
+  isFinalLeg?: boolean;
   canHandover?: boolean;
   canReceiveHandover?: boolean;
 }

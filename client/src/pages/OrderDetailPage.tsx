@@ -337,7 +337,7 @@ export default function OrderDetailPage() {
             </div>
           </SectionCard>
 
-          {/* Hành trình tiếp sức (Relay Delivery - BR-F-062) */}
+          {/* Hành trình tiếp sức (Relay Delivery) */}
           {order.isRelay && (
             <SectionCard
               title="Hành trình giao tiếp sức (Relay Delivery)"
@@ -359,7 +359,7 @@ export default function OrderDetailPage() {
                 >
                   <GitFork size={16} style={{ color: 'var(--primary, #f37021)', flexShrink: 0 }} />
                   <span>
-                    Đơn hàng chia thành <strong>{legs.length > 0 ? legs.length : 2} chặng</strong>. Cước phí được chia theo tỷ lệ quãng đường (BR-R-047).
+                    Đơn hàng chia thành <strong>{legs.length > 0 ? legs.length : 2} chặng</strong>. Cước phí được chia theo tỷ lệ quãng đường từng chặng.
                   </span>
                 </div>
 
@@ -637,7 +637,7 @@ export default function OrderDetailPage() {
             </div>
           </SectionCard>
 
-          {/* Thanh toán & Ký quỹ nếu đơn chưa ký quỹ (UC-35) */}
+          {/* Thanh toán & Ký quỹ nếu đơn chưa ký quỹ */}
           {!escrow && canPayEscrow && (
             <SectionCard
               title="Thanh toán & Ký quỹ (Escrow)"
@@ -775,7 +775,7 @@ export default function OrderDetailPage() {
                   )}
                 </div>
 
-                {/* Thông tin & Nút yêu cầu hoàn tiền về nguồn VNPay (UC-37) */}
+                {/* Thông tin & Nút yêu cầu hoàn tiền về nguồn VNPay */}
                 {refundRequests.length > 0 && (
                   <div
                     style={{
@@ -821,7 +821,7 @@ export default function OrderDetailPage() {
                         disabled={refundingSource}
                         style={{ width: '100%' }}
                       >
-                        {refundingSource ? 'Đang gửi yêu cầu hoàn VNPay…' : 'Hoàn tiền về nguồn VNPay (UC-37)'}
+                        {refundingSource ? 'Đang gửi yêu cầu hoàn VNPay…' : 'Hoàn tiền về nguồn VNPay'}
                       </Button>
                     </div>
                   )}
@@ -896,7 +896,7 @@ export default function OrderDetailPage() {
         </div>
       </Modal>
 
-      {/* Modal xác nhận giải ngân cho người giao (UC-36) */}
+      {/* Modal xác nhận giải ngân cho người giao */}
       <Modal
         isOpen={isReleaseModalOpen}
         onClose={() => !releasing && setIsReleaseModalOpen(false)}
@@ -925,7 +925,7 @@ export default function OrderDetailPage() {
         </div>
       </Modal>
 
-      {/* Modal xác nhận hoàn tiền về nguồn VNPay (UC-37) */}
+      {/* Modal xác nhận hoàn tiền về nguồn VNPay */}
       <Modal
         isOpen={isRefundSourceModalOpen}
         onClose={() => !refundingSource && setIsRefundSourceModalOpen(false)}

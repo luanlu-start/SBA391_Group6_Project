@@ -50,5 +50,6 @@ public class CourierProfile {
     @Column(name = "registered_at", nullable = true, columnDefinition = "datetime2(6)")
     private Instant registeredAt;
     @Version
+    @Column(name = "version", nullable = false, columnDefinition = "bigint default 0")
     private long version;
 }

@@ -155,7 +155,7 @@ export default function WalletPage() {
   const [returnResult, setReturnResult] = useState<VNPayReturnResponse | null>(null);
   const [verifyingReturn, setVerifyingReturn] = useState(false);
 
-  // Transaction history state (UC-38)
+  // Transaction history state
   const [transactions, setTransactions] = useState<WalletTransactionResponse[]>([]);
   const [txLoading, setTxLoading] = useState(false);
   const [txPage, setTxPage] = useState(0);
@@ -165,7 +165,7 @@ export default function WalletPage() {
   const [txFromDate, setTxFromDate] = useState('');
   const [txToDate, setTxToDate] = useState('');
 
-  // Monthly Statement Modal state (UC-38)
+  // Monthly Statement Modal state
   const [isStatementOpen, setIsStatementOpen] = useState(false);
   const [statement, setStatement] = useState<WalletStatementResponse | null>(null);
   const [statementLoading, setStatementLoading] = useState(false);
@@ -173,7 +173,7 @@ export default function WalletPage() {
   const [statementMonth, setStatementMonth] = useState<number>(currentDate.getMonth() + 1);
   const [statementYear, setStatementYear] = useState<number>(currentDate.getFullYear());
 
-  // Withdrawal Request state (UC-40 & UC-39)
+  // Withdrawal Request state
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [bankAccounts, setBankAccounts] = useState<BankAccountResponse[]>([]);
   const [selectedBankAccountId, setSelectedBankAccountId] = useState<number | ''>('');
@@ -186,7 +186,7 @@ export default function WalletPage() {
   const [withdrawSuccess, setWithdrawSuccess] = useState<string | null>(null);
   const [withdrawError, setWithdrawError] = useState<string | null>(null);
 
-  // Withdrawal tracking list state (UC-40)
+  // Withdrawal tracking list state
   const [withdrawals, setWithdrawals] = useState<WithdrawalResponse[]>([]);
   const [wdrLoading, setWdrLoading] = useState(false);
   const [wdrPage, setWdrPage] = useState(0);
@@ -215,7 +215,7 @@ export default function WalletPage() {
     }
   };
 
-  // Load transaction history (UC-38)
+  // Load transaction history
   const loadTransactions = async (page = 0) => {
     try {
       setTxLoading(true);
@@ -237,7 +237,7 @@ export default function WalletPage() {
     }
   };
 
-  // Load Monthly Statement (UC-38)
+  // Load Monthly Statement
   const loadStatement = async (month = statementMonth, year = statementYear) => {
     try {
       setStatementLoading(true);
@@ -250,7 +250,7 @@ export default function WalletPage() {
     }
   };
 
-  // Load Withdrawal Requests (UC-40)
+  // Load Withdrawal Requests
   const loadWithdrawals = async (page = 0) => {
     try {
       setWdrLoading(true);
@@ -409,7 +409,7 @@ export default function WalletPage() {
     loadStatement(statementMonth, statementYear);
   };
 
-  // Withdrawal Handlers (UC-40)
+  // Withdrawal Handlers
   const handleOpenWithdrawModal = () => {
     setWithdrawError(null);
     if (wallet) {
@@ -754,7 +754,7 @@ export default function WalletPage() {
         </form>
       </SectionCard>
 
-      {/* Withdrawal Tracking List (UC-40) */}
+      {/* Danh sách yêu cầu rút tiền */}
       <SectionCard
         title="Yêu cầu rút tiền về ngân hàng"
         description="Theo dõi danh sách các yêu cầu rút tiền của bạn và trạng thái xét duyệt chi trả từ ban quản trị."
@@ -885,7 +885,7 @@ export default function WalletPage() {
         )}
       </SectionCard>
 
-      {/* Transaction History Section (UC-38) */}
+      {/* Lịch sử giao dịch ví */}
       <SectionCard
         title="Lịch sử biến động số dư"
         description="Theo dõi toàn bộ dòng tiền nạp, ký quỹ đơn hàng và giải ngân vào ví cá nhân theo chuẩn sổ cái kép."
@@ -1055,7 +1055,7 @@ export default function WalletPage() {
         )}
       </SectionCard>
 
-      {/* Withdrawal Request Modal (UC-40, API-097) */}
+      {/* Modal yêu cầu rút tiền */}
       <Modal
         isOpen={isWithdrawModalOpen}
         onClose={() => setIsWithdrawModalOpen(false)}
@@ -1117,7 +1117,7 @@ export default function WalletPage() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-1)' }}>
                 <label htmlFor="wdr-linked-bank-select" className="ui-label">
-                  Chọn tài khoản ngân hàng đã liên kết (UC-39):
+                  Chọn tài khoản ngân hàng đã liên kết:
                 </label>
                 <button
                   type="button"
@@ -1162,7 +1162,7 @@ export default function WalletPage() {
                     <div style={{ marginTop: 'var(--space-2)' }}>
                       <Alert tone="warning">
                         Tài khoản {chosen.bankName} ({chosen.maskedAccountNumber}) đang trong thời gian chờ bảo mật 24h đến{' '}
-                        <strong>{formatDateTime(chosen.cooldownUntil)}</strong> (BR-R-058).
+                        <strong>{formatDateTime(chosen.cooldownUntil)}</strong>.
                       </Alert>
                     </div>
                   );
@@ -1252,7 +1252,7 @@ export default function WalletPage() {
         </form>
       </Modal>
 
-      {/* Monthly Statement Modal (UC-38, API-090) */}
+      {/* Modal Bảng sao kê biến động tài khoản ví */}
       <Modal
         isOpen={isStatementOpen}
         onClose={() => setIsStatementOpen(false)}
@@ -1417,7 +1417,7 @@ export default function WalletPage() {
         </div>
       </Modal>
 
-      {/* Cancel Withdrawal Confirmation Modal (UC-40) */}
+      {/* Modal xác nhận hủy yêu cầu rút tiền */}
       <Modal
         isOpen={!!cancelTarget}
         onClose={() => cancellingId === null && setCancelTarget(null)}

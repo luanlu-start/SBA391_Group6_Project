@@ -1,5 +1,6 @@
 package com.fptpost.modules.relay.dto;
 
+import com.fptpost.modules.order.model.DeliveryUrgency;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -47,13 +48,27 @@ public class RelayOrderCreateRequest {
     private BigDecimal pickupLongitude;
 
     private BigDecimal totalPrice;
+    private BigDecimal priceSuggested;
+    private DeliveryUrgency urgency;
+    private Integer quantity;
+    private Long categoryId;
+    private List<String> imageUrls;
 
     private String deliveryNote;
+
+    /**
+     * Danh sách các điểm tiếp sức trung gian (UC-32).
+     */
+    private List<RelayPointDto> relayPoints;
 
     /**
      * Danh sách các chặng tiếp sức (tối đa 3 chặng theo quy định).
      */
     private List<LegPlanDto> legs;
+
+    public BigDecimal getFinalPrice() {
+        return totalPrice != null ? totalPrice : priceSuggested;
+    }
 
     @Data
     @Builder

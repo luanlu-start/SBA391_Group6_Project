@@ -304,7 +304,7 @@ export default function AdminCategoriesPage() {
     <div className="ui-stack" style={{ gap: '1.5rem', paddingBottom: '3rem' }}>
       <PageHeader
         title="Quản lý loại hàng hóa"
-        eyebrow="Quản trị hệ thống (UC-58)"
+        eyebrow="Quản trị hệ thống"
         description="Quản lý danh mục loại hàng, cấu hình đặc tính cảnh báo hàng cấm, yêu cầu kiểm duyệt và ẩn/hiện danh mục cho người gửi."
         actions={
           <div className="ui-row" style={{ display: 'flex', gap: '0.75rem' }}>

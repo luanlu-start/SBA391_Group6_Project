@@ -14,6 +14,7 @@ import {
     RotateCcw,
     XCircle,
     MessageCircle,
+    GitFork,
 } from 'lucide-react';
 
 import { marketPlaceOrderApi } from '../api/marketPlaceOrderApi';
@@ -45,13 +46,13 @@ export default function CourierOrderDetailPage(): React.ReactElement {
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<ApiError | null>(null);
 
-    // Xử lý nhận đơn theo giá niêm yết (UC-17)
+    // Xử lý nhận đơn theo giá niêm yết
     const [isConfirmOpen, setIsConfirmOpen] = useState<boolean>(false);
     const [accepting, setAccepting] = useState<boolean>(false);
     const [acceptResult, setAcceptResult] = useState<MarketOrderAcceptResponse | null>(null);
     const [acceptError, setAcceptError] = useState<ApiError | null>(null);
 
-    // Xử lý chào giá (UC-18)
+    // Xử lý chào giá
     const [myOffers, setMyOffers] = useState<Offer[]>([]);
     const [isOfferModalOpen, setIsOfferModalOpen] = useState<boolean>(false);
     const [offerPrice, setOfferPrice] = useState<string>('');
@@ -60,7 +61,7 @@ export default function CourierOrderDetailPage(): React.ReactElement {
     const [submittingOffer, setSubmittingOffer] = useState<boolean>(false);
     const [offerActionError, setOfferActionError] = useState<ApiError | null>(null);
 
-    // Phản giá lại khi người gửi đã counter (UC-19)
+    // Phản giá lại khi người gửi đã counter
     const [isCounterModalOpen, setIsCounterModalOpen] = useState<boolean>(false);
     const [counterPrice, setCounterPrice] = useState<string>('');
     const [counterMessage, setCounterMessage] = useState<string>('');
@@ -92,7 +93,7 @@ export default function CourierOrderDetailPage(): React.ReactElement {
         fetchOrderAndOffers();
     }, [fetchOrderAndOffers]);
 
-    // Handle accept fixed price order (UC-17)
+    // Handle accept fixed price order
     const handleAcceptOrder = async () => {
         if (!id) return;
         setAccepting(true);
@@ -115,7 +116,7 @@ export default function CourierOrderDetailPage(): React.ReactElement {
         }
     };
 
-    // Handle submit custom offer (UC-18)
+    // Handle submit custom offer
     const handleSubmitOffer = async () => {
         if (!id || !order) return;
         const priceNum = Number(offerPrice.replace(/\D/g, ''));
@@ -150,7 +151,7 @@ export default function CourierOrderDetailPage(): React.ReactElement {
         }
     };
 
-    // Handle withdraw offer (API-045 / UC-18)
+    // Handle withdraw offer
     const handleWithdrawOffer = async (offerId: number) => {
         if (!window.confirm('Bạn có chắc chắn muốn rút lại chào giá này không?')) return;
         setSubmittingOffer(true);
@@ -165,7 +166,7 @@ export default function CourierOrderDetailPage(): React.ReactElement {
         }
     };
 
-    // Handle counter-offer by courier when sender countered (UC-19)
+    // Handle counter-offer by courier when sender countered
     const handleCounterOffer = async (parentOfferId: number) => {
         const priceNum = Number(counterPrice.replace(/\D/g, ''));
         if (!priceNum || priceNum < 1000) {
@@ -252,6 +253,15 @@ export default function CourierOrderDetailPage(): React.ReactElement {
                         <Badge dot tone={statusConfig.tone}>
                             {statusConfig.label}
                         </Badge>
+                        {(order as unknown as { isRelay?: boolean }).isRelay && (
+                            <Button
+                                variant="secondary"
+                                icon={<GitFork size={16} style={{ color: 'var(--primary, #f37021)' }} />}
+                                onClick={() => navigate(`/courier/relay?orderId=${order.id}`)}
+                            >
+                                Bàn giao tiếp sức
+                            </Button>
+                        )}
                         <ReportViolationButton targetType="ORDER" targetId={String(order.id)}
                             targetName={`Đơn ${order.orderCode}: ${order.productName}`} />
                         <Button

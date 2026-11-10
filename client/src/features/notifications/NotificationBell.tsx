@@ -4,10 +4,20 @@ import { useNotifications } from './notificationContext';
 
 export default function NotificationBell() {
   const { unreadCount } = useNotifications();
-  return <NavLink to="/notifications" className="nav-link notification-bell"
-    aria-label={unreadCount === null ? 'Thông báo' : `Thông báo, ${unreadCount} chưa đọc`}>
-    <Bell size={18} aria-hidden="true" />
-    <span>Thông báo</span>
-    {unreadCount !== null && unreadCount > 0 && <span className="notification-count" aria-hidden="true">{unreadCount > 99 ? '99+' : unreadCount}</span>}
-  </NavLink>;
+  return (
+    <NavLink
+      to="/notifications"
+      className="nav-link notification-bell"
+      aria-label={unreadCount === null ? 'Thông báo' : `Thông báo, ${unreadCount} chưa đọc`}
+      title={unreadCount ? `Thông báo (${unreadCount} chưa đọc)` : 'Thông báo'}
+    >
+      <Bell size={18} aria-hidden="true" />
+      <span className="notification-bell-label">Thông báo</span>
+      {unreadCount !== null && unreadCount > 0 && (
+        <span className="notification-count" aria-hidden="true">
+          {unreadCount > 99 ? '99+' : unreadCount}
+        </span>
+      )}
+    </NavLink>
+  );
 }

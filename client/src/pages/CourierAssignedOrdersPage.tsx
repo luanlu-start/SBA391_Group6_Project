@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageCircle, RefreshCw } from 'lucide-react';
+import { GitFork, MessageCircle, RefreshCw } from 'lucide-react';
 
 import { orderApi } from '../api/orderApi';
 import type { Order } from '../types/order';
@@ -76,20 +76,51 @@ export default function CourierAssignedOrdersPage() {
                 }}
               >
                 <div>
-                  <strong>{order.orderCode}</strong>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <strong>{order.orderCode}</strong>
+                    {order.isRelay && (
+                      <span
+                        style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          background: 'rgba(243, 112, 33, 0.15)',
+                          color: 'var(--text-accent, #ffb17d)',
+                          border: '1px solid rgba(243, 112, 33, 0.3)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        <GitFork size={12} /> Tiếp sức
+                      </span>
+                    )}
+                  </div>
                   <p>{order.productName}</p>
                   <p>Trạng thái: {order.status}</p>
                 </div>
 
-                <Button
-                  variant="primary"
-                  icon={<MessageCircle size={16} />}
-                  onClick={() =>
-                    navigate(`/orders/${order.id}/chat`)
-                  }
-                >
-                  Nhắn tin
-                </Button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {order.isRelay && (
+                    <Button
+                      variant="secondary"
+                      icon={<GitFork size={16} style={{ color: 'var(--primary, #f37021)' }} />}
+                      onClick={() => navigate(`/courier/relay?orderId=${order.id}`)}
+                    >
+                      Bàn giao tiếp sức
+                    </Button>
+                  )}
+                  <Button
+                    variant="primary"
+                    icon={<MessageCircle size={16} />}
+                    onClick={() =>
+                      navigate(`/orders/${order.id}/chat`)
+                    }
+                  >
+                    Nhắn tin
+                  </Button>
+                </div>
               </div>
             ))}
           </div>

@@ -29,6 +29,22 @@ public class RelayController {
     private final UserRepository userRepository;
 
     // ==========================================
+    // Đánh dấu đã đến điểm hẹn (Sẵn sàng bàn giao)
+    // ==========================================
+    @PatchMapping("/api/v1/orders/{id}/legs/{legNo}/ready")
+    @Operation(summary = "Đánh dấu đã đến điểm hẹn bàn giao", description = "Chuyển trạng thái chặng sang Sẵn sàng bàn giao khi tài xế đã tới điểm hẹn")
+    @PreAuthorize("hasRole('COURIER') or hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<OrderLegResponse>> markReadyForHandover(
+            @PathVariable("id") Long orderId,
+            @PathVariable("legNo") Integer legNo,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        User courier = resolveUser(jwt);
+        OrderLegResponse response = relayService.markReadyForHandover(orderId, legNo, courier);
+        return ResponseEntity.ok(ApiResponse.success("Đã cập nhật trạng thái sẵn sàng bàn giao tại điểm hẹn", response));
+    }
+
+    // ==========================================
     // API-083: Bàn giao chặng bằng QR (COURIER)
     // ==========================================
     @PostMapping("/api/v1/orders/{id}/legs/{legNo}/handover")
@@ -132,6 +148,18 @@ public class RelayController {
         User courier = resolveUser(jwt);
         List<OrderLegResponse> responses = relayService.getCourierRelayLegs(courier);
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách chặng tiếp sức thành công", responses));
+    }
+
+    // ==========================================
+    // Ước tính cước phí giao tiếp sức (UC-32 / BR-R-047)
+    // ==========================================
+    @PostMapping("/api/v1/orders/relay/estimate")
+    @Operation(summary = "Ước tính cước phí giao tiếp sức", description = "Tính toán khoảng cách các chặng và phân chia cước phí theo tỷ lệ quãng đường (BR-R-047)")
+    public ResponseEntity<ApiResponse<RelayPricingEstimateResponse>> estimateRelayPricing(
+            @RequestBody RelayPricingEstimateRequest request
+    ) {
+        RelayPricingEstimateResponse response = relayService.estimateRelayPricing(request);
+        return ResponseEntity.ok(ApiResponse.success("Ước tính cước phí tiếp sức thành công", response));
     }
 
     // ==========================================

@@ -37,6 +37,7 @@ export default function BatchRouteMap({
     const map = L.map(containerRef.current, {
       zoomControl: true,
       attributionControl: true,
+      scrollWheelZoom: true,
     }).setView([defaultLat, defaultLng], 13);
 
     const tileConfig = getMapTileConfig();
@@ -96,23 +97,25 @@ export default function BatchRouteMap({
         html: `
           <div style="
             background: #10b981;
-            color: #ffffff;
-            width: 32px;
-            height: 32px;
+            width: 18px;
+            height: 18px;
             border-radius: 50%;
+            border: 3px solid #ffffff;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.6);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 700;
-            font-size: 11px;
-            border: 2px solid #ffffff;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
           ">
-            Bắt đầu
+            <div style="
+              width: 6px;
+              height: 6px;
+              border-radius: 50%;
+              background: #ffffff;
+            "></div>
           </div>
         `,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
+        iconSize: [18, 18],
+        iconAnchor: [9, 9],
       });
 
       L.marker([startLat, startLng], { icon: startIcon, zIndexOffset: 2000 })
@@ -382,7 +385,7 @@ export default function BatchRouteMap({
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            zIndex: 1000,
+            zIndex: 10,
             boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
           }}
         >
@@ -401,6 +404,11 @@ export default function BatchRouteMap({
       )}
 
       <div className="batch-map-legend">
+        {startLat != null && startLng != null && (
+          <span className="legend-item">
+            <span className="legend-dot" style={{ background: '#10b981' }} /> Xuất phát
+          </span>
+        )}
         <span className="legend-item">
           <span className="legend-dot pickup-dot" /> Lấy hàng
         </span>

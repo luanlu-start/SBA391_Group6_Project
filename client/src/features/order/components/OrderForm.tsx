@@ -5,9 +5,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Upload, Trash2, Loader2, UserCheck, MapPin, GitFork } from 'lucide-react';
 import { orderApi } from '../../../api/orderApi';
+import { relayApi } from '../../../api/relayApi';
 import { getApiError } from '../../../api/ApiError';
 import type { ApiError } from '../../../api/ApiError';
 import type { Order, OrderRequest, DeliveryUrgency, PricingEstimateResponse, RelayPricingEstimateResponse, RelayOrderRequest } from '../../../types/order';
+import type { MeetingPoint } from '../../../types/relay';
 import { DELIVERY_URGENCY_MAP } from '../../../types/order';
 import { orderSchema } from '../schemas/orderSchema';
 import type { OrderFormValues } from '../schemas/orderSchema';
@@ -55,7 +57,7 @@ export default function OrderForm({ initialData, onSuccess, onCancel }: OrderFor
     lng: initialData?.deliveryLongitude ?? null,
   });
 
-  // Tọa độ điểm hẹn tiếp sức (UC-32)
+  // Tọa độ điểm hẹn tiếp sức
   const [relayCoords, setRelayCoords] = useState<{ lat: number | null; lng: number | null }>({
     lat: null,
     lng: null,
@@ -64,18 +66,28 @@ export default function OrderForm({ initialData, onSuccess, onCancel }: OrderFor
   // Modal chọn bản đồ
   const [mapTarget, setMapTarget] = useState<'pickup' | 'delivery' | 'relay' | null>(null);
 
-  // Trạng thái tính cước thông thường (UC-11)
+  // Trạng thái tính cước thông thường
   const [pricing, setPricing] = useState<PricingEstimateResponse | null>(null);
   const [pricingLoading, setPricingLoading] = useState(false);
   const [pricingError, setPricingError] = useState<string | null>(null);
 
-  // Trạng thái tính cước tiếp sức (UC-32 / BR-R-047)
+  // Trạng thái tính cước tiếp sức
   const [relayPricing, setRelayPricing] = useState<RelayPricingEstimateResponse | null>(null);
   const [relayPricingLoading, setRelayPricingLoading] = useState(false);
   const [relayPricingError, setRelayPricingError] = useState<string | null>(null);
 
   const userId = user?.id;
   const [categories, setCategories] = useState<ItemCategory[]>([]);
+  const [meetingPoints, setMeetingPoints] = useState<MeetingPoint[]>([]);
+  const [selectedMeetingPointId, setSelectedMeetingPointId] = useState<number | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    relayApi.getSafeMeetingPoints()
+      .then(res => { if (active && res.data) setMeetingPoints(res.data); })
+      .catch(err => console.error('Lỗi tải danh sách điểm hẹn an toàn:', err));
+    return () => { active = false; };
+  }, []);
   useEffect(() => {
     let active = true;
     categoryApi.getActiveList()
@@ -134,7 +146,7 @@ export default function OrderForm({ initialData, onSuccess, onCancel }: OrderFor
   const relayAddressWatch = watch('relayAddress');
   const selectedCategory = categories.find((c) => String(c.id) === String(categoryIdWatch));
 
-  // Tự động tính toán khoảng cách và giá cước theo thời gian thực (UC-11)
+  // Tự động tính toán khoảng cách và giá cước theo thời gian thực
   useEffect(() => {
     if (isRelayWatch) return;
 
@@ -181,7 +193,7 @@ export default function OrderForm({ initialData, onSuccess, onCancel }: OrderFor
     };
   }, [isRelayWatch, pickupCoords, deliveryCoords, weightKgWatch, declaredValueWatch, urgencyWatch]);
 
-  // Tự động tính cước tiếp sức khi bật Giao tiếp sức (UC-32 / BR-R-047)
+  // Tự động tính cước tiếp sức khi bật Giao tiếp sức
   useEffect(() => {
     if (!isRelayWatch) {
       setRelayPricing(null);
@@ -349,6 +361,7 @@ export default function OrderForm({ initialData, onSuccess, onCancel }: OrderFor
               latitude: relayCoords.lat || 0,
               longitude: relayCoords.lng || 0,
               name: values.relayName?.trim() || 'Điểm hẹn bàn giao trung gian',
+              meetingPointId: selectedMeetingPointId ?? undefined,
             },
           ],
         };
@@ -468,12 +481,12 @@ export default function OrderForm({ initialData, onSuccess, onCancel }: OrderFor
           </div>
         </fieldset>
 
-        {/* 2. Giao tiếp sức tuyến dài (Relay Delivery - UC-32) */}
+        {/* 2. Giao tiếp sức tuyến dài (Relay Delivery) */}
         {!isEditMode && (
           <fieldset className="ui-form-section" disabled={isSubmitting}>
             <legend>2. Hình thức giao tiếp sức (Relay Delivery)</legend>
             <p className="ui-form-description">
-              Tùy chọn tách hành trình dài thành nhiều chặng để nhiều bưu tá tiếp sức chuyển hàng (UC-32).
+              Tùy chọn tách hành trình dài thành nhiều chặng để nhiều bưu tá tiếp sức chuyển hàng.
             </p>
             <div className="ui-form-grid">
               <div
@@ -527,6 +540,35 @@ export default function OrderForm({ initialData, onSuccess, onCancel }: OrderFor
                   <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary, #b0bdd2)' }}>
                     Chọn một điểm hẹn công cộng, an toàn (bưu cục, trạm xăng, siêu thị, trung tâm thương mại...) để tài xế Chặng 1 giao hàng cho tài xế Chặng 2.
                   </p>
+
+                  {meetingPoints.length > 0 && (
+                    <Select
+                      label="Chọn nhanh điểm hẹn an toàn đã được kiểm duyệt"
+                      hint="Các địa điểm công cộng có bảo vệ và camera giám sát 24/7."
+                      defaultValue=""
+                      onChange={e => {
+                        const point = meetingPoints.find(p => String(p.id) === e.target.value);
+                        if (point) {
+                          setSelectedMeetingPointId(point.id);
+                          setValue('relayAddress', `${point.name} — ${point.address}`, { shouldValidate: true });
+                          setValue('relayName', point.name);
+                          setRelayCoords({ lat: point.latitude, lng: point.longitude });
+                          setValue('relayLatitude', point.latitude);
+                          setValue('relayLongitude', point.longitude);
+                        } else {
+                          setSelectedMeetingPointId(null);
+                        }
+                      }}
+                    >
+                      <option value="">-- Chọn điểm hẹn an toàn gợi ý (hoặc tự nhập bên dưới) --</option>
+                      {meetingPoints.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} ({p.campusArea || p.address})
+                        </option>
+                      ))}
+                    </Select>
+                  )}
+
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                     <div style={{ flex: 1 }}>
                       <Input
@@ -804,7 +846,7 @@ export default function OrderForm({ initialData, onSuccess, onCancel }: OrderFor
           </div>
         </fieldset>
 
-        {/* 5. Bảng tính cước phí ước tính (UC-11 & UC-32) */}
+        {/* 5. Bảng tính cước phí ước tính */}
         <fieldset className="ui-form-section" disabled={isSubmitting}>
           <legend>5. Bảng ước tính cước phí</legend>
           <p className="ui-form-description">

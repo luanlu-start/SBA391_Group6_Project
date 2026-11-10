@@ -634,3 +634,215 @@
     transform: rotate(360deg);
   }
 }
+
+/* ==========================================================================
+   Relay Stepper Visual Timeline
+   ========================================================================== */
+.relay-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: var(--bg-tertiary, #242d39);
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--border-subtle, #333d4c);
+  overflow-x: auto;
+  gap: 12px;
+}
+
+.stepper-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 110px;
+  position: relative;
+}
+
+.stepper-node-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin-bottom: 6px;
+  transition: all 0.2s ease;
+}
+
+.stepper-node-icon.completed {
+  background: rgba(108, 222, 180, 0.2);
+  color: #6cdeb4;
+  border: 2px solid #6cdeb4;
+}
+
+.stepper-node-icon.active {
+  background: rgba(243, 112, 33, 0.2);
+  color: var(--primary, #f37021);
+  border: 2px solid var(--primary, #f37021);
+  box-shadow: 0 0 12px rgba(243, 112, 33, 0.3);
+}
+
+.stepper-node-icon.pending {
+  background: rgba(142, 158, 184, 0.12);
+  color: #8e9eb8;
+  border: 2px solid #333d4c;
+}
+
+.stepper-node-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary, #f1f4fb);
+}
+
+.stepper-node-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted, #8e9eb8);
+  margin-top: 2px;
+  max-width: 130px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stepper-connector {
+  flex: 1;
+  height: 2px;
+  background: var(--border-subtle, #333d4c);
+  min-width: 24px;
+  margin-bottom: 24px;
+}
+
+.stepper-connector.completed {
+  background: #6cdeb4;
+}
+
+/* ==========================================================================
+   Live Camera QR Scanner Modal
+   ========================================================================== */
+.qr-scanner-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  backdrop-filter: blur(4px);
+}
+
+.qr-scanner-card {
+  background: var(--bg-card, #181e27);
+  border: 1px solid var(--border-subtle, #333d4c);
+  border-radius: var(--radius-lg, 16px);
+  width: 100%;
+  max-width: 460px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+}
+
+.qr-scanner-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-subtle, #333d4c);
+}
+
+.qr-scanner-header h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary, #f1f4fb);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qr-scanner-viewport {
+  position: relative;
+  width: 100%;
+  height: 320px;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.qr-scanner-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.qr-scanner-target {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 12px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+.qr-laser-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--primary, #f37021);
+  box-shadow: 0 0 8px var(--primary, #f37021);
+  animation: laserScan 2s infinite ease-in-out;
+}
+
+@keyframes laserScan {
+  0% {
+    top: 0%;
+  }
+  50% {
+    top: 96%;
+  }
+  100% {
+    top: 0%;
+  }
+}
+
+.qr-scanner-footer {
+  padding: 16px 20px;
+  background: var(--bg-secondary, #181e27);
+  text-align: center;
+}
+
+.qr-scanner-footer p {
+  color: var(--text-secondary, #b0bdd2);
+  font-size: 0.85rem;
+  margin: 0 0 12px 0;
+}
+
+.quick-token-chip {
+  background: rgba(243, 112, 33, 0.12);
+  border: 1px dashed var(--primary, #f37021);
+  border-radius: var(--radius-sm, 6px);
+  padding: 8px 12px;
+  color: var(--primary, #f37021);
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: all 0.2s ease;
+}
+
+.quick-token-chip:hover {
+  background: rgba(243, 112, 33, 0.22);
+}

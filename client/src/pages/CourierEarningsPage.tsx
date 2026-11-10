@@ -88,7 +88,7 @@ const CourierEarningsPage: React.FC = () => {
   return (
     <div className="ui-stack" style={{ maxWidth: 1120, margin: '0 auto' }}>
       <PageHeader
-        eyebrow="Người giao · UC-61"
+        eyebrow="Người giao"
         title="Thu nhập & Thống kê hiệu suất"
         description="Theo dõi doanh thu gộp, phí hoa hồng nền tảng, thu nhập ròng thực nhận theo từng đơn và tiến độ thăng hạng."
         actions={
@@ -244,7 +244,7 @@ const CourierEarningsPage: React.FC = () => {
             </div>
           )}
 
-          {/* Hạng người giao & Tiến độ thăng hạng (API-159, BR-F-119, BR-R-073) */}
+          {/* Hạng người giao & Tiến độ thăng hạng */}
           {stats && (
             <SectionCard
               title="Hạng người giao & Tiến độ thăng hạng"
@@ -430,7 +430,7 @@ const CourierEarningsPage: React.FC = () => {
             </SectionCard>
           )}
 
-          {/* Bảng Phiếu thu nhập từng đơn (BR-F-074) */}
+          {/* Bảng Phiếu thu nhập từng đơn */}
           {earnings && (
             <SectionCard
               title={`Phiếu thu nhập chi tiết theo đơn (${earnings.receipts.length})`}

@@ -19,8 +19,9 @@ public interface DeliveryBatchRepository extends JpaRepository<DeliveryBatch, Lo
 
     boolean existsByBatchCode(String batchCode);
 
-    @Query("select b from DeliveryBatch b where b.courier.id = :courierId order by b.createdAt desc")
-    Page<DeliveryBatch> findByCourierIdOrderByCreatedAtDesc(@Param("courierId") Long courierId, Pageable pageable);
+    Page<DeliveryBatch> findByCourierId(Long courierId, Pageable pageable);
+
+    List<DeliveryBatch> findByCourierIdOrderByCreatedAtDesc(Long courierId);
 
     @Query("select b from DeliveryBatch b where b.courier.id = :courierId and b.status in :statuses order by b.createdAt desc")
     List<DeliveryBatch> findByCourierIdAndStatusIn(@Param("courierId") Long courierId, @Param("statuses") List<DeliveryBatchStatus> statuses);

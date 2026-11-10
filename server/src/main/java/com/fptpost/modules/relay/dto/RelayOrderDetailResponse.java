@@ -1,5 +1,6 @@
 package com.fptpost.modules.relay.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fptpost.modules.order.model.OrderStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,4 +31,14 @@ public class RelayOrderDetailResponse {
     private String receiverPhone;
     private List<OrderLegResponse> legs;
     private List<HandoverRecordDto> handoverHistory;
+
+    @JsonProperty("id")
+    public Long getId() {
+        return orderId;
+    }
+
+    @JsonProperty("status")
+    public OrderStatus getStatus() {
+        return orderStatus;
+    }
 }

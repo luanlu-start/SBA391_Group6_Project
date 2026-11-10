@@ -67,6 +67,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problems.response(code, request, List.of());
     }
 
+    @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
+    public ResponseEntity<ApiProblem> handleIllegalArgumentException(RuntimeException exception, HttpServletRequest request) {
+        log.warn("API validation failure: {}", exception.getMessage());
+        return problems.response(GlobalErrorCode.INVALID_REQUEST, request, List.of(problems.violation("request", exception.getMessage())));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiProblem> handleGenericException(Exception exception, HttpServletRequest request) {
         log.error("API failure code={} exceptionType={} message={}",

@@ -8,12 +8,6 @@ import com.fptpost.modules.order.dto.PricingEstimateRequest;
 import com.fptpost.modules.order.dto.PricingEstimateResponse;
 import com.fptpost.modules.order.service.OrderService;
 import com.fptpost.modules.order.service.PricingCalculatorService;
-import com.fptpost.modules.order.service.RelayOrderService;
-import com.fptpost.modules.order.dto.request.RelayOrderRequest;
-import com.fptpost.modules.order.dto.request.RelayPricingEstimateRequest;
-import com.fptpost.modules.order.dto.response.OrderLegResponse;
-import com.fptpost.modules.order.dto.response.RelayOrderResponse;
-import com.fptpost.modules.order.dto.response.RelayPricingEstimateResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -49,7 +43,6 @@ public class OrderController {
     private final OrderPaymentService orderPaymentService;
     private final PricingCalculatorService pricingCalculatorService;
     private final UserRepository userRepository;
-    private final RelayOrderService relayOrderService;
 
     @PostMapping("/pricing/estimate")
     @Operation(summary = "Ước tính giá và cước phí đơn hàng (UC-11, API-029)",
@@ -60,17 +53,8 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success("Ước tính cước phí thành công", response));
     }
 
-    @PostMapping("/relay/estimate")
-    @Operation(summary = "Ước tính cước và phân chia chặng đơn giao tiếp sức",
-               description = "Tính toán khoảng cách và chia cước phí theo từng chặng (BR-R-047)")
-    public ResponseEntity<ApiResponse<RelayPricingEstimateResponse>> estimateRelayPricing(
-            @Valid @RequestBody RelayPricingEstimateRequest request) {
-        RelayPricingEstimateResponse response = relayOrderService.estimateRelayPricing(request);
-        return ResponseEntity.ok(ApiResponse.success("Ước tính cước tiếp sức thành công", response));
-    }
-
     @PostMapping(value = "/upload-images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasRole('SENDER')")
+    @PreAuthorize("hasRole('SENDER') or hasRole('COURIER') or hasRole('ADMIN')")
     @Operation(summary = "Tải lên hình ảnh đơn hàng", description = "Tải lên một hoặc nhiều hình ảnh cho đơn hàng (hỗ trợ JPG, PNG, WEBP, GIF)")
     public ResponseEntity<ApiResponse<List<String>>> uploadImages(
             @RequestParam("files") List<MultipartFile> files) {
@@ -96,34 +80,6 @@ public class OrderController {
         OrderResponse created = orderService.createOrder(senderId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.created("Order created successfully", created));
-    }
-
-    @PostMapping("/relay")
-    @PreAuthorize("hasRole('SENDER')")
-    @Operation(summary = "Tạo đơn giao tiếp sức (UC-32, API-082)",
-               description = "Tạo mới đơn hàng giao tiếp sức chia theo chặng (BR-F-059, BR-R-047)")
-    public ResponseEntity<ApiResponse<RelayOrderResponse>> createRelayOrder(
-            @AuthenticationPrincipal Jwt jwt,
-            @Valid @RequestBody RelayOrderRequest request) {
-        Long senderId = null;
-        if (jwt != null && jwt.getSubject() != null) {
-            senderId = resolveUserId(jwt);
-        } else if (request.getSenderId() != null) {
-            senderId = request.getSenderId();
-        } else {
-            throw new AppException(GlobalErrorCode.UNAUTHORIZED);
-        }
-
-        RelayOrderResponse created = relayOrderService.createRelayOrder(senderId, request);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.created("Đơn tiếp sức đã được tạo thành công", created));
-    }
-
-    @GetMapping("/{id}/legs")
-    @Operation(summary = "Xem danh sách các chặng của đơn tiếp sức (UC-32, BR-F-062)")
-    public ResponseEntity<ApiResponse<List<OrderLegResponse>>> getOrderLegs(@PathVariable Long id) {
-        List<OrderLegResponse> legs = relayOrderService.getOrderLegs(id);
-        return ResponseEntity.ok(ApiResponse.success(legs));
     }
 
     @PutMapping("/{id}")
