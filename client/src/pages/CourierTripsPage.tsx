@@ -470,19 +470,19 @@ export default function CourierTripsPage() {
   const getOrderStatusBadge = (status: string) => {
     switch (status) {
       case 'FINDING_SHIPPER':
-        return <span className="order-status-pill" style={{ color: 'var(--secondary)' }}>Đang mở nhận</span>;
+        return <span className="order-status-pill" style={{ color: '#60a5fa' }}>Đang mở nhận</span>;
       case 'AWAITING_PAYMENT':
-        return <span className="order-status-pill" style={{ color: 'var(--accent-amber)' }}>Chờ ký quỹ</span>;
+        return <span className="order-status-pill" style={{ color: '#f5cb76' }}>Chờ ký quỹ</span>;
       case 'SHIPPER_ASSIGNED':
       case 'ASSIGNED':
       case 'ESCROWED':
-        return <span className="order-status-pill" style={{ color: 'var(--accent-emerald)' }}>Đã xác nhận</span>;
+        return <span className="order-status-pill" style={{ color: '#34d399' }}>Đã xác nhận</span>;
       case 'IN_DELIVERY':
       case 'PICKED_UP':
       case 'IN_TRANSIT':
-        return <span className="order-status-pill" style={{ color: 'var(--text-accent)' }}>Đang giao hàng</span>;
+        return <span className="order-status-pill" style={{ color: '#ffb17d' }}>Đang giao hàng</span>;
       case 'COMPLETED':
-        return <span className="order-status-pill" style={{ color: 'var(--accent-emerald)' }}>Hoàn tất</span>;
+        return <span className="order-status-pill" style={{ color: '#a7f3d0' }}>Hoàn tất</span>;
       default:
         return <span className="order-status-pill">{status}</span>;
     }
@@ -665,7 +665,7 @@ export default function CourierTripsPage() {
 
                   {trip.floorPrice && (
                     <div className="detail-item highlight-floor-price">
-                      <DollarSign size={15} className="detail-icon" style={{ color: 'var(--text-accent)' }} />
+                      <DollarSign size={15} className="detail-icon" style={{ color: '#ffb17d' }} />
                       <div>
                         <span className="detail-label">Giá sàn nhận</span>
                         <strong className="detail-value highlight">
@@ -906,7 +906,7 @@ export default function CourierTripsPage() {
               {detailModalTab === 'suggestions' && (
                 <div>
                   {selectedTrip.status === 'PAUSED' && (
-                    <div className="trip-alert-box warning" style={{ backgroundColor: 'var(--warning-bg)', border: '1px solid var(--warning-border)', color: 'var(--warning-text)' }}>
+                    <div className="trip-alert-box warning" style={{ backgroundColor: 'var(--warning-bg, #352d1c)', color: '#f5cb76' }}>
                       <AlertCircle size={16} />
                       <span>Chuyến đi đang tạm dừng nhận đơn. Vui lòng mở lại nhận đơn để tự động cập nhật gợi ý mới nhất.</span>
                     </div>

@@ -313,9 +313,9 @@ export default function CourierBatchPage() {
         <div
           className={`batch-alert ${alertInfo.type}`}
           style={{
-            background: alertInfo.type === 'success' ? 'var(--success-bg)' : alertInfo.type === 'danger' ? 'var(--danger-bg)' : 'var(--warning-bg)',
-            border: `1px solid ${alertInfo.type === 'success' ? 'var(--success-border)' : alertInfo.type === 'danger' ? 'var(--danger-border)' : 'var(--warning-border)'}`,
-            color: alertInfo.type === 'success' ? 'var(--success-text)' : alertInfo.type === 'danger' ? 'var(--danger-text)' : 'var(--warning-text)',
+            background: alertInfo.type === 'success' ? '#15332d' : alertInfo.type === 'danger' ? '#36202b' : '#352d1c',
+            border: `1px solid ${alertInfo.type === 'success' ? '#6cdeb4' : alertInfo.type === 'danger' ? '#ffa6b3' : '#f5cb76'}`,
+            color: '#f1f4fb',
             padding: '12px 18px',
             borderRadius: '10px',
             marginBottom: '20px',
@@ -324,7 +324,7 @@ export default function CourierBatchPage() {
             gap: '10px',
           }}
         >
-          {alertInfo.type === 'success' ? <CheckCircle2 size={20} color="var(--accent-emerald)" /> : <AlertCircle size={20} />}
+          {alertInfo.type === 'success' ? <CheckCircle2 size={20} color="#6cdeb4" /> : <AlertCircle size={20} />}
           <span>{alertInfo.text}</span>
         </div>
       )}
@@ -350,7 +350,7 @@ export default function CourierBatchPage() {
               </div>
               <div className="batch-kpi-content">
                 <h4>Tổng khối lượng</h4>
-                <div className="kpi-value" style={{ color: isWeightExceeded ? 'var(--accent-rose)' : 'inherit' }}>
+                <div className="kpi-value" style={{ color: isWeightExceeded ? '#ffa6b3' : 'inherit' }}>
                   {totalSelectedWeight.toFixed(1)} / {maxCapacity} kg
                 </div>
               </div>
@@ -418,14 +418,14 @@ export default function CourierBatchPage() {
 
                 {/* Chọn chuyến đi liên kết */}
                 {myTrips.length > 0 && (
-                  <div style={{ marginBottom: '16px', padding: '12px', background: 'var(--bg-primary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                    <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                  <div style={{ marginBottom: '16px', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid #333d4c' }}>
+                    <label style={{ display: 'block', fontSize: '0.85rem', color: '#b0bdd2', marginBottom: '6px' }}>
                       <Navigation size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
                       Gắn với chuyến đi của bạn (để tối ưu theo tuyến):
                     </label>
                     <select
                       className="ui-control ui-select"
-                      style={{ width: '100%' }}
+                      style={{ width: '100%', background: '#101319', color: '#f1f4fb', borderColor: '#333d4c' }}
                       value={selectedTripId ?? ''}
                       onChange={e => {
                         const val = e.target.value ? Number(e.target.value) : null;
@@ -445,12 +445,12 @@ export default function CourierBatchPage() {
 
                 {/* Bảng đơn hàng */}
                 {loadingOrders ? (
-                  <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+                  <div style={{ textAlign: 'center', padding: '40px 0', color: '#8e9eb8' }}>
                     <RefreshCw className="animate-spin" size={24} style={{ margin: '0 auto 10px' }} />
                     <p>Đang tải danh sách đơn hàng của bạn…</p>
                   </div>
                 ) : eligibleOrders.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
+                  <div style={{ textAlign: 'center', padding: '40px 20px', color: '#8e9eb8' }}>
                     <Truck size={40} style={{ margin: '0 auto 12px', opacity: 0.5 }} />
                     <p style={{ margin: 0, fontWeight: 600 }}>Bạn chưa có đơn hàng nào đang nhận để gộp.</p>
                     <p style={{ fontSize: '0.85rem', marginTop: '6px' }}>Hãy ghé Sàn đơn để nhận các đơn hàng tiện đường trước khi lập lộ trình gộp.</p>
@@ -489,7 +489,7 @@ export default function CourierBatchPage() {
                                   onChange={() => {}} // Đã xử lý ở tr click
                                 />
                               </td>
-                              <td style={{ fontWeight: 600, color: 'var(--text-accent)', whiteSpace: 'nowrap' }}>
+                              <td style={{ fontWeight: 600, color: '#ffb17d', whiteSpace: 'nowrap' }}>
                                 {order.orderCode}
                               </td>
                               <td>{order.productName}</td>
@@ -510,7 +510,7 @@ export default function CourierBatchPage() {
 
                 {/* Nút hành động tính toán */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  <div style={{ fontSize: '0.85rem', color: '#8e9eb8' }}>
                     Yêu cầu: Chọn từ <strong>2 đến 5 đơn</strong>. Tổng tải trọng <strong>≤ {maxCapacity} kg</strong>.
                   </div>
                   <button
@@ -537,14 +537,14 @@ export default function CourierBatchPage() {
                 <div className="batch-panel">
                   <div className="batch-panel-header">
                     <h3 className="batch-panel-title">
-                      <ListOrdered size={20} color="var(--accent-emerald)" /> Thứ tự các chặng di chuyển đề xuất
+                      <ListOrdered size={20} color="#6cdeb4" /> Thứ tự các chặng di chuyển đề xuất
                     </h3>
-                    <span className="batch-panel-badge" style={{ background: 'var(--success-bg)', color: 'var(--accent-emerald)' }}>
+                    <span className="batch-panel-badge" style={{ background: 'rgba(108, 222, 180, 0.15)', color: '#6cdeb4' }}>
                       {optResult.totalStops} điểm dừng
                     </span>
                   </div>
 
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
+                  <p style={{ fontSize: '0.85rem', color: '#8e9eb8', marginBottom: '16px' }}>
                     Hệ thống đã tự động sắp xếp theo thứ tự tối ưu nhất, đảm bảo luôn ghé điểm lấy hàng trước khi đến điểm giao của cùng một đơn.
                   </p>
 
@@ -574,9 +574,9 @@ export default function CourierBatchPage() {
                   </div>
 
                   {/* Nhập tên và ghi chú đợt gộp */}
-                  <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border-subtle)' }}>
+                  <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #333d4c' }}>
                     <div style={{ marginBottom: '12px' }}>
-                      <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                      <label style={{ display: 'block', fontSize: '0.85rem', color: '#b0bdd2', marginBottom: '4px' }}>
                         Tên lượt giao gộp (tùy chọn):
                       </label>
                       <input
@@ -585,12 +585,12 @@ export default function CourierBatchPage() {
                         placeholder="Ví dụ: Chuyến giao chiều 3 đơn trung tâm"
                         value={batchName}
                         onChange={e => setBatchName(e.target.value)}
-                        style={{ width: '100%' }}
+                        style={{ width: '100%', background: '#101319', color: '#f1f4fb', borderColor: '#333d4c' }}
                       />
                     </div>
 
                     <div style={{ marginBottom: '16px' }}>
-                      <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                      <label style={{ display: 'block', fontSize: '0.85rem', color: '#b0bdd2', marginBottom: '4px' }}>
                         Ghi chú thêm:
                       </label>
                       <input
@@ -599,7 +599,7 @@ export default function CourierBatchPage() {
                         placeholder="Ví dụ: Mang theo thùng giữ nhiệt, giao trước 17h"
                         value={batchNotes}
                         onChange={e => setBatchNotes(e.target.value)}
-                        style={{ width: '100%' }}
+                        style={{ width: '100%', background: '#101319', color: '#f1f4fb', borderColor: '#333d4c' }}
                       />
                     </div>
 
@@ -641,7 +641,7 @@ export default function CourierBatchPage() {
                     <Compass size={20} color="#f37021" /> Bản đồ lộ trình
                   </h3>
                   {optResult && (
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-accent)', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.85rem', color: '#ffb17d', fontWeight: 600 }}>
                       {optResult.totalDistanceKm} km • ~{optResult.estimatedDurationMinutes} phút
                     </span>
                   )}
@@ -657,26 +657,26 @@ export default function CourierBatchPage() {
                 </div>
 
                 {optResult ? (
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6, background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)', padding: '12px', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '0.85rem', color: '#b0bdd2', lineHeight: 1.6, background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '8px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                       <span>Số đơn gộp:</span>
-                      <strong style={{ color: 'var(--text-primary)' }}>{optResult.totalOrders} đơn</strong>
+                      <strong style={{ color: '#f1f4fb' }}>{optResult.totalOrders} đơn</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                       <span>Tổng số chặng ghé:</span>
-                      <strong style={{ color: 'var(--text-primary)' }}>{optResult.totalStops} điểm dừng</strong>
+                      <strong style={{ color: '#f1f4fb' }}>{optResult.totalStops} điểm dừng</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                       <span>Tổng quãng đường:</span>
-                      <strong style={{ color: 'var(--text-accent)' }}>{optResult.totalDistanceKm} km</strong>
+                      <strong style={{ color: '#ffb17d' }}>{optResult.totalDistanceKm} km</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span>Thời gian giao ước tính:</span>
-                      <strong style={{ color: 'var(--accent-emerald)' }}>~{optResult.estimatedDurationMinutes} phút</strong>
+                      <strong style={{ color: '#6cdeb4' }}>~{optResult.estimatedDurationMinutes} phút</strong>
                     </div>
                   </div>
                 ) : (
-                  <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', padding: '16px 0', margin: 0 }}>
+                  <p style={{ textAlign: 'center', color: '#8e9eb8', fontSize: '0.85rem', padding: '16px 0', margin: 0 }}>
                     Chọn các đơn hàng ở bảng bên trái và nhấn <strong>Tối ưu hóa thứ tự điểm dừng</strong> để hiển thị bản đồ trực quan.
                   </p>
                 )}
@@ -690,14 +690,14 @@ export default function CourierBatchPage() {
       {activeTab === 'LIST' && (
         <div>
           {loadingBatches ? (
-            <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
+            <div style={{ textAlign: 'center', padding: '60px 0', color: '#8e9eb8' }}>
               <RefreshCw className="animate-spin" size={28} style={{ margin: '0 auto 12px' }} />
               <p>Đang tải danh sách các lượt giao gộp…</p>
             </div>
           ) : myBatches.length === 0 ? (
-            <div className="batch-panel" style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
+            <div className="batch-panel" style={{ textAlign: 'center', padding: '60px 20px', color: '#8e9eb8' }}>
               <Layers size={48} style={{ margin: '0 auto 16px', opacity: 0.4 }} />
-              <h3 style={{ color: 'var(--text-primary)', marginBottom: '8px' }}>Bạn chưa có lượt giao gộp nào</h3>
+              <h3 style={{ color: '#f1f4fb', marginBottom: '8px' }}>Bạn chưa có lượt giao gộp nào</h3>
               <p style={{ margin: '0 0 20px' }}>Hãy bắt đầu bằng cách gộp các đơn hàng cùng tuyến để tiết kiệm thời gian và nhiên liệu.</p>
               <button
                 type="button"
@@ -711,7 +711,7 @@ export default function CourierBatchPage() {
             <div className="batch-layout-split">
               {/* Danh sách các batch */}
               <div className="batch-main-column">
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '14px', color: 'var(--text-primary)' }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '14px', color: '#f1f4fb' }}>
                   Lịch sử các đợt giao ({myBatches.length})
                 </h3>
 
@@ -734,7 +734,7 @@ export default function CourierBatchPage() {
                       <div className="batch-history-header">
                         <div>
                           <span className="batch-code-badge">{batch.batchCode}</span>
-                          <span style={{ marginLeft: '10px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                          <span style={{ marginLeft: '10px', fontWeight: 600, color: '#f1f4fb' }}>
                             {batch.batchName}
                           </span>
                         </div>
@@ -743,7 +743,7 @@ export default function CourierBatchPage() {
                         </span>
                       </div>
 
-                      <div style={{ display: 'flex', gap: '16px', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                      <div style={{ display: 'flex', gap: '16px', fontSize: '0.85rem', color: '#b0bdd2', marginBottom: '8px' }}>
                         <span><strong>{batch.totalOrders}</strong> đơn hàng</span>
                         <span><strong>{batch.stops.length}</strong> điểm dừng</span>
                         <span><strong>{batch.totalDistanceKm}</strong> km</span>
@@ -752,7 +752,7 @@ export default function CourierBatchPage() {
 
                       {/* Tiến độ */}
                       <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#8e9eb8' }}>
                           <span>Tiến độ giao hàng</span>
                           <span>{completedStops}/{batch.stops.length} điểm ({progressPct}%)</span>
                         </div>
@@ -774,7 +774,7 @@ export default function CourierBatchPage() {
                         <h3 className="batch-panel-title">
                           <Navigation size={18} color="#f37021" /> {activeBatchDetail.batchName}
                         </h3>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                        <span style={{ fontSize: '0.8rem', color: '#8e9eb8', fontFamily: 'monospace' }}>
                           Mã: {activeBatchDetail.batchCode}
                         </span>
                       </div>
@@ -794,7 +794,7 @@ export default function CourierBatchPage() {
                     </div>
 
                     {/* Danh sách các điểm dừng với nút hoàn thành */}
-                    <h4 style={{ fontSize: '0.95rem', fontWeight: 700, margin: '0 0 12px', color: 'var(--text-primary)' }}>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 700, margin: '0 0 12px', color: '#f1f4fb' }}>
                       Các điểm dừng trong lộ trình:
                     </h4>
 
@@ -821,7 +821,7 @@ export default function CourierBatchPage() {
                                     type="button"
                                     onClick={() => stop.id && handleCompleteStop(stop.id)}
                                     className="batch-btn-secondary"
-                                    style={{ padding: '2px 8px', fontSize: '0.75rem', borderColor: 'var(--accent-emerald)', color: 'var(--accent-emerald)' }}
+                                    style={{ padding: '2px 8px', fontSize: '0.75rem', borderColor: '#6cdeb4', color: '#6cdeb4' }}
                                   >
                                     Đã xong
                                   </button>
@@ -839,7 +839,7 @@ export default function CourierBatchPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="batch-panel" style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
+                  <div className="batch-panel" style={{ textAlign: 'center', padding: '40px 20px', color: '#8e9eb8' }}>
                     <p>Chọn một lượt giao ở danh sách để xem chi tiết lộ trình và cập nhật tiến độ.</p>
                   </div>
                 )}

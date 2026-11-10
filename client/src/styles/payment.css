@@ -8,7 +8,7 @@
 }
 
 .wallet-stat-card {
-  background: var(--bg-secondary);
+  background: linear-gradient(135deg, rgba(24, 30, 39, 0.9) 0%, rgba(36, 45, 57, 0.6) 100%);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: var(--space-5);
@@ -16,23 +16,28 @@
   flex-direction: column;
   position: relative;
   overflow: hidden;
-  box-shadow: var(--shadow-sm);
-  transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+  box-shadow: var(--shadow-md);
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
 }
 
 .wallet-stat-card:hover {
-  transform: translateY(-1px);
-  border-color: var(--brand-border);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  border-color: var(--border-focus);
 }
 
 .wallet-stat-card.primary {
-  background: var(--brand-soft);
+  background: linear-gradient(135deg, rgba(243, 112, 33, 0.15) 0%, rgba(24, 30, 39, 0.9) 100%);
   border-color: var(--brand-border);
 }
 
 .wallet-stat-card .card-glow {
-  display: none;
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .wallet-stat-header {
@@ -248,7 +253,7 @@
   width: 40px;
   height: 40px;
   border-radius: var(--radius-md);
-  background: var(--bg-tertiary);
+  background: rgba(255, 255, 255, 0.05);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -348,7 +353,7 @@
   flex-wrap: wrap;
   gap: var(--space-3);
   align-items: flex-end;
-  background: var(--bg-primary);
+  background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: var(--space-4);
@@ -379,7 +384,7 @@
   overflow-x: auto;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
 }
 
 .tx-table {
@@ -390,7 +395,7 @@
 }
 
 .tx-table th {
-  background: var(--bg-primary);
+  background: var(--bg-secondary);
   color: var(--text-secondary);
   font-weight: 600;
   padding: var(--space-3) var(--space-4);
@@ -409,14 +414,14 @@
 }
 
 .tx-table tbody tr:hover {
-  background: var(--bg-primary);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .tx-code {
   font-family: var(--font-mono, monospace);
   font-size: 0.8rem;
   color: var(--text-primary);
-  background: var(--bg-tertiary);
+  background: rgba(255, 255, 255, 0.05);
   padding: 2px 6px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-subtle);
@@ -487,7 +492,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--bg-primary);
+  background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-4);
@@ -599,7 +604,7 @@
 
 .earnings-progress-track {
   height: 8px;
-  background: var(--bg-tertiary);
+  background: rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-full);
   overflow: hidden;
 }
@@ -681,7 +686,7 @@
   height: 210px;
   padding: var(--space-4) var(--space-3) var(--space-2);
   overflow-x: auto;
-  background: var(--bg-primary);
+  background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
 }
@@ -707,7 +712,7 @@
 .earnings-chart-bar {
   width: 24px;
   border-radius: 6px 6px 2px 2px;
-  background: var(--bg-tertiary);
+  background: rgba(255, 255, 255, 0.08);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;

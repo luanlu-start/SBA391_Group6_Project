@@ -409,7 +409,7 @@ const CourierEarningsPage: React.FC = () => {
                         className="earnings-chart-bar"
                         style={{
                           height: `${barHeight}px`,
-                          background: hasValue ? '#f59e0b' : 'var(--bg-tertiary)',
+                          background: hasValue ? '#f59e0b' : 'rgba(255, 255, 255, 0.08)',
                         }}
                       >
                         {hasValue && (
