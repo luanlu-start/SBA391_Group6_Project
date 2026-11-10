@@ -1,14 +1,16 @@
-import { Calculator, ShieldCheck, Zap, Navigation, Loader2 } from 'lucide-react';
-import type { PricingEstimateResponse } from '../../../types/order';
+import { Calculator, ShieldCheck, Zap, Navigation, Loader2, GitFork } from 'lucide-react';
+import type { PricingEstimateResponse, RelayPricingEstimateResponse } from '../../../types/order';
 import { DELIVERY_URGENCY_MAP } from '../../../types/order';
 
 interface PricingBreakdownProps {
   pricing: PricingEstimateResponse | null;
+  relayPricing?: RelayPricingEstimateResponse | null;
+  isRelay?: boolean;
   loading: boolean;
   error?: string | null;
 }
 
-export default function PricingBreakdown({ pricing, loading, error }: PricingBreakdownProps) {
+export default function PricingBreakdown({ pricing, relayPricing, isRelay, loading, error }: PricingBreakdownProps) {
   if (loading) {
     return (
       <div
@@ -43,6 +45,155 @@ export default function PricingBreakdown({ pricing, loading, error }: PricingBre
         }}
       >
         {error}
+      </div>
+    );
+  }
+
+  // Nếu là đơn tiếp sức và có dữ liệu phân chia cước tiếp sức
+  if (isRelay && relayPricing) {
+    return (
+      <div
+        style={{
+          borderRadius: 'var(--radius-md, 10px)',
+          border: '1px solid var(--border-subtle, #333d4c)',
+          borderLeft: '4px solid var(--primary, #f37021)',
+          background: 'var(--bg-secondary, #181e27)',
+          padding: '1.25rem',
+          boxShadow: 'var(--shadow-md, 0 8px 24px rgba(0,0,0,0.2))',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'baseline',
+            justifyContent: 'space-between',
+            borderBottom: '1px solid var(--border-subtle, #333d4c)',
+            paddingBottom: '0.85rem',
+            marginBottom: '1rem',
+          }}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span
+                style={{
+                  fontSize: '0.8rem',
+                  color: 'var(--text-accent, #ffb17d)',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                Tổng cước tiếp sức (UC-32 / BR-R-047)
+              </span>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '2px 6px',
+                  borderRadius: 'var(--radius-sm, 6px)',
+                  background: 'var(--brand-soft, rgba(243, 112, 33, 0.15))',
+                  color: 'var(--text-accent, #ffb17d)',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                }}
+              >
+                <GitFork size={12} />
+                {relayPricing.legs.length} Chặng
+              </span>
+            </div>
+            <div
+              style={{
+                fontSize: '1.75rem',
+                fontWeight: 700,
+                color: 'var(--primary, #f37021)',
+                marginTop: '2px',
+              }}
+            >
+              {relayPricing.totalEstimatedPrice.toLocaleString('vi-VN')} đ
+            </div>
+          </div>
+
+          <div style={{ textAlign: 'right' }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '0.25rem 0.65rem',
+                borderRadius: 'var(--radius-full, 999px)',
+                background: 'var(--brand-soft, rgba(243, 112, 33, 0.1))',
+                border: '1px solid var(--brand-border, rgba(243, 112, 33, 0.3))',
+                color: 'var(--text-accent, #ffb17d)',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+              }}
+            >
+              <Navigation size={13} style={{ color: 'var(--primary, #f37021)' }} />
+              <span>Tổng {relayPricing.totalDistanceKm} km</span>
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #8e9eb8)', marginTop: '4px' }}>
+              Định tuyến qua điểm hẹn trung gian
+            </div>
+          </div>
+        </div>
+
+        {/* Phân chia chi tiết theo chặng */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-accent, #ffb17d)' }}>
+            Chi tiết chia cước cho tài xế từng chặng (BR-R-047):
+          </div>
+
+          {relayPricing.legs.map(leg => (
+            <div
+              key={leg.legNo}
+              style={{
+                padding: '10px 14px',
+                borderRadius: 'var(--radius-sm, 8px)',
+                background: 'var(--bg-tertiary, #242d39)',
+                border: '1px solid var(--border-subtle, #333d4c)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: '12px',
+              }}
+            >
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontWeight: 600, color: 'var(--text-primary, #f1f4fb)', fontSize: '0.875rem' }}>
+                  Chặng {leg.legNo}: <span style={{ fontWeight: 400, color: 'var(--text-secondary, #b0bdd2)' }}>{leg.fromAddress} ➔ {leg.toAddress}</span>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #8e9eb8)', marginTop: '2px' }}>
+                  Khoảng cách: {leg.distanceKm} km (chiếm {leg.percentage}% lộ trình)
+                </div>
+              </div>
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <div style={{ fontWeight: 700, color: 'var(--accent-emerald, #6cdeb4)', fontSize: '0.95rem' }}>
+                  {leg.estimatedFee.toLocaleString('vi-VN')} đ
+                </div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted, #8e9eb8)' }}>
+                  Cước chặng {leg.legNo}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div
+          style={{
+            marginTop: '0.85rem',
+            paddingTop: '0.65rem',
+            borderTop: '1px dashed var(--border-subtle, #333d4c)',
+            fontSize: '0.75rem',
+            color: 'var(--text-muted, #8e9eb8)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '4px',
+          }}
+        >
+          <span>* Người gửi ký quỹ thanh toán 1 lần duy nhất toàn bộ đơn hàng.</span>
+          <span>Shipper từng chặng nhận cước độc lập</span>
+        </div>
       </div>
     );
   }
