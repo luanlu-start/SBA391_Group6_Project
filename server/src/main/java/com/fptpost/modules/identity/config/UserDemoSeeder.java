@@ -66,6 +66,9 @@ public class UserDemoSeeder implements CommandLineRunner {
     private void seedUser(String email, String phone, String fullName, String roleCode) {
         if (userRepository.existsByEmail(email) || userRepository.existsByPhone(phone)) {
             log.info("Demo user already exists (email: {}, phone: {}), skipping.", email, phone);
+            userRepository.findIdByIdentifier(email)
+                    .flatMap(userRepository::findById)
+                    .ifPresent(existing -> ensureCourierProfileIfMissing(existing, roleCode, Instant.now()));
             return;
         }
 
@@ -107,6 +110,12 @@ public class UserDemoSeeder implements CommandLineRunner {
             userProfileRepository.save(profile);
         }
 
+        ensureCourierProfileIfMissing(user, roleCode, now);
+
+        log.info("Created demo user: {} | Phone: {} | Role: {} | Password: {}", email, phone, roleCode, SIMPLE_PASSWORD);
+    }
+
+    private void ensureCourierProfileIfMissing(User user, String roleCode, Instant now) {
         if (courierProfileRepository != null && "COURIER".equalsIgnoreCase(roleCode) && !courierProfileRepository.existsByUserId(user.getId())) {
             com.fptpost.modules.identity.model.CourierProfile courierProfile = com.fptpost.modules.identity.model.CourierProfile.builder()
                     .user(user)
@@ -119,7 +128,5 @@ public class UserDemoSeeder implements CommandLineRunner {
                     .build();
             courierProfileRepository.save(courierProfile);
         }
-
-        log.info("Created demo user: {} | Phone: {} | Role: {} | Password: {}", email, phone, roleCode, SIMPLE_PASSWORD);
     }
 }

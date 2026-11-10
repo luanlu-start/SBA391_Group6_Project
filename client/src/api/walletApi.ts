@@ -10,6 +10,8 @@ import type {
   WalletStatementResponse,
   WithdrawalCreationRequest,
   WithdrawalResponse,
+  BankAccountCreationRequest,
+  BankAccountResponse,
 } from '../types/payment';
 
 export const walletApi = {
@@ -47,6 +49,18 @@ export const walletApi = {
 
   cancelWithdrawal: (id: number) => {
     return axiosClient.post<unknown, ApiResponse<WithdrawalResponse>>(`/wallet/withdrawals/${id}/cancel`);
+  },
+
+  getBankAccounts: () => {
+    return axiosClient.get<unknown, ApiResponse<BankAccountResponse[]>>('/me/bank-accounts');
+  },
+
+  createBankAccount: (data: BankAccountCreationRequest) => {
+    return axiosClient.post<unknown, ApiResponse<BankAccountResponse>>('/me/bank-accounts', data);
+  },
+
+  deleteBankAccount: (id: number) => {
+    return axiosClient.delete<unknown, ApiResponse<void>>(`/me/bank-accounts/${id}`);
   },
 };
 

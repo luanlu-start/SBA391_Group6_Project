@@ -49,6 +49,14 @@ public enum LedgerTransactionType {
      */
     WITHDRAWAL_PAYOUT,
 
+    /**
+     * Bút toán điều chỉnh dòng lệch khi đối soát giao dịch hằng ngày (UC-43, BR-F-083).
+     */
+    RECONCILIATION_ADJUSTMENT,
+
+    /**
+     * Thưởng giới thiệu người dùng mới & thưởng huy hiệu thành tích (UC-62).
+     */
     REFERRAL_REWARD,
     ACHIEVEMENT_REWARD
 }

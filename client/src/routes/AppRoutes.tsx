@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
 import MainLayout from '../layouts/MainLayout';
+import AccountLayout from '../layouts/AccountLayout';
 import AdminLayout from '../layouts/AdminLayout';
 import ModeratorLayout from '../layouts/ModeratorLayout';
 import KycReviewPage from '../pages/KycReviewPage';
@@ -36,7 +37,9 @@ import AdminPromotionsPage from '../pages/AdminPromotionsPage';
 import AdminJobsPage from '../pages/AdminJobsPage';
 import AdminCategoriesPage from '../pages/AdminCategoriesPage';
 import AdminWithdrawalsPage from '../pages/AdminWithdrawalsPage';
+import AdminReconciliationPage from '../pages/AdminReconciliationPage';
 import WalletPage from '../pages/WalletPage';
+import BankAccountsPage from '../pages/BankAccountsPage';
 import OrderPaymentPage from '../pages/OrderPaymentPage';
 import VNPayReturnPage from '../pages/VNPayReturnPage';
 import OrdersPage from '../pages/OrdersPage';
@@ -56,7 +59,7 @@ import CourierTripsPage from '../pages/CourierTripsPage';
 import RequireRole from './RequireRole';
 import CourierAssignedOrdersPage from '../pages/CourierAssignedOrdersPage';
 import CourierBatchPage from '../pages/CourierBatchPage';
-import CourierRelayHandoverPage from '../pages/CourierRelayHandoverPage';
+import CourierEarningsPage from '../pages/CourierEarningsPage';
 
 const UiKitPage = import.meta.env.DEV ? lazy(() => import('../pages/UiKitPage')) : null;
 
@@ -98,6 +101,7 @@ export default function AppRoutes() {
         <Route path="jobs" element={<AdminJobsPage />} />
         <Route path="categories" element={<AdminCategoriesPage />} />
         <Route path="withdrawals" element={<AdminWithdrawalsPage />} />
+        <Route path="reconcile" element={<AdminReconciliationPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
       <Route path="/" element={<MainLayout />}>
@@ -111,23 +115,26 @@ export default function AppRoutes() {
           element={<CourierBatchPage />}
         />
         <Route
-          path="courier/relay"
-          element={<CourierRelayHandoverPage />}
+          path="courier/earnings"
+          element={<CourierEarningsPage />}
         />
       </Route>
         <Route index element={<HomePage />} />
         <Route path="products" element={<ProductsPage />} />
         <Route path="wallet" element={<WalletPage />} />
+        <Route path="wallet/banks" element={<BankAccountsPage />} />
         <Route path="orders/payment" element={<OrderPaymentPage />} />
         <Route path="orders/:id/payment" element={<OrderPaymentPage />} />
         <Route path="payment/vnpay-return" element={<VNPayReturnPage />} />
         <Route path="vnpay-return" element={<VNPayReturnPage />} />
         <Route element={<RequireRole allowedRoles={['SENDER']} />}>
-          <Route path="sender/orders" element={<OrdersPage />} />
           <Route path="sender/orders/new" element={<CreateOrderPage />} />
           <Route path="sender/orders/:id/edit" element={<EditOrderPage />} />
-          <Route path="sender/orders/:id" element={<OrderDetailPage />} />
           <Route path="sender/orders/:id/offers" element={<OrderOffersPage />} />
+        </Route>
+        <Route element={<RequireRole allowedRoles={['SENDER', 'ADMIN']} />}>
+          <Route path="sender/orders" element={<OrdersPage />} />
+          <Route path="sender/orders/:id" element={<OrderDetailPage />} />
         </Route>
         <Route path="orders/:id/offers" element={<OrderOffersPage />} />
         <Route path="courier/market" element={<CourierMarketplacePage />} />
@@ -135,21 +142,24 @@ export default function AppRoutes() {
         <Route path="courier/trips" element={<CourierTripsPage />} />
         <Route path="courier/trips/new" element={<CreateTripPage />} />
         <Route path="verify" element={<VerifyOtpPage />} />
-        <Route path="account" element={<AccountPage />} />
-        <Route path="me/rewards" element={<RewardsPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="me/notification-settings" element={<NotificationSettingsPage />} />
-        <Route path="me/security" element={<SecurityPage />} />
-        <Route path="me/profile" element={<ProfilePage />} />
-        <Route path="me/addresses" element={<AddressesPage />} />
-        <Route path="me/kyc" element={<KycPage />} />
-        <Route path="me/complaints" element={<MyComplaintsPage />} />
-        <Route path="complaints/:id" element={<ComplaintDetailPage />} />
-        <Route path="me/courier-register" element={<CourierRegisterPage />} />
-        <Route path="courier" element={<CourierPage />} />
+        <Route element={<AccountLayout />}>
+          <Route path="account" element={<AccountPage />} />
+          <Route path="me/rewards" element={<RewardsPage />} />
+          <Route path="me/security" element={<SecurityPage />} />
+          <Route path="me/profile" element={<ProfilePage />} />
+          <Route path="me/addresses" element={<AddressesPage />} />
+          <Route path="me/kyc" element={<KycPage />} />
+          <Route path="me/complaints" element={<MyComplaintsPage />} />
+          <Route path="complaints/:id" element={<ComplaintDetailPage />} />
+          <Route path="me/courier-register" element={<CourierRegisterPage />} />
+          <Route path="courier" element={<CourierPage />} />
+        </Route>
         <Route path="legal" element={<LegalPage />} />
         <Route path="orders/:orderId/chat" element={<ChatPage />} />
         <Route path="*" element={<NotFoundPage />} />
+        <Route path="orders/:orderId/chat" element={<ChatPage />} />
       </Route>
     </Routes>
   );

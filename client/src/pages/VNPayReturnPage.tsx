@@ -80,7 +80,7 @@ export default function VNPayReturnPage() {
                 <tr>
                   <td>Số tiền giao dịch</td>
                   <td style={{ color: 'var(--text-accent)' }}>
-                    {(result.amount / 100).toLocaleString('vi-VN')} VNĐ
+                    {result.amount.toLocaleString('vi-VN')} VNĐ
                   </td>
                 </tr>
               )}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Award, Copy, Link2, RefreshCw } from 'lucide-react';
-import { Link, Navigate } from 'react-router-dom';
+import { Award, Copy, Link2, RefreshCw } from 'lucide-react';
+import { Navigate } from 'react-router-dom';
 import { getApiError, type ApiError } from '../api/ApiError';
 import { useAuthentication } from '../auth/useAuthentication';
 import ApiErrorNotice from '../components/ApiErrorNotice';
@@ -104,8 +104,7 @@ function RewardsContent() {
 
   return <div className="ui-stack" aria-busy={loading}>
     <PageHeader eyebrow="Tài khoản" title="Huy hiệu và giới thiệu"
-      description="Xem thành tích giao hàng và thưởng khi mời bạn bè tham gia FPost."
-      actions={<Link to="/account" className="ui-button ui-button-secondary"><ArrowLeft size={17} aria-hidden="true" />Tài khoản</Link>} />
+      description="Xem thành tích giao hàng và thưởng khi mời bạn bè tham gia FPost." />
     {loading && <p className="ui-muted" role="status">Đang tải huy hiệu và thưởng…</p>}
     {error && <ApiErrorNotice error={error} />}
     {!loading && <div className="ui-form-actions">

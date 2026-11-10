@@ -1,5 +1,27 @@
 export type EscrowPaymentMethod = 'WALLET' | 'VNPAY';
-export type EscrowStatus = 'HELD' | 'RELEASED' | 'REFUNDED';
+export type EscrowStatus = 'HELD' | 'RELEASED' | 'REFUNDED' | 'PARTIALLY_REFUNDED';
+export type RefundKind = 'FULL' | 'PARTIAL';
+export type RefundStatus = 'PENDING' | 'SUCCESS' | 'FAILED';
+
+export interface RefundToSourceRequest {
+  reason?: string;
+  simulateProviderRejection?: boolean;
+}
+
+export interface RefundToSourceResponse {
+  id: number;
+  orderId: number;
+  orderCode: string;
+  paymentTxnId?: number;
+  amount: number;
+  cancellationFee: number;
+  kind: RefundKind;
+  status: RefundStatus;
+  vnpayRefundRef?: string;
+  reason?: string;
+  message: string;
+  createdAt: string;
+}
 
 export interface WalletResponse {
   id: number;
@@ -92,6 +114,7 @@ export type LedgerTransactionType =
   | 'WITHDRAWAL_CANCEL'
   | 'WITHDRAWAL_REFUND'
   | 'WITHDRAWAL_PAYOUT'
+  | 'RECONCILIATION_ADJUSTMENT'
   | 'REFERRAL_REWARD'
   | 'ACHIEVEMENT_REWARD';
 
@@ -142,9 +165,90 @@ export type WithdrawalStatus =
 
 export interface WithdrawalCreationRequest {
   amount: number;
+  bankAccountId?: number;
   bankName: string;
   accountNumber: string;
   accountHolderName: string;
+}
+
+export interface BankAccountCreationRequest {
+  bankCode: string;
+  bankName?: string;
+  accountNumber: string;
+  holderName: string;
+}
+
+export interface BankAccountResponse {
+  id: number;
+  userId: number;
+  bankCode: string;
+  bankName: string;
+  maskedAccountNumber: string;
+  accountLast4: string;
+  holderName: string;
+  verifiedAt?: string;
+  cooldownUntil: string;
+  readyForWithdrawal: boolean;
+  createdAt: string;
+}
+
+export type ReconciliationReportStatus = 'MATCHED' | 'MISMATCH_FOUND' | 'RESOLVED';
+export type ReconciliationItemStatus = 'MATCHED' | 'MISMATCH' | 'ADJUSTED';
+export type ReconciliationDiscrepancyType =
+  | 'NONE'
+  | 'MISSING_LEDGER'
+  | 'MISSING_PAYMENT'
+  | 'AMOUNT_MISMATCH'
+  | 'STALE_PENDING';
+
+export interface ReconciliationItemResponse {
+  id: number;
+  reportId: number;
+  txnRef: string;
+  kind: string;
+  internalAmount: number;
+  vnpayAmount: number;
+  differenceAmount: number;
+  status: ReconciliationItemStatus;
+  discrepancyType: ReconciliationDiscrepancyType;
+  note?: string;
+  adjustmentTxnCode?: string;
+  adjustedBy?: number;
+  adjustedAt?: string;
+  createdAt: string;
+}
+
+export interface ReconciliationReportResponse {
+  id: number;
+  reportDate: string;
+  totalCount: number;
+  matchedCount: number;
+  mismatchCount: number;
+  status: ReconciliationReportStatus;
+  createdBy?: number;
+  createdAt: string;
+  updatedAt: string;
+  items: ReconciliationItemResponse[];
+}
+
+export interface ReconciliationAdjustRequest {
+  debitAccount: string;
+  creditAccount: string;
+  amount: number;
+  note: string;
+}
+
+export interface LedgerIntegrityResponse {
+  balanced: boolean;
+  totalTransactions: number;
+  totalEntries: number;
+  totalDebit: number;
+  totalCredit: number;
+  discrepancyAmount: number;
+  unbalancedTransactionCount: number;
+  unbalancedTransactionCodes: string[];
+  checkedAt: string;
+  message: string;
 }
 
 export interface WithdrawalResponse {
@@ -163,4 +267,66 @@ export interface WithdrawalResponse {
   payoutReference?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CourierEarningPoint {
+  label: string;
+  date: string;
+  orderCount: number;
+  grossAmount: number;
+  commissionAmount: number;
+  netAmount: number;
+}
+
+export interface CourierEarningReceipt {
+  orderId: number;
+  orderCode: string;
+  productName: string;
+  grossAmount: number;
+  commissionRate: number;
+  commissionAmount: number;
+  netAmount: number;
+  status: string;
+  completedAt: string;
+}
+
+export interface CourierEarningsResponse {
+  period: 'DAY' | 'WEEK' | 'MONTH';
+  fromDate: string;
+  toDate: string;
+  completedOrdersCount: number;
+  grossEarnings: number;
+  commissionRate: number;
+  commissionAmount: number;
+  deductionAmount: number;
+  netEarnings: number;
+  todayNetEarnings: number;
+  pendingEscrowAmount: number;
+  chartPoints: CourierEarningPoint[];
+  receipts: CourierEarningReceipt[];
+}
+
+export interface CourierStatsResponse {
+  userId: number;
+  currentTier: string;
+  currentTierDisplayName: string;
+  commissionRate: number;
+  trustScore: number;
+  totalAssignedOrders: number;
+  completedOrders: number;
+  cancelledOrders: number;
+  inDeliveryOrders: number;
+  completionRate: number;
+  onTimeRate: number;
+  ratingAvg: number;
+  complaintRate: number;
+  nextTier: string;
+  nextTierDisplayName: string;
+  nextTierCommissionRate: number;
+  nextTierMinOrders: number;
+  nextTierMinScore: number;
+  ordersNeededForNextTier: number;
+  scoreNeededForNextTier: number;
+  ordersProgressPercent: number;
+  scoreProgressPercent: number;
 }

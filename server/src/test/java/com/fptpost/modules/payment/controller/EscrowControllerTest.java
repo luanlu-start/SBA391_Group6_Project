@@ -8,9 +8,13 @@ import com.fptpost.modules.identity.model.User;
 import com.fptpost.modules.identity.repository.UserRepository;
 import com.fptpost.modules.payment.dto.EscrowReleaseResponse;
 import com.fptpost.modules.payment.dto.EscrowResponse;
+import com.fptpost.modules.payment.dto.RefundToSourceRequest;
+import com.fptpost.modules.payment.dto.RefundToSourceResponse;
 import com.fptpost.modules.payment.exception.PaymentErrorCode;
 import com.fptpost.modules.payment.model.EscrowPaymentMethod;
 import com.fptpost.modules.payment.model.EscrowStatus;
+import com.fptpost.modules.payment.model.RefundKind;
+import com.fptpost.modules.payment.model.RefundStatus;
 import com.fptpost.modules.payment.service.OrderPaymentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -260,5 +264,64 @@ class EscrowControllerTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("SYS_UNAUTHORIZED"));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/orders/{id}/refund-to-source (API-091, UC-37) - 200 OK khi hoàn tiền về nguồn VNPay thành công")
+    void testRefundToSource_Success() throws Exception {
+        User user = User.builder().id(userId).publicId(userPublicId).build();
+        when(userRepository.findByPublicId(userPublicId)).thenReturn(Optional.of(user));
+
+        RefundToSourceResponse refundResponse = RefundToSourceResponse.builder()
+                .id(15L)
+                .orderId(10L)
+                .orderCode("ORD-20261024-001")
+                .paymentTxnId(500L)
+                .amount(150_000L)
+                .cancellationFee(0L)
+                .kind(RefundKind.FULL)
+                .status(RefundStatus.SUCCESS)
+                .vnpayRefundRef("VNP-RFD-10-TEST1234")
+                .reason("Đơn đã hủy")
+                .message("Hoàn tiền về nguồn VNPay thành công")
+                .createdAt(Instant.now())
+                .build();
+
+        when(orderPaymentService.requestRefundToSource(eq(10L), eq(userId), any()))
+                .thenReturn(refundResponse);
+
+        RefundToSourceRequest req = RefundToSourceRequest.builder()
+                .reason("Đơn đã hủy")
+                .build();
+
+        mockMvc.perform(post("/api/v1/orders/10/refund-to-source")
+                        .header("Authorization", "Bearer valid-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1000))
+                .andExpect(jsonPath("$.data.id").value(15))
+                .andExpect(jsonPath("$.data.orderId").value(10))
+                .andExpect(jsonPath("$.data.amount").value(150000))
+                .andExpect(jsonPath("$.data.kind").value("FULL"))
+                .andExpect(jsonPath("$.data.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.vnpayRefundRef").value("VNP-RFD-10-TEST1234"));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/orders/{id}/refund-to-source (API-091, UC-37 A2) - 422 khi giao dịch gốc không phải VNPay")
+    void testRefundToSource_NotVNPaySource_Returns422() throws Exception {
+        User user = User.builder().id(userId).publicId(userPublicId).build();
+        when(userRepository.findByPublicId(userPublicId)).thenReturn(Optional.of(user));
+
+        when(orderPaymentService.requestRefundToSource(eq(10L), eq(userId), any()))
+                .thenThrow(new AppException(PaymentErrorCode.REFUND_SOURCE_NOT_VNPAY));
+
+        mockMvc.perform(post("/api/v1/orders/10/refund-to-source")
+                        .header("Authorization", "Bearer valid-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("REFUND_SOURCE_NOT_VNPAY"));
     }
 }

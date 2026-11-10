@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Eye, RefreshCw, Package, MessageCircle } from 'lucide-react';
+import { Plus, Search, Eye, RefreshCw, Package, MessageCircle, CreditCard } from 'lucide-react';
 import type { Order } from '../types/order';
 import { ORDER_STATUS_MAP } from '../types/order';
 import { orderApi } from '../api/orderApi';
@@ -16,9 +16,12 @@ import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
 import EmptyState from '../components/ui/EmptyState';
 import ApiErrorNotice from '../components/ApiErrorNotice';
+import { useAuthentication } from '../auth/useAuthentication';
 
 export default function OrdersPage() {
   const navigate = useNavigate();
+  const { user } = useAuthentication();
+  const isAdminOnly = Boolean(user?.roles.includes('ADMIN') && !user?.roles.includes('SENDER'));
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
@@ -31,7 +34,7 @@ export default function OrdersPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await orderApi.getMyOrders();
+      const response = isAdminOnly ? await orderApi.getAll() : await orderApi.getMyOrders();
       setOrders(response.data || []);
     } catch (cause) {
       setError(getApiError(cause));
@@ -137,6 +140,16 @@ export default function OrdersPage() {
       align: 'right',
       render: order => (
         <div className="ui-table-actions">
+          {['PENDING', 'PENDING_ESCROW', 'FINDING_SHIPPER', 'AWAITING_PAYMENT'].includes(order.status) && (
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<CreditCard size={15} />}
+              onClick={() => navigate(`/orders/${order.id}/payment`)}
+            >
+              Thanh toán
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"
