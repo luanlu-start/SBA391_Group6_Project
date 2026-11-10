@@ -833,16 +833,20 @@ export default function OrderDetailPage() {
                       variant="primary"
                       icon={<ShieldCheck size={16} />}
                       onClick={() => setIsReleaseModalOpen(true)}
-                      disabled={releasing || !order.courierId}
+                      disabled={releasing || !order.courierId || order.status !== 'COMPLETED'}
                       style={{ width: '100%' }}
                     >
                       {releasing ? 'Đang giải ngân…' : 'Giải ngân cho người giao'}
                     </Button>
-                    {!order.courierId && (
+                    {!order.courierId ? (
                       <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', textAlign: 'center' }}>
                         * Cần chỉ định người giao trước khi thực hiện giải ngân
                       </p>
-                    )}
+                    ) : order.status !== 'COMPLETED' ? (
+                      <p style={{ fontSize: '0.75rem', color: 'var(--accent-amber)', marginTop: '6px', textAlign: 'center' }}>
+                        * Chỉ giải ngân được sau khi đơn hàng đã hoàn tất giao hàng (COMPLETED) theo quy định BR-R-054.
+                      </p>
+                    ) : null}
                   </div>
                 )}
               </div>
