@@ -83,7 +83,7 @@ public class ParameterService {
     }
 
     private List<ParameterResponse> updateAll(Map<String, ParameterUpdateRequest> changes) {
-        if (changes == null || changes.isEmpty() || changes.size() > 109) {
+        if (changes == null || changes.isEmpty() || changes.size() > parameterCatalog.definitions().size()) {
             throw new AppException(GlobalErrorCode.INVALID_REQUEST);
         }
         UUID actor = actorId();

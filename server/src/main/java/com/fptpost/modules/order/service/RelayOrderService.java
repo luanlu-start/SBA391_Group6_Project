@@ -1,7 +1,6 @@
 package com.fptpost.modules.order.service;
 
 import com.fptpost.common.exception.AppException;
-import com.fptpost.common.exception.GlobalErrorCode;
 import com.fptpost.modules.order.dto.PricingEstimateRequest;
 import com.fptpost.modules.order.dto.PricingEstimateResponse;
 import com.fptpost.modules.order.dto.RelayPoint;
@@ -11,7 +10,6 @@ import com.fptpost.modules.order.dto.response.OrderLegResponse;
 import com.fptpost.modules.order.dto.response.RelayOrderResponse;
 import com.fptpost.modules.order.dto.response.RelayPricingEstimateResponse;
 import com.fptpost.modules.order.exception.OrderErrorCode;
-import com.fptpost.modules.order.mapper.OrderMapper;
 import com.fptpost.modules.order.model.*;
 import com.fptpost.modules.order.repository.OrderLegRepository;
 import com.fptpost.modules.order.repository.OrderRepository;
@@ -22,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -39,7 +36,6 @@ public class RelayOrderService {
     private final OrderLegRepository orderLegRepository;
     private final PricingCalculatorService pricingCalculatorService;
     private final OrderSubmissionScreening orderSubmissionScreening;
-    private final OrderMapper orderMapper;
 
     /**
      * Ước tính quãng đường và phân chia cước phí các chặng tiếp sức theo quy tắc BR-R-047.

@@ -12,7 +12,9 @@ export function parseRegistrationChallenge(value: unknown): OtpChallenge | null 
     || typeof challenge.expiresAt !== 'string' || !Number.isFinite(Date.parse(challenge.expiresAt))
     || typeof challenge.resendAvailableAt !== 'string' || !Number.isFinite(Date.parse(challenge.resendAvailableAt))) return null;
   return { challengeId: challenge.challengeId, verificationChannel: 'EMAIL',
-    maskedTarget: challenge.maskedTarget, expiresAt: challenge.expiresAt, resendAvailableAt: challenge.resendAvailableAt };
+    maskedTarget: challenge.maskedTarget, expiresAt: challenge.expiresAt, resendAvailableAt: challenge.resendAvailableAt,
+    referralCode: typeof challenge.referralCode === 'string' && /^[A-F0-9]{32}$/i.test(challenge.referralCode)
+      ? challenge.referralCode : undefined };
 }
 
 export function loadRegistrationChallenge(): OtpChallenge | null {
