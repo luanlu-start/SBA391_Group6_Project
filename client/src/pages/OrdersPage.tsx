@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Eye, RefreshCw, Package, MessageCircle } from 'lucide-react';
+import { Plus, Search, Eye, RefreshCw, Package, MessageCircle, CreditCard } from 'lucide-react';
 import type { Order } from '../types/order';
 import { ORDER_STATUS_MAP } from '../types/order';
 import { orderApi } from '../api/orderApi';
@@ -137,6 +137,16 @@ export default function OrdersPage() {
       align: 'right',
       render: order => (
         <div className="ui-table-actions">
+          {['PENDING', 'PENDING_ESCROW', 'FINDING_SHIPPER', 'AWAITING_PAYMENT'].includes(order.status) && (
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<CreditCard size={15} />}
+              onClick={() => navigate(`/orders/${order.id}/payment`)}
+            >
+              Thanh toán
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"

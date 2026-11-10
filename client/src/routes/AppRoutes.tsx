@@ -129,8 +129,10 @@ export default function AppRoutes() {
           <Route path="sender/orders" element={<OrdersPage />} />
           <Route path="sender/orders/new" element={<CreateOrderPage />} />
           <Route path="sender/orders/:id/edit" element={<EditOrderPage />} />
-          <Route path="sender/orders/:id" element={<OrderDetailPage />} />
           <Route path="sender/orders/:id/offers" element={<OrderOffersPage />} />
+        </Route>
+        <Route element={<RequireRole allowedRoles={['SENDER', 'ADMIN']} />}>
+          <Route path="sender/orders/:id" element={<OrderDetailPage />} />
         </Route>
         <Route path="orders/:id/offers" element={<OrderOffersPage />} />
         <Route path="courier/market" element={<CourierMarketplacePage />} />

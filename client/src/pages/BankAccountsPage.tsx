@@ -23,6 +23,7 @@ import Input from '../components/ui/Input';
 import Alert from '../components/ui/Alert';
 import Badge from '../components/ui/Badge';
 import EmptyState from '../components/ui/EmptyState';
+import Modal from '../components/ui/Modal';
 import ApiErrorNotice from '../components/ApiErrorNotice';
 import '../styles/payment.css';
 
@@ -67,6 +68,7 @@ export default function BankAccountsPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<BankAccountResponse | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -154,23 +156,20 @@ export default function BankAccountsPage() {
     }
   };
 
-  const handleDelete = async (acc: BankAccountResponse) => {
-    if (
-      !window.confirm(
-        `Bạn có chắc chắn muốn xóa tài khoản ${acc.bankName} (${acc.maskedAccountNumber}) khỏi danh sách nhận tiền?`
-      )
-    ) {
-      return;
-    }
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    const acc = deleteTarget;
 
     try {
       setDeletingId(acc.id);
       setError(null);
       await walletApi.deleteBankAccount(acc.id);
       setSuccessMessage(`Đã xóa tài khoản ngân hàng ${acc.bankName} (${acc.maskedAccountNumber}).`);
+      setDeleteTarget(null);
       await loadAccounts();
     } catch (err) {
       setError(getApiError(err));
+      setDeleteTarget(null);
     } finally {
       setDeletingId(null);
     }
@@ -186,7 +185,7 @@ export default function BankAccountsPage() {
           <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
             <Button
               variant="secondary"
-              size="sm"
+              size="md"
               onClick={() => navigate('/wallet')}
               icon={<ArrowLeft size={15} />}
             >
@@ -194,7 +193,7 @@ export default function BankAccountsPage() {
             </Button>
             <Button
               variant="secondary"
-              size="sm"
+              size="md"
               onClick={loadAccounts}
               disabled={loading}
               icon={<RefreshCw size={15} />}
@@ -372,9 +371,9 @@ export default function BankAccountsPage() {
                     <td>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="md"
                         disabled={deletingId === acc.id}
-                        onClick={() => handleDelete(acc)}
+                        onClick={() => setDeleteTarget(acc)}
                         icon={<Trash2 size={14} />}
                       >
                         {deletingId === acc.id ? 'Đang xóa…' : 'Xóa'}
@@ -387,6 +386,46 @@ export default function BankAccountsPage() {
           </div>
         )}
       </SectionCard>
+
+      <Modal
+        isOpen={!!deleteTarget}
+        onClose={() => deletingId === null && setDeleteTarget(null)}
+        closeDisabled={deletingId !== null}
+        title="Xác nhận xóa tài khoản ngân hàng"
+        description={
+          deleteTarget
+            ? `Bạn có chắc chắn muốn gỡ liên kết tài khoản ${deleteTarget.bankName} (${deleteTarget.maskedAccountNumber})?`
+            : undefined
+        }
+        size="md"
+      >
+        {deleteTarget && (
+          <div className="ui-stack">
+            <Alert tone="warning">
+              Sau khi xóa, nếu muốn liên kết lại tài khoản này bạn sẽ cần chờ lại thời gian bảo mật 24 giờ.
+            </Alert>
+            <div className="ui-form-actions" style={{ justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={deletingId !== null}
+                onClick={() => setDeleteTarget(null)}
+              >
+                Đóng
+              </Button>
+              <Button
+                type="button"
+                variant="danger"
+                loading={deletingId === deleteTarget.id}
+                loadingText="Đang xóa…"
+                onClick={() => void handleConfirmDelete()}
+              >
+                Xác nhận xóa
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

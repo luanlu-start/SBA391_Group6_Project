@@ -68,6 +68,9 @@ public class WithdrawalService {
             targetBankName = request.getBankName() != null ? request.getBankName().trim() : "";
             targetAccountNumber = request.getAccountNumber() != null ? request.getAccountNumber().trim() : "";
             targetHolderName = request.getAccountHolderName() != null ? request.getAccountHolderName().trim().toUpperCase() : "";
+            if (bankAccountService != null) {
+                bankAccountService.validateNotInCooldownForManualEntry(userId, targetBankName, targetAccountNumber);
+            }
         }
 
         // Khóa bi quan (Pessimistic Write Lock) ngăn chặn race condition rút tiền đồng thời

@@ -401,7 +401,11 @@ public class OrderService {
         }
 
         order.setCourierId(courierUser.getId());
-        order.setStatus(OrderStatus.AWAITING_PAYMENT);
+        if (orderPaymentService != null && orderPaymentService.hasHeldEscrow(order.getId())) {
+            order.setStatus(OrderStatus.SHIPPER_ASSIGNED);
+        } else {
+            order.setStatus(OrderStatus.AWAITING_PAYMENT);
+        }
 
         BigDecimal agreedPrice = order.getPriceSuggested() != null ? order.getPriceSuggested()
                 : (order.getDeclaredValue() != null ? order.getDeclaredValue() : BigDecimal.valueOf(30000));

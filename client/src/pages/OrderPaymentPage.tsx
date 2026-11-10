@@ -16,7 +16,7 @@ import { orderApi } from '../api/orderApi';
 import { walletApi } from '../api/walletApi';
 import { getApiError } from '../api/ApiError';
 import type { OrderResponse } from '../types/order';
-import type { WalletResponse, EscrowPaymentMethod, OrderPaymentResponse } from '../types/payment';
+import type { WalletResponse, EscrowPaymentMethod, OrderPaymentResponse, EscrowResponse } from '../types/payment';
 import PageHeader from '../components/ui/PageHeader';
 import SectionCard from '../components/ui/SectionCard';
 import Button from '../components/ui/Button';
@@ -39,6 +39,7 @@ export default function OrderPaymentPage() {
   const navigate = useNavigate();
 
   const [order, setOrder] = useState<OrderResponse | null>(null);
+  const [escrow, setEscrow] = useState<EscrowResponse | null>(null);
   const [ordersList, setOrdersList] = useState<OrderResponse[]>([]);
   const [selectedOrderId, setSelectedOrderId] = useState<string>(id || '');
   const [wallet, setWallet] = useState<WalletResponse | null>(null);
@@ -54,6 +55,15 @@ export default function OrderPaymentPage() {
 
   // Payment success result
   const [paymentResult, setPaymentResult] = useState<OrderPaymentResponse | null>(null);
+
+  const loadOrderEscrow = async (orderId: number | string) => {
+    try {
+      const escrowRes = await orderApi.getEscrow(orderId);
+      setEscrow(escrowRes.data);
+    } catch {
+      setEscrow(null);
+    }
+  };
 
   // Load Order and Wallet
   const loadData = async (orderIdToLoad?: string) => {
@@ -74,14 +84,22 @@ export default function OrderPaymentPage() {
       if (targetId) {
         const orderRes = await orderApi.getById(targetId);
         setOrder(orderRes.data);
+        await loadOrderEscrow(orderRes.data.id);
       } else {
-        // Load all orders for the user to choose from
-        const listRes = await orderApi.getAll();
-        setOrdersList(listRes.data || []);
-        if (listRes.data && listRes.data.length > 0) {
-          const firstEligible = listRes.data.find(o => o.status !== 'ESCROWED') || listRes.data[0];
+        // Load sender's own orders (fallback to getAll for pure ADMIN)
+        const canUseMyOrders = user?.roles.includes('SENDER');
+        const listRes = canUseMyOrders ? await orderApi.getMyOrders() : await orderApi.getAll();
+        const items = listRes.data || [];
+        setOrdersList(items);
+        if (items.length > 0) {
+          const payableStatuses = ['PENDING', 'PENDING_ESCROW', 'FINDING_SHIPPER', 'AWAITING_PAYMENT'];
+          const firstEligible = items.find(o => payableStatuses.includes(o.status)) || items[0];
           setOrder(firstEligible);
           setSelectedOrderId(firstEligible.id.toString());
+          await loadOrderEscrow(firstEligible.id);
+        } else {
+          setOrder(null);
+          setEscrow(null);
         }
       }
     } catch (err) {
@@ -125,10 +143,10 @@ export default function OrderPaymentPage() {
       } else {
         // WALLET payment success
         setPaymentResult(res.data);
-        // Refresh order status
+        // Refresh order status, escrow & wallet
         const refreshed = await orderApi.getById(order.id);
         setOrder(refreshed.data);
-        // Refresh wallet
+        await loadOrderEscrow(order.id);
         const wRes = await walletApi.getWallet();
         setWallet(wRes.data);
       }
@@ -160,10 +178,19 @@ export default function OrderPaymentPage() {
   }
 
   const isSender = user.roles.includes('SENDER') || user.roles.includes('ADMIN');
-  const requiredAmount = (order && order.declaredValue != null) ? order.declaredValue : 0;
+  const resolveOrderAmount = (target: OrderResponse | null): number => {
+    if (!target) return 0;
+    if (target.priceAgreed != null && target.priceAgreed > 0) return target.priceAgreed;
+    if (target.declaredValue != null && target.declaredValue > 0) return target.declaredValue;
+    if (target.priceSuggested != null && target.priceSuggested > 0) return target.priceSuggested;
+    return 150_000;
+  };
+  const requiredAmount = resolveOrderAmount(order);
   const availableBalance = wallet ? wallet.available : 0;
   const isWalletBalanceEnough = availableBalance >= requiredAmount;
-  const isAlreadyEscrowed = order?.status === 'ESCROWED';
+  const isAlreadyEscrowed =
+    order?.status === 'ESCROWED' ||
+    (escrow != null && (escrow.status === 'HELD' || escrow.status === 'RELEASED'));
 
   return (
     <div className="ui-stack" style={{ maxWidth: 900, margin: '0 auto' }}>
@@ -283,7 +310,7 @@ export default function OrderPaymentPage() {
             <div className="order-total-highlight">
               <span className="order-total-label">Số tiền cần ký quỹ bảo đảm (Escrow):</span>
               <span className="order-total-amount">
-                {order.declaredValue ? order.declaredValue.toLocaleString('vi-VN') : '0'} đ
+                {requiredAmount.toLocaleString('vi-VN')} đ
               </span>
             </div>
           </div>
@@ -294,16 +321,16 @@ export default function OrderPaymentPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
                   <Truck size={28} color="var(--accent-emerald)" />
                   <div>
-                    <h4 style={{ margin: 0, fontSize: '1.05rem' }}>Đơn hàng đã được Ký quỹ (ESCROWED)</h4>
+                    <h4 style={{ margin: 0, fontSize: '1.05rem' }}>Đơn hàng đã được Ký quỹ an toàn</h4>
                     <p style={{ margin: '4px 0 0 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                      Khoản tiền ký quỹ đã được hệ thống ghi nhận vào tài khoản ký quỹ trung gian an toàn. Hệ thống đang tiến hành điều phối tài xế tiếp nhận đơn hàng.
+                      Khoản tiền ký quỹ {requiredAmount.toLocaleString('vi-VN')} đ đã được ghi nhận vào tài khoản Escrow trung gian. Bạn có thể theo dõi hoặc kiểm tra ở trang Chi tiết đơn hàng.
                     </p>
                   </div>
                 </div>
               </Alert>
               <div className="ui-form-actions" style={{ marginTop: 'var(--space-4)' }}>
+                <Link to={`/sender/orders/${order.id}`} className="ui-button ui-button-primary">Xem chi tiết đơn &amp; Ký quỹ</Link>
                 <Link to="/wallet" className="ui-button ui-button-secondary">Kiểm tra Ví tiền</Link>
-                <Link to="/" className="ui-button ui-button-primary">Về trang chủ</Link>
               </div>
             </SectionCard>
           ) : (

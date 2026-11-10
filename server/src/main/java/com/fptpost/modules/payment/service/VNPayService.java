@@ -294,9 +294,13 @@ public class VNPayService{
 
                 if (orderId != null && orderRepository.isPresent()) {
                     orderRepository.get().findById(orderId).ifPresent(order -> {
-                        order.setStatus(OrderStatus.ESCROWED);
+                        if (order.getCourierId() != null || order.getStatus() == OrderStatus.AWAITING_PAYMENT) {
+                            order.setStatus(OrderStatus.SHIPPER_ASSIGNED);
+                        } else if (order.getStatus() != OrderStatus.FINDING_SHIPPER) {
+                            order.setStatus(OrderStatus.ESCROWED);
+                        }
                         orderRepository.get().save(order);
-                        log.info("Updated order {} to ESCROWED following VNPay IPN success", orderId);
+                        log.info("Updated order {} to {} following VNPay IPN success", orderId, order.getStatus());
                     });
                 } else if (transaction.getOrderCode() != null) {
                     updateShippingOrderIfPresent(transaction.getOrderCode(), OrderStatus.ESCROWED);
