@@ -47,6 +47,7 @@ import CreateOrderPage from '../pages/CreateOrderPage';
 import EditOrderPage from '../pages/EditOrderPage';
 import OrderDetailPage from '../pages/OrderDetailPage';
 import DeliveryIncidentsPage from '../pages/DeliveryIncidentsPage';
+import DeliveryReturnPage from '../pages/DeliveryReturnPage';
 import OrderOffersPage from '../pages/OrderOffersPage';
 import ChatPage from '../pages/ChatPage';
 import ComplaintQueuePage from '../pages/ComplaintQueuePage';
@@ -139,6 +140,7 @@ export default function AppRoutes() {
         </Route>
         <Route element={<RequireRole allowedRoles={['SENDER', 'COURIER', 'MODERATOR', 'ADMIN']} />}>
           <Route path="orders/:id/incidents" element={<DeliveryIncidentsPage />} />
+          <Route path="orders/:id/return" element={<DeliveryReturnPage />} />
         </Route>
         <Route path="orders/:id/offers" element={<OrderOffersPage />} />
         <Route path="courier/market" element={<CourierMarketplacePage />} />

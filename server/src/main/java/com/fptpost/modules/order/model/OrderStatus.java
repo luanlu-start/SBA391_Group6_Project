@@ -4,6 +4,9 @@ package com.fptpost.modules.order.model;
  * Các trạng thái trong vòng đời đơn hàng chuyển phát của FPTPost.
  */
 public enum OrderStatus {
+    DELIVERY_FAILED,    // UC30: delivery failed; recorded before starting the return.
+    RETURNING,          // UC30: returning goods to the sender.
+    RETURNED,           // UC30: physical return confirmed; financial settlement is tracked separately.
     PENDING,            // Đơn đã gửi lên hệ thống, chờ xử lý
     PENDING_ESCROW,     // Đơn chờ thanh toán ký quỹ (UC-35)
     ESCROWED,           // Đã thanh toán ký quỹ an toàn (UC-35)

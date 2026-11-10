@@ -93,6 +93,9 @@ export default function CourierAssignedOrdersPage() {
                 )}
 
                 <DeliveryIncidentPanel orderId={order.id} canReport={order.status === 'IN_DELIVERY'} />
+                <Button variant="secondary" onClick={() => navigate(`/orders/${order.id}/return`)}>
+                  {order.status === 'IN_DELIVERY' ? 'Giao thất bại / hoàn hàng' : 'Theo dõi hoàn hàng'}
+                </Button>
 
                 {/* UC-24: Chat Sender - Courier */}
                 <Button

@@ -216,6 +216,7 @@ export default function OrderDetailPage() {
       />
 
       {currentUser && <DeliveryIncidentPanel orderId={order.id} />}
+      {currentUser && <Button variant="secondary" onClick={() => navigate(`/orders/${order.id}/return`)}>Giao thất bại / nhận lại hàng</Button>}
 
       <div className="ui-showcase-grid">
         {/* Left Column: Shipment & Product Details */}
