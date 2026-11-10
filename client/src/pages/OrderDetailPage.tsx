@@ -31,7 +31,7 @@ import OrderModerationNotice from '../features/order-moderation/components/Order
 import type { EscrowResponse, RefundToSourceResponse } from '../types/payment';
 import { getSessionState } from '../auth/authSession';
 import ReportViolationButton from '../features/violation-reports/components/ReportViolationButton';
-import { ShieldCheck, CheckCircle, AlertTriangle, Send, GitFork } from 'lucide-react';
+import { ShieldCheck, CheckCircle, AlertTriangle, Send, GitFork, CreditCard } from 'lucide-react';
 import InviteCourierModal from '../features/order/components/InviteCourierModal';
 import SuggestedCouriersCard from '../features/matching/components/SuggestedCouriersCard';
 
@@ -65,8 +65,10 @@ export default function OrderDetailPage() {
       .catch(() => setRefundRequests([]));
   };
 
-  // Trạng thái modal hủy đơn
+  // Trạng thái modal hủy đơn, giải ngân & hoàn tiền
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [isReleaseModalOpen, setIsReleaseModalOpen] = useState(false);
+  const [isRefundSourceModalOpen, setIsRefundSourceModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [invitedCourierId, setInvitedCourierId] = useState<number | null>(null);
   const [cancelReason, setCancelReason] = useState('');
@@ -85,10 +87,10 @@ export default function OrderDetailPage() {
       .then(res => {
         if (mounted) {
           setOrder(res.data);
-          fetchEscrow(id);
+          fetchEscrow(res.data.id);
           if (res.data.isRelay) {
             setLoadingLegs(true);
-            orderApi.getOrderLegs(id)
+            orderApi.getOrderLegs(res.data.id)
               .then(legsRes => { if (mounted) setLegs(legsRes.data); })
               .catch(e => console.error("Lỗi tải chặng tiếp sức:", e))
               .finally(() => { if (mounted) setLoadingLegs(false); });
@@ -108,20 +110,19 @@ export default function OrderDetailPage() {
   }, [id]);
 
   const handleReleaseEscrow = async () => {
-    if (!id) return;
-    if (!window.confirm('Bạn có chắc chắn muốn giải ngân tiền ký quỹ cho người giao hàng?')) {
-      return;
-    }
+    if (!order) return;
     setReleasing(true);
     setReleaseSuccess(null);
     setReleaseError(null);
     try {
-      const res = await orderApi.releaseEscrow(id);
+      const res = await orderApi.releaseEscrow(order.id);
       setReleaseSuccess(res.data.message || 'Giải ngân tiền ký quỹ thành công!');
-      fetchEscrow(id);
+      setIsReleaseModalOpen(false);
+      fetchEscrow(order.id);
     } catch (err) {
       const apiErr = getApiError(err);
       setReleaseError(apiErr.message);
+      setIsReleaseModalOpen(false);
     } finally {
       setReleasing(false);
     }
@@ -145,26 +146,21 @@ export default function OrderDetailPage() {
   }
 
   async function handleRefundToSource() {
-    if (!order || !id) return;
-    if (
-      !window.confirm(
-        'Bạn có chắc chắn muốn yêu cầu hoàn tiền đơn hàng này từ ví FPTPost về nguồn thanh toán VNPay gốc?'
-      )
-    ) {
-      return;
-    }
+    if (!order) return;
     setRefundingSource(true);
     setReleaseSuccess(null);
     setReleaseError(null);
     try {
-      const res = await orderApi.refundToSource(id, {
+      const res = await orderApi.refundToSource(order.id, {
         reason: `Người gửi yêu cầu hoàn tiền đơn ${order.orderCode} về nguồn VNPay`,
       });
       setReleaseSuccess(res.data.message || 'Hoàn tiền về nguồn VNPay thành công!');
-      fetchEscrow(id);
+      setIsRefundSourceModalOpen(false);
+      fetchEscrow(order.id);
     } catch (err) {
       const apiErr = getApiError(err);
       setReleaseError(apiErr.message);
+      setIsRefundSourceModalOpen(false);
     } finally {
       setRefundingSource(false);
     }
@@ -213,6 +209,13 @@ export default function OrderDetailPage() {
     tone: 'neutral',
   };
 
+  const canPayEscrow =
+    !escrow &&
+    (order.status === 'PENDING' ||
+      order.status === 'PENDING_ESCROW' ||
+      order.status === 'FINDING_SHIPPER' ||
+      order.status === 'AWAITING_PAYMENT');
+
   const canEdit = order.status === 'PENDING' || (order.status === 'FINDING_SHIPPER' && !order.courierId);
   const canCancel =
     order.status === 'PENDING' ||
@@ -238,10 +241,20 @@ export default function OrderDetailPage() {
                 TIẾP SỨC
               </Badge>
             )}
+            {canPayEscrow && !isAdmin && (
+              <Button
+                variant="primary"
+                size="md"
+                icon={<CreditCard size={15} />}
+                onClick={() => navigate(`/orders/${order.id}/payment`)}
+              >
+                Thanh toán &amp; Ký quỹ
+              </Button>
+            )}
             {canEdit && (
               <Button
                 variant="secondary"
-                size="sm"
+                size="md"
                 icon={<Pencil size={15} />}
                 onClick={() => navigate(`/sender/orders/${order.id}/edit`)}
               >
@@ -251,7 +264,7 @@ export default function OrderDetailPage() {
             {canCancel && (
               <Button
                 variant="secondary"
-                size="sm"
+                size="md"
                 icon={<XCircle size={15} style={{ color: 'var(--accent-rose, #ffa6b3)' }} />}
                 onClick={() => {
                   setCancelError(null);
@@ -624,6 +637,31 @@ export default function OrderDetailPage() {
             </div>
           </SectionCard>
 
+          {/* Thanh toán & Ký quỹ nếu đơn chưa ký quỹ (UC-35) */}
+          {!escrow && canPayEscrow && (
+            <SectionCard
+              title="Thanh toán & Ký quỹ (Escrow)"
+              description="Đơn hàng chưa được thanh toán ký quỹ — số dư ví của bạn chưa bị trừ hay tạm giữ."
+              actions={<Badge dot tone="warning">CHƯA KÝ QUỸ</Badge>}
+            >
+              <div className="ui-stack" style={{ gap: '12px' }}>
+                <Alert tone="info">
+                  Hãy chọn phương thức thanh toán qua <strong>Ví FPTPost</strong> hoặc <strong>Cổng VNPay</strong> để ký quỹ bảo đảm an toàn cho đơn hàng này.
+                </Alert>
+                {!isAdmin && (
+                  <Button
+                    variant="primary"
+                    icon={<CreditCard size={16} />}
+                    onClick={() => navigate(`/orders/${order.id}/payment`)}
+                    style={{ width: '100%' }}
+                  >
+                    Chọn phương thức &amp; Thanh toán ký quỹ
+                  </Button>
+                )}
+              </div>
+            </SectionCard>
+          )}
+
           {/* Thông tin Ký quỹ & Giải ngân */}
           {escrow && (
             <SectionCard
@@ -779,7 +817,7 @@ export default function OrderDetailPage() {
                     <div style={{ marginTop: '8px' }}>
                       <Button
                         variant="secondary"
-                        onClick={() => void handleRefundToSource()}
+                        onClick={() => setIsRefundSourceModalOpen(true)}
                         disabled={refundingSource}
                         style={{ width: '100%' }}
                       >
@@ -794,7 +832,7 @@ export default function OrderDetailPage() {
                     <Button
                       variant="primary"
                       icon={<ShieldCheck size={16} />}
-                      onClick={handleReleaseEscrow}
+                      onClick={() => setIsReleaseModalOpen(true)}
                       disabled={releasing || !order.courierId}
                       style={{ width: '100%' }}
                     >
@@ -853,6 +891,64 @@ export default function OrderDetailPage() {
               loadingText="Đang xử lý hủy đơn…"
             >
               Xác nhận hủy
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal xác nhận giải ngân cho người giao (UC-36) */}
+      <Modal
+        isOpen={isReleaseModalOpen}
+        onClose={() => !releasing && setIsReleaseModalOpen(false)}
+        closeDisabled={releasing}
+        title="Xác nhận giải ngân tiền ký quỹ"
+        description={`Giải ngân khoản tiền ký quỹ của đơn hàng ${order.orderCode} vào ví người giao?`}
+        size="md"
+      >
+        <div className="ui-stack" style={{ gap: '12px' }}>
+          <Alert tone="info">
+            Số tiền ký quỹ sẽ được chuyển từ trạng thái giam giữ sang số dư khả dụng của người giao hàng.
+          </Alert>
+          <div className="ui-row" style={{ justifyContent: 'flex-end', gap: '8px' }}>
+            <Button variant="secondary" disabled={releasing} onClick={() => setIsReleaseModalOpen(false)}>
+              Đóng
+            </Button>
+            <Button
+              variant="primary"
+              loading={releasing}
+              loadingText="Đang giải ngân…"
+              onClick={() => void handleReleaseEscrow()}
+            >
+              Xác nhận giải ngân
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal xác nhận hoàn tiền về nguồn VNPay (UC-37) */}
+      <Modal
+        isOpen={isRefundSourceModalOpen}
+        onClose={() => !refundingSource && setIsRefundSourceModalOpen(false)}
+        closeDisabled={refundingSource}
+        title="Xác nhận hoàn tiền về nguồn VNPay"
+        description={`Yêu cầu hoàn khoản tiền của đơn hàng ${order.orderCode} từ ví FPTPost về cổng thanh toán VNPay gốc?`}
+        size="md"
+      >
+        <div className="ui-stack" style={{ gap: '12px' }}>
+          <Alert tone="warning">
+            Sau khi hoàn về nguồn VNPay thành công, số tiền tương ứng sẽ được khấu trừ khỏi số dư ví FPTPost của bạn.
+          </Alert>
+          <div className="ui-row" style={{ justifyContent: 'flex-end', gap: '8px' }}>
+            <Button variant="secondary" disabled={refundingSource} onClick={() => setIsRefundSourceModalOpen(false)}>
+              Đóng
+            </Button>
+            <Button
+              variant="primary"
+              loading={refundingSource}
+              loadingText="Đang gửi yêu cầu…"
+              onClick={() => void handleRefundToSource()}
+            >
+              Xác nhận hoàn VNPay
             </Button>
           </div>
         </div>

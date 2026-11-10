@@ -193,6 +193,12 @@ public class OrderService {
         return orderMapper.toResponse(order);
     }
 
+    public OrderResponse getOrderByCode(String orderCode) {
+        Order order = orderRepository.findByOrderCode(orderCode == null ? "" : orderCode.trim())
+                .orElseThrow(() -> new AppException(OrderErrorCode.ORDER_NOT_FOUND));
+        return orderMapper.toResponse(order);
+    }
+
     public OrderDetailResponse getOrderDetail(Long id) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new AppException(OrderErrorCode.ORDER_NOT_FOUND));
@@ -366,11 +372,11 @@ public class OrderService {
 //            }
 //        }
 
-        if (profile.getRestrictedUntil() != null && profile.getRestrictedUntil().isAfter(Instant.now())) {
+        if (profile != null && profile.getRestrictedUntil() != null && profile.getRestrictedUntil().isAfter(Instant.now())) {
             throw new AppException(OrderErrorCode.COURIER_ACCOUNT_RESTRICTED);
         }
 
-        CourierTier tier = profile.getTier() != null ? profile.getTier() : CourierTier.SILVER;
+        CourierTier tier = (profile != null && profile.getTier() != null) ? profile.getTier() : CourierTier.SILVER;
 
         //hạn mức giá trị bưu phẩm shipper có thể nhận, đang để mặc định 1000000
         BigDecimal highValueThreshold = new BigDecimal("1000000");
@@ -401,7 +407,11 @@ public class OrderService {
         }
 
         order.setCourierId(courierUser.getId());
-        order.setStatus(OrderStatus.AWAITING_PAYMENT);
+        if (orderPaymentService != null && orderPaymentService.hasHeldEscrow(order.getId())) {
+            order.setStatus(OrderStatus.SHIPPER_ASSIGNED);
+        } else {
+            order.setStatus(OrderStatus.AWAITING_PAYMENT);
+        }
 
         BigDecimal agreedPrice = order.getPriceSuggested() != null ? order.getPriceSuggested()
                 : (order.getDeclaredValue() != null ? order.getDeclaredValue() : BigDecimal.valueOf(30000));

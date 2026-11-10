@@ -235,4 +235,28 @@ class BankAccountServiceTest {
         bankAccountService.deleteBankAccount(USER_ID, 99L);
         verify(bankAccountRepository, times(1)).delete(acc);
     }
+
+    @Test
+    @DisplayName("UC-39 & UC-40: Chặn cả trường hợp nhập thủ công lại đúng STK vừa liên kết trong thời gian chờ 24h")
+    void validateNotInCooldownForManualEntry_ThrowsWhenInCooldown() {
+        String encrypted = bankAccountService.encryptAccountNumber("0123456789");
+        BankAccount coolingAccount = BankAccount.builder()
+                .id(105L)
+                .userId(USER_ID)
+                .bankCode("VCB")
+                .bankName("Vietcombank")
+                .accountNoEnc(encrypted)
+                .accountLast4("6789")
+                .holderName("LE NHUT HUY")
+                .cooldownUntil(Instant.now().plus(Duration.ofHours(20)))
+                .build();
+
+        when(bankAccountRepository.findByUserIdOrderByCreatedAtDesc(USER_ID))
+                .thenReturn(List.of(coolingAccount));
+
+        AppException ex = assertThrows(AppException.class, () ->
+                bankAccountService.validateNotInCooldownForManualEntry(USER_ID, "Vietcombank", "0123456789"));
+
+        assertEquals(PaymentErrorCode.BANK_ACCOUNT_COOLDOWN_ACTIVE, ex.getErrorCode());
+    }
 }

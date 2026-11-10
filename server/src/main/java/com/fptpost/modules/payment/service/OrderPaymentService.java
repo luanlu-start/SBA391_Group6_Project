@@ -76,15 +76,23 @@ public class OrderPaymentService {
         }
 
         // Kiểm tra trạng thái đơn hàng có hợp lệ để thanh toán ký quỹ không
-        if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.PENDING_ESCROW) {
+        if (order.getStatus() != OrderStatus.PENDING
+                && order.getStatus() != OrderStatus.PENDING_ESCROW
+                && order.getStatus() != OrderStatus.FINDING_SHIPPER
+                && order.getStatus() != OrderStatus.AWAITING_PAYMENT) {
             log.warn("Order {} in status {} cannot be paid", orderId, order.getStatus());
             throw new AppException(PaymentErrorCode.ORDER_PAYMENT_NOT_ALLOWED);
         }
 
-        // Số tiền ký quỹ cần thanh toán (tính theo giá trị khai báo hoặc cước phí)
-        long orderAmount = order.getDeclaredValue() != null && order.getDeclaredValue().compareTo(BigDecimal.ZERO) > 0
-                ? order.getDeclaredValue().longValue()
-                : 150_000L; // Giá trị tối thiểu demo nếu đơn chưa set giá trị
+        // Số tiền ký quỹ cần thanh toán (ưu tiên giá thỏa thuận, giá trị khai báo hoặc cước gợi ý)
+        long orderAmount = 150_000L;
+        if (order.getPriceAgreed() != null && order.getPriceAgreed().compareTo(BigDecimal.ZERO) > 0) {
+            orderAmount = order.getPriceAgreed().longValue();
+        } else if (order.getDeclaredValue() != null && order.getDeclaredValue().compareTo(BigDecimal.ZERO) > 0) {
+            orderAmount = order.getDeclaredValue().longValue();
+        } else if (order.getPriceSuggested() != null && order.getPriceSuggested().compareTo(BigDecimal.ZERO) > 0) {
+            orderAmount = order.getPriceSuggested().longValue();
+        }
 
         // ==========================================
         // NHÁNH 1: THANH TOÁN BẰNG SỐ DƯ VÍ (WALLET)
@@ -128,8 +136,12 @@ public class OrderPaymentService {
             // Ghi sổ cái kép
             ledgerService.recordOrderEscrowFromWallet(orderId, userId, orderAmount, "ESCROW_ORD_" + orderId);
 
-            // Cập nhật trạng thái đơn hàng sang ESCROWED
-            order.setStatus(OrderStatus.ESCROWED);
+            // Cập nhật trạng thái đơn hàng sau ký quỹ
+            if (order.getCourierId() != null || order.getStatus() == OrderStatus.AWAITING_PAYMENT) {
+                order.setStatus(OrderStatus.SHIPPER_ASSIGNED);
+            } else if (order.getStatus() != OrderStatus.FINDING_SHIPPER) {
+                order.setStatus(OrderStatus.ESCROWED);
+            }
             orderRepository.save(order);
 
             log.info("Successfully paid and escrowed order {} via WALLET", orderId);
@@ -442,6 +454,16 @@ public class OrderPaymentService {
                 orderId, totalEscrow, refundAmount, cancelFee, escrow.getStatus());
 
         return Optional.of(new EscrowRefundResult(orderId, senderId, refundAmount, cancelFee, escrow.getStatus()));
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasHeldEscrow(Long orderId) {
+        if (orderId == null) {
+            return false;
+        }
+        return escrowRepository.findByOrderId(orderId)
+                .map(e -> e.getStatus() == EscrowStatus.HELD)
+                .orElse(false);
     }
 
     /**

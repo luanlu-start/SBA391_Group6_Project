@@ -178,6 +178,42 @@ public class BankAccountService {
         );
     }
 
+    /**
+     * Chống lách quy tắc chờ 24 giờ khi người dùng nhập thủ công lại đúng số tài khoản ngân hàng vừa liên kết (UC-39, UC-40).
+     */
+    @Transactional(readOnly = true)
+    public void validateNotInCooldownForManualEntry(Long userId, String bankName, String accountNumber) {
+        if (userId == null || accountNumber == null || accountNumber.isBlank()) {
+            return;
+        }
+        String normalizedAccountNo = accountNumber.trim().replaceAll("\\s+", "");
+        String normalizedBank = normalizeName(bankName);
+        Instant now = Instant.now();
+
+        List<BankAccount> userAccounts = bankAccountRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        for (BankAccount acc : userAccounts) {
+            if (acc.getCooldownUntil() == null || !now.isBefore(acc.getCooldownUntil())) {
+                continue;
+            }
+            String decrypted = decryptAccountNumber(acc.getAccountNoEnc(), acc.getAccountLast4());
+            if (!normalizedAccountNo.equals(decrypted)) {
+                continue;
+            }
+            String storedBankNameNorm = normalizeName(acc.getBankName());
+            String storedBankCodeNorm = normalizeName(acc.getBankCode());
+            boolean bankMatches = normalizedBank.isEmpty()
+                    || normalizedBank.equals(storedBankNameNorm)
+                    || normalizedBank.equals(storedBankCodeNorm)
+                    || storedBankNameNorm.contains(normalizedBank)
+                    || normalizedBank.contains(storedBankNameNorm);
+            if (bankMatches) {
+                log.warn("Manual withdrawal rejected: userId={}, bank='{}', last4={} matches linked bankAccountId={} in 24h cooldown until {}",
+                        userId, bankName, acc.getAccountLast4(), acc.getId(), acc.getCooldownUntil());
+                throw new AppException(PaymentErrorCode.BANK_ACCOUNT_COOLDOWN_ACTIVE);
+            }
+        }
+    }
+
     public record ResolvedBankDetails(
             Long bankAccountId,
             String bankCode,

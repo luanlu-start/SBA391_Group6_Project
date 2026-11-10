@@ -191,9 +191,14 @@ public class OrderController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Xem chi tiết đơn hàng", description = "Lấy thông tin chi tiết của một đơn hàng theo ID")
-    public ResponseEntity<ApiResponse<OrderResponse>> getOrderById(@PathVariable Long id) {
-        OrderResponse order = orderService.getOrderById(id);
+    @Operation(summary = "Xem chi tiết đơn hàng", description = "Lấy thông tin chi tiết của một đơn hàng theo ID hoặc mã vận đơn")
+    public ResponseEntity<ApiResponse<OrderResponse>> getOrderById(@PathVariable String id) {
+        OrderResponse order;
+        try {
+            order = orderService.getOrderById(Long.parseLong(id));
+        } catch (NumberFormatException ex) {
+            order = orderService.getOrderByCode(id);
+        }
         return ResponseEntity.ok(ApiResponse.success("Order retrieved successfully", order));
     }
 
