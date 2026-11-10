@@ -53,6 +53,9 @@ public class OrderService {
     private final CourierProfileRepository courierProfileRepository;
     private final OrderSubmissionScreening orderSubmissionScreening;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.fptpost.modules.payment.service.OrderPaymentService orderPaymentService;
+
     @Transactional
     public OrderResponse createOrder(Long senderId, OrderRequest request) {
         String orderCode = generateUniqueOrderCode();
@@ -160,7 +163,12 @@ public class OrderService {
             throw new AppException(OrderErrorCode.ORDER_ACCESS_DENIED);
         }
 
-        if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.FINDING_SHIPPER) {
+        if (order.getStatus() != OrderStatus.PENDING
+                && order.getStatus() != OrderStatus.PENDING_ESCROW
+                && order.getStatus() != OrderStatus.ESCROWED
+                && order.getStatus() != OrderStatus.FINDING_SHIPPER
+                && order.getStatus() != OrderStatus.AWAITING_PAYMENT
+                && order.getStatus() != OrderStatus.SHIPPER_ASSIGNED) {
             throw new AppException(OrderErrorCode.ORDER_CANNOT_BE_CANCELLED);
         }
 
@@ -173,6 +181,9 @@ public class OrderService {
         }
 
         Order updated = orderRepository.save(order);
+        if (orderPaymentService != null) {
+            orderPaymentService.refundEscrowIfHeldOnCancel(id, false, reason);
+        }
         return orderMapper.toResponse(updated);
     }
 

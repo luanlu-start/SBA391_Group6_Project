@@ -1,5 +1,27 @@
 export type EscrowPaymentMethod = 'WALLET' | 'VNPAY';
-export type EscrowStatus = 'HELD' | 'RELEASED' | 'REFUNDED';
+export type EscrowStatus = 'HELD' | 'RELEASED' | 'REFUNDED' | 'PARTIALLY_REFUNDED';
+export type RefundKind = 'FULL' | 'PARTIAL';
+export type RefundStatus = 'PENDING' | 'SUCCESS' | 'FAILED';
+
+export interface RefundToSourceRequest {
+  reason?: string;
+  simulateProviderRejection?: boolean;
+}
+
+export interface RefundToSourceResponse {
+  id: number;
+  orderId: number;
+  orderCode: string;
+  paymentTxnId?: number;
+  amount: number;
+  cancellationFee: number;
+  kind: RefundKind;
+  status: RefundStatus;
+  vnpayRefundRef?: string;
+  reason?: string;
+  message: string;
+  createdAt: string;
+}
 
 export interface WalletResponse {
   id: number;

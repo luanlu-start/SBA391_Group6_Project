@@ -28,7 +28,7 @@ import Input from '../components/ui/Input';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ApiErrorNotice from '../components/ApiErrorNotice';
 import OrderModerationNotice from '../features/order-moderation/components/OrderModerationNotice';
-import type { EscrowResponse } from '../types/payment';
+import type { EscrowResponse, RefundToSourceResponse } from '../types/payment';
 import { getSessionState } from '../auth/authSession';
 import ReportViolationButton from '../features/violation-reports/components/ReportViolationButton';
 import { ShieldCheck, CheckCircle, AlertTriangle, Send, GitFork } from 'lucide-react';
@@ -41,6 +41,8 @@ export default function OrderDetailPage() {
 
   const [order, setOrder] = useState<Order | null>(null);
   const [escrow, setEscrow] = useState<EscrowResponse | null>(null);
+  const [refundRequests, setRefundRequests] = useState<RefundToSourceResponse[]>([]);
+  const [refundingSource, setRefundingSource] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
   const [releasing, setReleasing] = useState(false);
@@ -57,6 +59,10 @@ export default function OrderDetailPage() {
       .getEscrow(orderId)
       .then(res => setEscrow(res.data))
       .catch(() => setEscrow(null));
+    orderApi
+      .getRefundRequests(orderId)
+      .then(res => setRefundRequests(res.data || []))
+      .catch(() => setRefundRequests([]));
   };
 
   // Trạng thái modal hủy đơn
@@ -128,12 +134,39 @@ export default function OrderDetailPage() {
     try {
       const res = await orderApi.cancel(order.id, cancelReason.trim() || undefined);
       setOrder(res.data);
+      fetchEscrow(order.id);
       setIsCancelModalOpen(false);
       setCancelReason('');
     } catch (cause) {
       setCancelError(getApiError(cause));
     } finally {
       setCancelling(false);
+    }
+  }
+
+  async function handleRefundToSource() {
+    if (!order || !id) return;
+    if (
+      !window.confirm(
+        'Bạn có chắc chắn muốn yêu cầu hoàn tiền đơn hàng này từ ví FPTPost về nguồn thanh toán VNPay gốc?'
+      )
+    ) {
+      return;
+    }
+    setRefundingSource(true);
+    setReleaseSuccess(null);
+    setReleaseError(null);
+    try {
+      const res = await orderApi.refundToSource(id, {
+        reason: `Người gửi yêu cầu hoàn tiền đơn ${order.orderCode} về nguồn VNPay`,
+      });
+      setReleaseSuccess(res.data.message || 'Hoàn tiền về nguồn VNPay thành công!');
+      fetchEscrow(id);
+    } catch (err) {
+      const apiErr = getApiError(err);
+      setReleaseError(apiErr.message);
+    } finally {
+      setRefundingSource(false);
     }
   }
 
@@ -181,7 +214,13 @@ export default function OrderDetailPage() {
   };
 
   const canEdit = order.status === 'PENDING' || (order.status === 'FINDING_SHIPPER' && !order.courierId);
-  const canCancel = order.status === 'PENDING' || order.status === 'FINDING_SHIPPER';
+  const canCancel =
+    order.status === 'PENDING' ||
+    order.status === 'PENDING_ESCROW' ||
+    order.status === 'ESCROWED' ||
+    order.status === 'FINDING_SHIPPER' ||
+    order.status === 'AWAITING_PAYMENT' ||
+    order.status === 'SHIPPER_ASSIGNED';
 
   return (
     <div className="ui-stack">
@@ -697,6 +736,57 @@ export default function OrderDetailPage() {
                     </div>
                   )}
                 </div>
+
+                {/* Thông tin & Nút yêu cầu hoàn tiền về nguồn VNPay (UC-37) */}
+                {refundRequests.length > 0 && (
+                  <div
+                    style={{
+                      padding: '10px 12px',
+                      backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                      border: '1px solid rgba(59, 130, 246, 0.25)',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.85rem',
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                      Hoàn tiền về nguồn VNPay ({refundRequests[0].kind === 'PARTIAL' ? 'Một phần' : 'Toàn bộ'}):
+                    </div>
+                    <div>
+                      Số tiền hoàn: <strong>{Number(refundRequests[0].amount).toLocaleString('vi-VN')} VNĐ</strong>
+                      {refundRequests[0].cancellationFee > 0 && (
+                        <span> (Phí hủy trả bưu tá: {Number(refundRequests[0].cancellationFee).toLocaleString('vi-VN')} VNĐ)</span>
+                      )}
+                    </div>
+                    <div>
+                      Trạng thái:{' '}
+                      <strong>
+                        {refundRequests[0].status === 'SUCCESS'
+                          ? `Thành công (Mã: ${refundRequests[0].vnpayRefundRef})`
+                          : refundRequests[0].status === 'FAILED'
+                          ? 'VNPay từ chối — Tiền được giữ tại ví FPTPost'
+                          : 'Đang xử lý'}
+                      </strong>
+                    </div>
+                  </div>
+                )}
+
+                {escrow.paymentMethod === 'VNPAY' &&
+                  (escrow.status === 'REFUNDED' ||
+                    escrow.status === 'PARTIALLY_REFUNDED' ||
+                    order.status === 'CANCELLED' ||
+                    order.status === 'EXPIRED') &&
+                  !refundRequests.some(r => r.status === 'SUCCESS' || r.status === 'PENDING') && (
+                    <div style={{ marginTop: '8px' }}>
+                      <Button
+                        variant="secondary"
+                        onClick={() => void handleRefundToSource()}
+                        disabled={refundingSource}
+                        style={{ width: '100%' }}
+                      >
+                        {refundingSource ? 'Đang gửi yêu cầu hoàn VNPay…' : 'Hoàn tiền về nguồn VNPay (UC-37)'}
+                      </Button>
+                    </div>
+                  )}
 
                 {/* Nút hành động giải ngân dành cho ADMIN */}
                 {isAdmin && escrow.status === 'HELD' && !escrow.frozen && (
