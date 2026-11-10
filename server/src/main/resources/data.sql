@@ -430,19 +430,22 @@ IF NOT EXISTS (SELECT 1 FROM ledger_transactions WHERE transaction_code = 'TXN-T
     )
     SELECT
         'TXN-TOPUP-001', 'WALLET_TOPUP', 'COMPLETED', 'IDEMP-TOPUP-001-20261014', NULL,
-        'PAYMENT_TRANSACTION', 'TOPUP-20261014-001', 5000000, u.id,
+        'VNPAY_PAYMENT', 'TOPUP-20261014-001', 5000000, u.id,
         N'Bút toán nạp 5,000,000 VND vào ví khả dụng qua cổng VNPay', SYSUTCDATETIME()
     FROM users u WHERE u.email = 'sender@fptpost.vn';
 
--- Bút toán kép cho TXN-TOPUP-001 (1 câu lệnh INSERT duy nhất để Spring ScriptUtils không tách ; làm rách cặp Nợ/Có):
+-- Bút toán kép cho TXN-TOPUP-001:
 -- Nợ TK 1101 (Cổng thanh toán VNPay) 5,000,000 / Có TK 2001 (Ví khả dụng người dùng) 5,000,000
 IF NOT EXISTS (SELECT 1 FROM ledger_entries le JOIN ledger_transactions lt ON le.transaction_id = lt.id WHERE lt.transaction_code = 'TXN-TOPUP-001')
+BEGIN
     INSERT INTO ledger_entries (transaction_id, account_code, account_type, debit, credit, created_at)
     SELECT lt.id, '1101_GATEWAY_VNPAY', 'ASSET', 5000000, 0, SYSUTCDATETIME()
-    FROM ledger_transactions lt WHERE lt.transaction_code = 'TXN-TOPUP-001'
-    UNION ALL
+    FROM ledger_transactions lt WHERE lt.transaction_code = 'TXN-TOPUP-001';
+
+    INSERT INTO ledger_entries (transaction_id, account_code, account_type, debit, credit, created_at)
     SELECT lt.id, '2001_USER_WALLET_AVAILABLE', 'LIABILITY', 0, 5000000, SYSUTCDATETIME()
     FROM ledger_transactions lt WHERE lt.transaction_code = 'TXN-TOPUP-001';
+END;
 
 -- 11.2 Giao dịch Sổ cái: Ký quỹ đơn hàng 350,000 VND (ORDER_ESCROW_HOLD) cho ORD-TEST-004
 IF NOT EXISTS (SELECT 1 FROM ledger_transactions WHERE transaction_code = 'TXN-ESCROW-001')
@@ -459,12 +462,15 @@ IF NOT EXISTS (SELECT 1 FROM ledger_transactions WHERE transaction_code = 'TXN-E
 -- Bút toán kép cho TXN-ESCROW-001:
 -- Nợ TK 2001 (Ví khả dụng) 350,000 / Có TK 2101 (Tài khoản Ký quỹ giam giữ) 350,000
 IF NOT EXISTS (SELECT 1 FROM ledger_entries le JOIN ledger_transactions lt ON le.transaction_id = lt.id WHERE lt.transaction_code = 'TXN-ESCROW-001')
+BEGIN
     INSERT INTO ledger_entries (transaction_id, account_code, account_type, debit, credit, created_at)
     SELECT lt.id, '2001_USER_WALLET_AVAILABLE', 'LIABILITY', 350000, 0, SYSUTCDATETIME()
-    FROM ledger_transactions lt WHERE lt.transaction_code = 'TXN-ESCROW-001'
-    UNION ALL
+    FROM ledger_transactions lt WHERE lt.transaction_code = 'TXN-ESCROW-001';
+
+    INSERT INTO ledger_entries (transaction_id, account_code, account_type, debit, credit, created_at)
     SELECT lt.id, '2101_ESCROW_HOLDING', 'LIABILITY', 0, 350000, SYSUTCDATETIME()
     FROM ledger_transactions lt WHERE lt.transaction_code = 'TXN-ESCROW-001';
+END;
 
 -- 11.3 Giao dịch Sổ cái: Giải ngân ký quỹ cho shipper 450,000 VND (ESCROW_RELEASE) cho ORD-TEST-006
 -- Phí dịch vụ sàn: 10% (45,000 VND), Tiền Shipper nhận: 90% (405,000 VND)
@@ -483,16 +489,21 @@ IF NOT EXISTS (SELECT 1 FROM ledger_transactions WHERE transaction_code = 'TXN-R
 -- Nợ TK 2101 (Ký quỹ giam giữ): 450,000
 -- Có TK 2002 (Ví khả dụng Shipper): 405,000
 -- Có TK 4001 (Doanh thu phí dịch vụ sàn FPTPost 10%): 45,000
+-- Tổng Nợ (450,000) = Tổng Có (405,000 + 45,000) -> Cân bằng tuyệt đối!
 IF NOT EXISTS (SELECT 1 FROM ledger_entries le JOIN ledger_transactions lt ON le.transaction_id = lt.id WHERE lt.transaction_code = 'TXN-RELEASE-001')
+BEGIN
     INSERT INTO ledger_entries (transaction_id, account_code, account_type, debit, credit, created_at)
     SELECT lt.id, '2101_ESCROW_HOLDING', 'LIABILITY', 450000, 0, SYSUTCDATETIME()
-    FROM ledger_transactions lt WHERE lt.transaction_code = 'TXN-RELEASE-001'
-    UNION ALL
+    FROM ledger_transactions lt WHERE lt.transaction_code = 'TXN-RELEASE-001';
+
+    INSERT INTO ledger_entries (transaction_id, account_code, account_type, debit, credit, created_at)
     SELECT lt.id, '2002_COURIER_WALLET_AVAILABLE', 'LIABILITY', 0, 405000, SYSUTCDATETIME()
-    FROM ledger_transactions lt WHERE lt.transaction_code = 'TXN-RELEASE-001'
-    UNION ALL
+    FROM ledger_transactions lt WHERE lt.transaction_code = 'TXN-RELEASE-001';
+
+    INSERT INTO ledger_entries (transaction_id, account_code, account_type, debit, credit, created_at)
     SELECT lt.id, '4001_PLATFORM_REVENUE', 'REVENUE', 0, 45000, SYSUTCDATETIME()
     FROM ledger_transactions lt WHERE lt.transaction_code = 'TXN-RELEASE-001';
+END;
 
 -- 11.4 Giao dịch Sổ cái: Hoàn tiền ký quỹ cho người gửi 200,000 VND (ESCROW_REFUND) cho ORD-TEST-007
 IF NOT EXISTS (SELECT 1 FROM ledger_transactions WHERE transaction_code = 'TXN-REFUND-001')
@@ -509,12 +520,15 @@ IF NOT EXISTS (SELECT 1 FROM ledger_transactions WHERE transaction_code = 'TXN-R
 -- Bút toán kép cho TXN-REFUND-001:
 -- Nợ TK 2101 (Ký quỹ giam giữ): 200,000 / Có TK 2001 (Ví khả dụng người gửi): 200,000
 IF NOT EXISTS (SELECT 1 FROM ledger_entries le JOIN ledger_transactions lt ON le.transaction_id = lt.id WHERE lt.transaction_code = 'TXN-REFUND-001')
+BEGIN
     INSERT INTO ledger_entries (transaction_id, account_code, account_type, debit, credit, created_at)
     SELECT lt.id, '2101_ESCROW_HOLDING', 'LIABILITY', 200000, 0, SYSUTCDATETIME()
-    FROM ledger_transactions lt WHERE lt.transaction_code = 'TXN-REFUND-001'
-    UNION ALL
+    FROM ledger_transactions lt WHERE lt.transaction_code = 'TXN-REFUND-001';
+
+    INSERT INTO ledger_entries (transaction_id, account_code, account_type, debit, credit, created_at)
     SELECT lt.id, '2001_USER_WALLET_AVAILABLE', 'LIABILITY', 0, 200000, SYSUTCDATETIME()
     FROM ledger_transactions lt WHERE lt.transaction_code = 'TXN-REFUND-001';
+END;
 
 
 -- ----------------------------------------------------------------------------------------------

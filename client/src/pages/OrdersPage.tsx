@@ -140,7 +140,7 @@ export default function OrdersPage() {
       align: 'right',
       render: order => (
         <div className="ui-table-actions">
-          {!isAdminOnly && ['PENDING', 'PENDING_ESCROW', 'FINDING_SHIPPER', 'AWAITING_PAYMENT'].includes(order.status) && (
+          {['PENDING', 'PENDING_ESCROW', 'FINDING_SHIPPER', 'AWAITING_PAYMENT'].includes(order.status) && (
             <Button
               variant="primary"
               size="sm"
@@ -159,22 +159,20 @@ export default function OrdersPage() {
             Chi tiết
           </Button>
 
-          {!isAdminOnly && (
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={<MessageCircle size={16} />}
-              disabled={order.courierId == null}
-              title={
-                order.courierId == null
-                  ? 'Đơn chưa được gán người giao'
-                  : 'Mở cuộc trò chuyện của đơn'
-              }
-              onClick={() => navigate(`/orders/${order.id}/chat`)}
-            >
-              Trò chuyện
-            </Button>
-          )}
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<MessageCircle size={16} />}
+            disabled={order.courierId == null}
+            title={
+              order.courierId == null
+                ? 'Đơn chưa được gán người giao'
+                : 'Mở cuộc trò chuyện của đơn'
+            }
+            onClick={() => navigate(`/orders/${order.id}/chat`)}
+          >
+            Trò chuyện
+          </Button>
         </div>
       ),
     },
@@ -183,29 +181,16 @@ export default function OrdersPage() {
   return (
     <div className="ui-stack">
       <PageHeader
-        title={isAdminOnly ? 'Quản lý đơn hàng & Giải ngân' : 'Đơn hàng của tôi'}
-        eyebrow={isAdminOnly ? 'Quản trị vận hành' : 'Quản lý giao nhận'}
-        description={
-          isAdminOnly
-            ? 'Theo dõi toàn bộ vận đơn hệ thống và thực hiện giải ngân ký quỹ cho người giao sau khi hoàn tất.'
-            : 'Theo dõi, tra cứu trạng thái và quản lý các đơn hàng bạn đã tạo trên FPTPost.'
-        }
+        title="Đơn hàng của tôi"
+        eyebrow="Quản lý giao nhận"
+        description="Theo dõi, tra cứu trạng thái và quản lý các đơn hàng bạn đã tạo trên FPTPost."
         actions={
-          !isAdminOnly ? (
-            <Button
-              icon={<Plus size={18} />}
-              onClick={() => navigate('/sender/orders/new')}
-            >
-              Tạo đơn hàng mới
-            </Button>
-          ) : (
-            <Button
-              variant="secondary"
-              onClick={() => navigate('/admin/dashboard')}
-            >
-              Về bảng quản trị
-            </Button>
-          )
+          <Button
+            icon={<Plus size={18} />}
+            onClick={() => navigate('/sender/orders/new')}
+          >
+            Tạo đơn hàng mới
+          </Button>
         }
       />
 
@@ -276,14 +261,12 @@ export default function OrdersPage() {
                     : 'Thử điều chỉnh lại từ khóa tìm kiếm hoặc bỏ chọn bộ lọc trạng thái.'
                 }
                 action={
-                  !isAdminOnly ? (
-                    <Button
-                      onClick={() => navigate('/sender/orders/new')}
-                      icon={<Plus size={17} />}
-                    >
-                      Tạo đơn hàng mới
-                    </Button>
-                  ) : undefined
+                  <Button
+                    onClick={() => navigate('/sender/orders/new')}
+                    icon={<Plus size={17} />}
+                  >
+                    Tạo đơn hàng mới
+                  </Button>
                 }
               />
             }

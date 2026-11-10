@@ -12,7 +12,6 @@ import Textarea from '../../../components/ui/Textarea';
 import Alert from '../../../components/ui/Alert';
 import ApiErrorNotice from '../../../components/ApiErrorNotice';
 import { reasonLabels } from '../violationPresentation';
-import { useAuthentication } from '../../../auth/useAuthentication';
 
 const MAX_FILES = 3;
 
@@ -25,7 +24,6 @@ interface Props {
 }
 
 export default function ReportViolationButton({ targetType, targetId, targetName, size = 'sm', variant = 'ghost' }: Props) {
-  const { user } = useAuthentication();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState<ViolationReason>('FRAUD');
   const [description, setDescription] = useState('');
@@ -33,17 +31,6 @@ export default function ReportViolationButton({ targetType, targetId, targetName
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const [done, setDone] = useState('');
-
-  const roles = user?.roles ?? [];
-  const isStaffOnly = Boolean(
-    user &&
-    (roles.includes('ADMIN') || roles.includes('MODERATOR')) &&
-    !roles.includes('SENDER') &&
-    !roles.includes('COURIER')
-  );
-  if (!user || isStaffOnly) {
-    return null;
-  }
 
   function close() {
     if (saving) return;

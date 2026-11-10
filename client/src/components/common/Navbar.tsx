@@ -1,23 +1,10 @@
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { useState } from 'react';
-import {
-  CreditCard,
-  Flag,
-  LayoutDashboard,
-  Menu,
-  Navigation,
-  Package,
-  PackageSearch,
-  Settings2,
-  ShieldCheck,
-  TrendingUp,
-  UserRound,
-  Wallet,
-  X,
-} from 'lucide-react';
+import { Menu, Package, PanelsTopLeft, Settings2, ShieldCheck, UserRound, Wallet, X, Navigation, CreditCard, Layers, TrendingUp } from 'lucide-react';
 import NotificationBell from '../../features/notifications/NotificationBell';
 import { useAuthentication } from '../../auth/useAuthentication';
 import { useAccountMode } from '../../auth/useAccountMode';
+import { useNavigate } from 'react-router-dom';
 import Button from '../ui/Button';
 import copy from '../../i18n/home.vi.json';
 
@@ -28,14 +15,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = () => setMenuOpen(false);
 
-  const roles = user?.roles ?? [];
-  const isAdmin = roles.includes('ADMIN');
-  const isModerator = roles.includes('MODERATOR');
-  const isCourierRole = roles.includes('COURIER');
-  const isSenderRole = roles.includes('SENDER');
-  const isStaff = isAdmin || isModerator;
-  const isCourierActive = !isStaff && isCourierRole && (!isSenderRole || mode === 'COURIER');
-  const isSenderActive = !isStaff && isSenderRole && !isCourierActive;
+  const isCourierAccount = !!user?.roles.includes('COURIER') && mode === 'COURIER';
 
   return (
     <header className="navbar-container">
@@ -44,21 +24,9 @@ export default function Navbar() {
           <span className="brand-logo"><Package size={21} aria-hidden="true" /></span>
           <span className="brand-title">F<span className="brand-accent">Post</span></span>
         </Link>
-
         <nav id="main-navigation" className={`navbar-links${menuOpen ? ' is-open' : ''}`} aria-label="Điều hướng chính">
-          <NavLink to="/" end className="nav-link" onClick={closeMenu}>
-            {user ? 'Tổng quan' : copy.navigation.home}
-          </NavLink>
-
-          {!user && (
-            <>
-              <Link to="/#how-it-works" className="nav-link" onClick={closeMenu}>{copy.navigation.how}</Link>
-              <Link to="/#shipping-prices" className="nav-link" onClick={closeMenu}>{copy.navigation.pricing}</Link>
-              <Link to="/#become-courier" className="nav-link" onClick={closeMenu}>{copy.navigation.courier}</Link>
-            </>
-          )}
-
-          {isCourierActive && (
+          <NavLink to="/" end className="nav-link" onClick={closeMenu}>{copy.navigation.home}</NavLink>
+          {isCourierAccount && (
             <>
               <NavLink to="/courier/market" className="nav-link" onClick={closeMenu}>
                 <Package size={15} aria-hidden="true" /> Sàn đơn
@@ -66,67 +34,64 @@ export default function Navbar() {
               <NavLink to="/courier/trips" className="nav-link" onClick={closeMenu}>
                 <Navigation size={15} aria-hidden="true" /> Chuyến đi
               </NavLink>
+
               <NavLink to="/courier/orders" className="nav-link" onClick={closeMenu}>
-                <PackageSearch size={15} aria-hidden="true" /> Đơn nhận
+                <Package size={15} aria-hidden="true" /> Đơn nhận
+              </NavLink>
+              <NavLink to="/courier/batch" className="nav-link" onClick={closeMenu}>
+                <Layers size={15} aria-hidden="true" /> Gộp đơn
               </NavLink>
               <NavLink to="/courier/earnings" className="nav-link" onClick={closeMenu}>
                 <TrendingUp size={15} aria-hidden="true" /> Thu nhập
               </NavLink>
             </>
           )}
-
-          {isSenderActive && (
+          {user && !isCourierAccount && (
             <>
-              <NavLink to="/sender/orders" className="nav-link" onClick={closeMenu}>
+              <NavLink
+                to={mode === 'COURIER' ? '/courier/orders' : '/sender/orders'}
+                className="nav-link"
+                onClick={closeMenu}
+              >
                 Đơn của tôi
               </NavLink>
               <NavLink to="/orders/payment" className="nav-link" onClick={closeMenu}>
                 <CreditCard size={15} aria-hidden="true" /> Ký quỹ
               </NavLink>
-              <NavLink to="/wallet" className="nav-link" onClick={closeMenu}>
-                <Wallet size={15} aria-hidden="true" /> Ví tiền
-              </NavLink>
             </>
           )}
-
-          {isAdmin && (
-            <>
-              <NavLink to="/admin/dashboard" className="nav-link" onClick={closeMenu}>
-                <LayoutDashboard size={15} aria-hidden="true" /> Quản trị
-              </NavLink>
-              <NavLink to="/sender/orders" className="nav-link" onClick={closeMenu}>
-                <PackageSearch size={15} aria-hidden="true" /> Đơn &amp; Giải ngân
-              </NavLink>
-              <NavLink to="/mod/kyc" className="nav-link" onClick={closeMenu}>
-                <ShieldCheck size={15} aria-hidden="true" /> Kiểm duyệt
-              </NavLink>
-            </>
+          {user && (
+            <NavLink to="/wallet" className="nav-link" onClick={closeMenu}>
+              <Wallet size={15} aria-hidden="true" /> Ví tiền
+            </NavLink>
           )}
-
-          {isModerator && !isAdmin && (
-            <>
-              <NavLink to="/mod/kyc" className="nav-link" onClick={closeMenu}>
-                <ShieldCheck size={15} aria-hidden="true" /> Duyệt KYC
-              </NavLink>
-              <NavLink to="/mod/orders" className="nav-link" onClick={closeMenu}>
-                <PackageSearch size={15} aria-hidden="true" /> Kiểm duyệt đơn
-              </NavLink>
-              <NavLink to="/mod/reports" className="nav-link" onClick={closeMenu}>
-                <Flag size={15} aria-hidden="true" /> Vi phạm &amp; Khiếu nại
-              </NavLink>
-            </>
+          <Link to="/#how-it-works" className="nav-link" onClick={closeMenu}>{copy.navigation.how}</Link>
+          <Link to="/#shipping-prices" className="nav-link" onClick={closeMenu}>{copy.navigation.pricing}</Link>
+          {!canSwitch && <Link to={user ? '/me/courier-register' : '/#become-courier'} className="nav-link" onClick={closeMenu}>{copy.navigation.courier}</Link>}
+          {user?.roles.some(role => role === 'ADMIN' || role === 'MODERATOR') && (
+            <NavLink to="/mod/kyc" className="nav-link navbar-mobile-role" onClick={closeMenu}>
+              <ShieldCheck size={17} aria-hidden="true" /> Duyệt KYC
+            </NavLink>
           )}
-
-          {isAdmin && (
-            <NavLink to="/admin/dashboard" className="nav-link navbar-mobile-role" onClick={closeMenu}>
-              <Settings2 size={17} aria-hidden="true" /> Bảng quản trị
+          {user?.roles.includes('ADMIN') && (
+            <NavLink to="/admin/params" className="nav-link navbar-mobile-role" onClick={closeMenu}>
+              <Settings2 size={17} aria-hidden="true" /> Quản trị
             </NavLink>
           )}
         </nav>
-
         <div className="navbar-actions ui-row">
           {user && <NotificationBell />}
-          {canSwitch && !isStaff && (
+          {user?.roles.some(role => role === 'ADMIN' || role === 'MODERATOR') && (
+            <NavLink to="/mod/kyc" className="nav-link navbar-role-action" onClick={closeMenu}>
+              <ShieldCheck size={17} aria-hidden="true" /> Duyệt KYC
+            </NavLink>
+          )}
+          {user?.roles.includes('ADMIN') && (
+            <NavLink to="/admin/params" className="nav-link navbar-role-action" onClick={closeMenu}>
+              <Settings2 size={17} aria-hidden="true" /> Quản trị
+            </NavLink>
+          )}
+          {canSwitch && (
             <select
               className="ui-control ui-select account-mode-select"
               aria-label="Chế độ sử dụng"
@@ -141,6 +106,11 @@ export default function Navbar() {
               <option value="SENDER">Người gửi</option>
               <option value="COURIER">Người giao</option>
             </select>
+          )}
+          {import.meta.env.DEV && (
+            <Link to="/ui-kit" className="nav-link navbar-dev-link" onClick={closeMenu}>
+              <PanelsTopLeft size={15} aria-hidden="true" /> {copy.navigation.uiKit}
+            </Link>
           )}
           {user ? (
             <NavLink to="/account" className="nav-link" aria-label={copy.navigation.account} onClick={closeMenu}>

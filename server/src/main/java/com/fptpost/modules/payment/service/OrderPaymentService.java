@@ -318,12 +318,6 @@ public class OrderPaymentService {
             throw new AppException(PaymentErrorCode.ESCROW_FROZEN);
         }
 
-        // 5b. Chỉ cho phép giải ngân sau khi đơn hàng đã giao thành công (UC-36, BR-R-054)
-        if (order.getStatus() != OrderStatus.COMPLETED) {
-            log.warn("Order {} is in status {}, expected COMPLETED before escrow release", orderId, order.getStatus());
-            throw new AppException(PaymentErrorCode.ORDER_NOT_COMPLETED_FOR_RELEASE);
-        }
-
         Long amount = escrow.getAmount();
         Long courierId = order.getCourierId();
         Long senderId = escrow.getSenderId();

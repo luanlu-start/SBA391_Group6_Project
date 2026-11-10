@@ -726,7 +726,7 @@ export default function WalletPage() {
           </div>
 
           <div style={{
-            background: 'var(--bg-primary)',
+            background: 'rgba(255, 255, 255, 0.02)',
             border: '1px solid var(--border-subtle)',
             borderRadius: 'var(--radius-md)',
             padding: 'var(--space-4)',

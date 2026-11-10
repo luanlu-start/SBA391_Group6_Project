@@ -372,17 +372,18 @@ export default function BatchRouteMap({
             position: 'absolute',
             top: 12,
             right: 12,
-            background: 'rgba(255, 255, 255, 0.94)',
-            border: '1px solid var(--border-subtle)',
+            background: 'rgba(24, 30, 39, 0.92)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid #333d4c',
             borderRadius: '8px',
             padding: '6px 12px',
             fontSize: '0.8rem',
-            color: 'var(--text-accent)',
+            color: '#ffb17d',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
             zIndex: 1000,
-            boxShadow: 'var(--shadow-sm)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
           }}
         >
           <span

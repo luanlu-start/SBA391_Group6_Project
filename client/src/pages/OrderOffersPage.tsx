@@ -659,15 +659,15 @@ export default function OrderOffersPage(): React.ReactElement {
                                                             padding: '2px 6px',
                                                             borderRadius: '4px',
                                                             backgroundColor: isLower
-                                                                ? 'var(--success-bg)'
+                                                                ? 'rgba(108, 222, 180, 0.15)'
                                                                 : isHigher
-                                                                ? 'var(--warning-bg)'
-                                                                : 'var(--bg-tertiary)',
+                                                                ? 'rgba(245, 203, 118, 0.15)'
+                                                                : 'rgba(255, 255, 255, 0.08)',
                                                             color: isLower
-                                                                ? 'var(--accent-emerald)'
+                                                                ? 'var(--accent-emerald, #6cdeb4)'
                                                                 : isHigher
-                                                                ? 'var(--accent-amber)'
-                                                                : 'var(--text-secondary)',
+                                                                ? 'var(--accent-amber, #f5cb76)'
+                                                                : 'var(--text-secondary, #b0bdd2)',
                                                             display: 'inline-flex',
                                                             alignItems: 'center',
                                                             gap: '2px',

@@ -18,9 +18,11 @@
   position: sticky;
   top: 0;
   z-index: 1000;
-  background: var(--bg-secondary);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  background: var(--bg-glass);
   border-bottom: 1px solid var(--border-subtle);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: all var(--transition-normal);
 }
 
 .navbar-content {
@@ -102,17 +104,17 @@
 
 .nav-link:hover {
   color: var(--text-primary);
-  background: var(--bg-tertiary);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .nav-link.active {
-  color: var(--text-accent);
+  color: #fff;
   background: var(--brand-soft);
   border: 1px solid var(--brand-border);
 }
 
 .external-link {
-  color: var(--text-muted);
+  color: #94a3b8;
 }
 
 @media (max-width: 900px) {
@@ -137,7 +139,7 @@
   cursor: pointer;
   transition: all var(--transition-fast);
   border: 1px solid var(--border-subtle);
-  background: var(--bg-tertiary);
+  background: rgba(15, 23, 42, 0.6);
 }
 
 .health-pill:hover {
@@ -145,21 +147,21 @@
 }
 
 .health-pill.online {
-  background: var(--success-bg);
-  border-color: #a7f3d0;
-  color: var(--accent-emerald);
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.35);
+  color: #34d399;
 }
 
 .health-pill.offline {
-  background: var(--danger-bg);
-  border-color: #fecaca;
-  color: var(--accent-rose);
+  background: rgba(244, 63, 94, 0.12);
+  border-color: rgba(244, 63, 94, 0.35);
+  color: #fb7185;
 }
 
 .health-pill.checking {
-  background: var(--warning-bg);
-  border-color: #fde68a;
-  color: var(--accent-amber);
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
 }
 
 /* Glass Card */
@@ -262,7 +264,7 @@
 }
 
 .health-stat-box {
-  background: var(--bg-primary);
+  background: rgba(15, 23, 42, 0.7);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 1.15rem;
@@ -302,21 +304,21 @@
 }
 
 .badge-success {
-  background: var(--success-bg);
-  border: 1px solid #a7f3d0;
-  color: var(--accent-emerald);
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #34d399;
 }
 
 .badge-danger {
-  background: var(--danger-bg);
-  border: 1px solid #fecaca;
-  color: var(--accent-rose);
+  background: rgba(244, 63, 94, 0.15);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  color: #fb7185;
 }
 
 .badge-warning {
-  background: var(--warning-bg);
-  border: 1px solid #fde68a;
-  color: var(--accent-amber);
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
 }
 
 /* Alert Boxes */
@@ -330,15 +332,15 @@
 }
 
 .alert-warning {
-  background: var(--warning-bg);
-  border: 1px solid #fde68a;
-  color: #92400e;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
 }
 
 .alert-danger {
-  background: var(--danger-bg);
-  border: 1px solid #fecaca;
-  color: #991b1b;
+  background: rgba(244, 63, 94, 0.1);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  color: #fb7185;
 }
 
 .alert-tip {
@@ -411,9 +413,9 @@
 }
 
 .bg-blue {
-  background: var(--info-bg);
-  color: var(--secondary);
-  border: 1px solid #bfdbfe;
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .bg-brand {
@@ -423,9 +425,9 @@
 }
 
 .bg-emerald {
-  background: var(--success-bg);
-  color: var(--accent-emerald);
-  border: 1px solid #a7f3d0;
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .layer-title {
@@ -462,7 +464,7 @@
 }
 
 .tree-box {
-  background: var(--bg-primary);
+  background: #090d16;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 1.25rem;
@@ -483,7 +485,7 @@
   font-family: var(--font-mono);
   font-size: 0.82rem;
   line-height: 1.6;
-  color: var(--text-secondary);
+  color: #cbd5e1;
   overflow-x: auto;
 }
 
@@ -571,6 +573,6 @@
 .mb-3 { margin-bottom: 0.75rem; }
 .text-primary { color: var(--text-accent); }
 .text-muted { color: var(--text-muted); }
-.text-success { color: var(--accent-emerald); }
-.text-danger { color: var(--accent-rose); }
-.text-warning { color: var(--accent-amber); }
+.text-success { color: #34d399; }
+.text-danger { color: #fb7185; }
+.text-warning { color: #fbbf24; }
