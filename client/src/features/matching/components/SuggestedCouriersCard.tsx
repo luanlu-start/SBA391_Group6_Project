@@ -226,8 +226,8 @@ export default function SuggestedCouriersCard({
                         marginTop: '3px',
                       }}
                     >
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#f5cb76' }}>
-                        <Star size={12} fill="#f5cb76" />
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: 'var(--accent-amber)' }}>
+                        <Star size={12} fill="currentColor" />
                         {item.trustScore ?? 80} điểm uy tín
                       </span>
                       <span>•</span>
@@ -252,8 +252,9 @@ export default function SuggestedCouriersCard({
                         gap: '4px',
                         padding: '4px 8px',
                         borderRadius: '6px',
-                        backgroundColor: 'rgba(96, 165, 246, 0.12)',
-                        color: '#60a5fa',
+                        backgroundColor: 'var(--info-bg)',
+                        border: '1px solid var(--info-border)',
+                        color: 'var(--secondary)',
                         fontSize: '0.78rem',
                         fontWeight: 600,
                       }}
@@ -273,15 +274,15 @@ export default function SuggestedCouriersCard({
                         borderRadius: '6px',
                         backgroundColor:
                           item.matchScore >= 85
-                            ? 'rgba(16, 185, 129, 0.15)'
-                            : 'rgba(245, 203, 118, 0.15)',
-                        color: item.matchScore >= 85 ? '#34d399' : '#f5cb76',
+                            ? 'var(--success-bg)'
+                            : 'var(--warning-bg)',
+                        color: item.matchScore >= 85 ? 'var(--accent-emerald)' : 'var(--accent-amber)',
                         fontSize: '0.82rem',
                         fontWeight: 700,
                         border: `1px solid ${
                           item.matchScore >= 85
-                            ? 'rgba(16, 185, 129, 0.3)'
-                            : 'rgba(245, 203, 118, 0.3)'
+                            ? 'var(--success-border)'
+                            : 'var(--warning-border)'
                         }`,
                       }}
                     >
@@ -297,8 +298,8 @@ export default function SuggestedCouriersCard({
                 style={{
                   padding: '10px 12px',
                   borderRadius: '8px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid var(--border-subtle, #2a374a)',
+                  backgroundColor: 'var(--bg-primary)',
+                  border: '1px solid var(--border-subtle)',
                   marginBottom: '10px',
                   fontSize: '0.85rem',
                 }}
@@ -336,7 +337,8 @@ export default function SuggestedCouriersCard({
                         fontSize: '0.75rem',
                         padding: '2px 8px',
                         borderRadius: '4px',
-                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                        backgroundColor: 'var(--bg-tertiary)',
+                        border: '1px solid var(--border-subtle)',
                         color: 'var(--text-secondary)',
                       }}
                     >

@@ -1,11 +1,12 @@
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { Package, LogOut, Menu, X } from 'lucide-react';
+import { ArrowLeft, LogOut, Menu, Package, X } from 'lucide-react';
 import { useId, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { authService } from '../services/authService';
 import { getApiError } from '../api/ApiError';
 import { useAuthentication } from '../auth/useAuthentication';
 import Button from '../components/ui/Button';
+import ThemeToggleButton from '../components/common/ThemeToggleButton';
 
 interface WorkspaceNavigationItem {
   label: string;
@@ -66,13 +67,14 @@ export default function WorkspaceLayout({ title, navigation, children, headerAct
           </NavLink>)}</nav>
       </div>
       <div className="ui-sidebar-footer">
+        <Link to="/" className="ui-sidebar-link"><ArrowLeft size={16} />Về trang chủ</Link>
         {logoutError && <p className="ui-sidebar-error" role="alert">{logoutError}</p>}
         <Button className="ui-sidebar-logout" variant="ghost" fullWidth icon={<LogOut size={17} />}
           loading={loggingOut} loadingText="Đang đăng xuất…" onClick={() => void logout()}>Đăng xuất</Button>
       </div>
     </aside>
     <div className="ui-workspace-main">
-      <header className="ui-workspace-topbar"><span>{title}</span><div className="ui-row">{headerActions}</div></header>
+      <header className="ui-workspace-topbar"><span>{title}</span><div className="ui-row"><ThemeToggleButton />{headerActions}</div></header>
       <main id="main-content" className="ui-workspace-content">{children}</main>
     </div>
   </div>;

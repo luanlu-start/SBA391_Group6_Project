@@ -416,7 +416,7 @@ export default function OrderPaymentPage() {
 
               {/* Security info */}
               <div style={{ 
-                background: 'rgba(255, 255, 255, 0.02)', 
+                background: 'var(--bg-primary)', 
                 border: '1px solid var(--border-subtle)', 
                 borderRadius: 'var(--radius-md)', 
                 padding: 'var(--space-3) var(--space-4)',

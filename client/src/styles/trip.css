@@ -90,15 +90,15 @@
 }
 
 .trip-alert-box.error {
-  background-color: var(--danger-bg, #36202b);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #fca5a5;
+  background-color: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  color: var(--danger-text);
 }
 
 .trip-alert-box.success {
-  background-color: var(--success-bg, #15332d);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  color: #6ee7b7;
+  background-color: var(--success-bg);
+  border: 1px solid var(--success-border);
+  color: var(--success-text);
 }
 
 /* Create Trip Layout Grid */
@@ -144,7 +144,7 @@
 .trip-form-section {
   padding-bottom: var(--space-5, 20px);
   margin-bottom: var(--space-5, 20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .trip-form-section:last-of-type {
@@ -546,8 +546,9 @@
 }
 
 .trip-map-hint-banner {
-  border-color: var(--primary, #f37021);
-  color: #ffb17d;
+  border-color: var(--brand-border);
+  color: var(--text-accent);
+  background-color: var(--brand-soft);
 }
 
 .trip-map-tooltip {
@@ -701,9 +702,9 @@
 }
 
 .trip-card:hover {
-  border-color: rgba(243, 112, 33, 0.4);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-  transform: translateY(-2px);
+  border-color: var(--brand-border);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
 .trip-card-header {
@@ -715,35 +716,35 @@
 .trip-status-badge {
   display: inline-block;
   padding: 4px 10px;
-  border-radius: var(--radius-full, 999px);
-  font-size: 0.78rem;
+  border-radius: var(--radius-full);
+  font-size: 0.76rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 
 .trip-status-badge.scheduled {
-  background-color: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background-color: var(--info-bg);
+  color: var(--secondary);
+  border: 1px solid var(--info-border);
 }
 
 .trip-status-badge.active {
-  background-color: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background-color: var(--success-bg);
+  color: var(--accent-emerald);
+  border: 1px solid var(--success-border);
 }
 
 .trip-status-badge.completed {
-  background-color: rgba(148, 163, 184, 0.15);
-  color: #94a3b8;
-  border: 1px solid rgba(148, 163, 184, 0.3);
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
 }
 
 .trip-status-badge.cancelled {
-  background-color: rgba(239, 68, 68, 0.15);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background-color: var(--danger-bg);
+  color: var(--accent-rose);
+  border: 1px solid var(--danger-border);
 }
 
 .trip-card-recurrence {
@@ -759,10 +760,10 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background-color: var(--bg-primary, #101319);
+  background-color: var(--bg-primary);
   padding: 14px;
-  border-radius: var(--radius-md, 10px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
 }
 
 .route-step {
@@ -830,10 +831,10 @@
   grid-template-columns: repeat(2, 1fr);
   gap: 10px 14px;
   font-size: 0.85rem;
-  background-color: rgba(255, 255, 255, 0.02);
+  background-color: var(--bg-primary);
   padding: 12px 14px;
-  border-radius: var(--radius-md, 10px);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
 }
 
 .detail-item {
@@ -878,7 +879,7 @@
 }
 
 .detail-value.highlight {
-  color: #ffb17d;
+  color: var(--text-accent);
 }
 
 .detail-item.highlight-floor-price {
@@ -908,7 +909,7 @@
   gap: 8px;
   margin-top: auto;
   padding-top: var(--space-3, 12px);
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .trip-card-action-btn {
@@ -965,21 +966,21 @@
   width: 38px;
   height: 38px;
   padding: 0;
-  background-color: var(--bg-tertiary, #242d39);
-  color: var(--text-secondary, #b0bdd2);
-  border: 1px solid var(--border-subtle, #333d4c);
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
 }
 
 .trip-card-action-btn.icon-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: var(--text-primary, #f1f4fb);
-  border-color: rgba(255, 255, 255, 0.2);
+  background-color: var(--border-subtle);
+  color: var(--text-primary);
+  border-color: var(--text-muted);
 }
 
 .trip-card-action-btn.danger {
-  background-color: rgba(239, 68, 68, 0.1);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.25);
+  background-color: var(--danger-bg);
+  color: var(--accent-rose);
+  border: 1px solid var(--danger-border);
 }
 
 .trip-card-action-btn.danger:hover:not(:disabled) {
@@ -1063,19 +1064,19 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background-color: rgba(96, 165, 250, 0.12);
-  border: 1px solid rgba(96, 165, 250, 0.25);
-  color: #60a5fa;
+  background-color: var(--info-bg);
+  border: 1px solid var(--info-border);
+  color: var(--secondary);
   font-size: 0.78rem;
   font-weight: 600;
   padding: 3px 8px;
-  border-radius: var(--radius-full, 999px);
+  border-radius: var(--radius-full);
 }
 
 .trip-card-attached-badge.has-orders {
-  background-color: rgba(16, 185, 129, 0.15);
-  border-color: rgba(16, 185, 129, 0.3);
-  color: #34d399;
+  background-color: var(--success-bg);
+  border-color: var(--success-border);
+  color: var(--accent-emerald);
 }
 
 .trip-card-actions-row {
@@ -1111,42 +1112,42 @@
 }
 
 .trip-card-sub-btn:hover:not(:disabled) {
-  background-color: var(--bg-tertiary, #242d39);
-  color: var(--text-primary, #f1f4fb);
-  border-color: rgba(255, 255, 255, 0.15);
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--text-muted);
 }
 
 .trip-card-sub-btn.pause {
-  color: #f5cb76;
-  border-color: rgba(245, 203, 118, 0.3);
-  background-color: rgba(245, 203, 118, 0.08);
+  color: var(--accent-amber);
+  border-color: var(--warning-border);
+  background-color: var(--warning-bg);
 }
 
 .trip-card-sub-btn.pause:hover:not(:disabled) {
-  background-color: rgba(245, 203, 118, 0.18);
-  color: #ffd88a;
+  background-color: var(--warning-hover);
+  color: var(--warning-text);
 }
 
 .trip-card-sub-btn.complete {
-  color: #6cdeb4;
-  border-color: rgba(108, 222, 180, 0.3);
-  background-color: rgba(108, 222, 180, 0.08);
+  color: var(--accent-emerald);
+  border-color: var(--success-border);
+  background-color: var(--success-bg);
 }
 
 .trip-card-sub-btn.complete:hover:not(:disabled) {
-  background-color: rgba(108, 222, 180, 0.18);
-  color: #8af0ca;
+  background-color: var(--success-hover);
+  color: var(--success-text);
 }
 
 .trip-card-sub-btn.danger {
-  color: #f87171;
-  border-color: rgba(239, 68, 68, 0.3);
-  background-color: rgba(239, 68, 68, 0.08);
+  color: var(--accent-rose);
+  border-color: var(--danger-border);
+  background-color: var(--danger-bg);
 }
 
 .trip-card-sub-btn.danger:hover:not(:disabled) {
-  background-color: rgba(239, 68, 68, 0.2);
-  color: #fca5a5;
+  background-color: var(--danger-hover);
+  color: var(--danger-text);
 }
 
 /* Modal Styling */
@@ -1156,8 +1157,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(6px);
+  background-color: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1369,7 +1370,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid var(--border-subtle);
   padding-top: 10px;
   margin-top: 4px;
   font-size: 0.84rem;
@@ -1377,17 +1378,17 @@
 
 .order-price-tag {
   font-weight: 700;
-  color: #34d399;
+  color: var(--accent-emerald);
 }
 
 .order-detour-tag {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #60a5fa;
+  color: var(--secondary);
   font-weight: 500;
   font-size: 0.78rem;
-  background-color: rgba(96, 165, 246, 0.1);
+  background-color: var(--info-bg);
   padding: 2px 7px;
   border-radius: 4px;
 }
@@ -1416,14 +1417,14 @@
 }
 
 .trip-modal-btn.secondary {
-  background-color: var(--bg-tertiary, #242d39);
-  color: var(--text-secondary, #b0bdd2);
-  border: 1px solid var(--border-subtle, #333d4c);
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
 }
 
 .trip-modal-btn.secondary:hover {
-  background-color: rgba(255, 255, 255, 0.08);
-  color: var(--text-primary, #f1f4fb);
+  background-color: var(--border-subtle);
+  color: var(--text-primary);
 }
 
 .trip-modal-btn.primary {
@@ -1453,15 +1454,15 @@
 }
 
 .trip-match-score-badge.high {
-  background-color: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background-color: var(--success-bg);
+  color: var(--accent-emerald);
+  border: 1px solid var(--success-border);
 }
 
 .trip-match-score-badge.medium {
-  background-color: rgba(245, 203, 118, 0.15);
-  color: #f5cb76;
-  border: 1px solid rgba(245, 203, 118, 0.3);
+  background-color: var(--warning-bg);
+  color: var(--accent-amber);
+  border: 1px solid var(--warning-border);
 }
 
 .trip-match-reasons-wrap {
@@ -1473,11 +1474,11 @@
 
 .trip-match-reason-pill {
   font-size: 0.75rem;
-  color: var(--text-secondary, #b0bdd2);
-  background-color: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  background-color: var(--bg-tertiary);
   padding: 2px 7px;
   border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
 }
 
 .trip-modal-btn.accept {
