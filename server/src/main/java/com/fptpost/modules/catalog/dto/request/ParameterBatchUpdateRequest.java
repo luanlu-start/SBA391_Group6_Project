@@ -12,6 +12,6 @@ import java.util.Map;
 @Data @Builder @NoArgsConstructor @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ParameterBatchUpdateRequest {
-    @NotEmpty @Size(max = 109)
+    @NotEmpty @Size(max = 111)
     Map<@NotBlank @Size(max = 64) String, @NotNull @Valid ParameterUpdateRequest> changes;
 }

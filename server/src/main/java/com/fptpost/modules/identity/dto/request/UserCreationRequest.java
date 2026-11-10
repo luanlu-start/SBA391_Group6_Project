@@ -61,6 +61,13 @@ public class UserCreationRequest {
     @Size(max = 50, message = "POLICY_VERSION_INVALID")
     String privacyVersion;
 
+    @Pattern(regexp = "(?:[A-Fa-f0-9]{32})?", message = "REFERRAL_CODE_INVALID")
+    String referralCode;
+
+    public void setReferralCode(String referralCode) {
+        this.referralCode = referralCode == null ? null : referralCode.strip();
+    }
+
     public void setFullName(String fullName) {
         this.fullName = fullName == null ? null : fullName.trim();
     }

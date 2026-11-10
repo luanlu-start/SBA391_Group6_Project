@@ -17,6 +17,7 @@ import LoginPage from '../pages/LoginPage';
 import ForgotPasswordPage from '../pages/ForgotPasswordPage';
 import ResetPasswordPage from '../pages/ResetPasswordPage';
 import AccountPage from '../pages/AccountPage';
+import RewardsPage from '../pages/RewardsPage';
 import SecurityPage from '../pages/SecurityPage';
 import ProfilePage from '../pages/ProfilePage';
 import AddressesPage from '../pages/AddressesPage';
@@ -135,6 +136,7 @@ export default function AppRoutes() {
         <Route path="courier/trips/new" element={<CreateTripPage />} />
         <Route path="verify" element={<VerifyOtpPage />} />
         <Route path="account" element={<AccountPage />} />
+        <Route path="me/rewards" element={<RewardsPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="me/notification-settings" element={<NotificationSettingsPage />} />
         <Route path="me/security" element={<SecurityPage />} />

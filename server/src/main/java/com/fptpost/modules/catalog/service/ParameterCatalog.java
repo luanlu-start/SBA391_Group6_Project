@@ -15,7 +15,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Immutable registry from the user-confirmed workbook 06_Tham_số, PRM-001 through PRM-109. */
+/** System parameter registry. PRM-001 through PRM-109 are from the original workbook. */
 @Component
 public class ParameterCatalog {
     private static final Set<String> RATIOS = Set.of("FEE_NEW", "FEE_BRONZE", "FEE_SILVER", "FEE_GOLD",
@@ -40,8 +40,8 @@ public class ParameterCatalog {
                     throw new IllegalStateException("Duplicate key or PRM ID in required parameter catalog");
                 }
             }
-            if (entries.size() != 109) throw new IllegalStateException("Required catalog must contain 109 parameters");
-            for (int index = 1; index <= 109; index++) {
+            if (entries.size() < 109) throw new IllegalStateException("Required catalog is incomplete");
+            for (int index = 1; index <= entries.size(); index++) {
                 if (!ids.contains("PRM-%03d".formatted(index))) throw new IllegalStateException("Missing PRM identifier");
             }
             definitions = Collections.unmodifiableMap(entries);

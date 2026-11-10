@@ -16,7 +16,7 @@ class ParameterCatalogTest {
     private final ParameterCatalog catalog = new ParameterCatalog(new ObjectMapper());
 
     @Test void containsEverySourceKeyWithUnchangedDefaultsAndUnicodeCompoundValues() {
-        assertThat(catalog.definitions()).hasSize(109);
+        assertThat(catalog.definitions()).hasSize(111);
         assertThat(catalog.definitions()).extracting(definition -> definition.prmId()).doesNotHaveDuplicates();
         assertThat(catalog.defaultValues()).containsEntry("BASE_FARE", "10000").containsEntry("FEE_NEW", "0.08")
                 .containsEntry("BID_MAX", "1.5").containsEntry("WITHHOLD", "0")

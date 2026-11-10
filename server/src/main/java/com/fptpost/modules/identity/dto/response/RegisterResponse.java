@@ -24,4 +24,5 @@ public class RegisterResponse {
     String maskedTarget;
     Instant expiresAt;
     Instant resendAvailableAt;
+    String referralCode;
 }
