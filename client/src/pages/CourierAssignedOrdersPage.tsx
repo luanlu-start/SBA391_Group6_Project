@@ -76,6 +76,7 @@ export default function CourierAssignedOrdersPage() {
                   flexWrap: 'wrap',
                 }}
               >
+                {/* Thông tin đơn hàng */}
                 <div>
                   <strong>{order.orderCode}</strong>
                   <p>{order.productName}</p>
@@ -90,12 +91,11 @@ export default function CourierAssignedOrdersPage() {
                   />
                 )}
 
+                {/* UC-24: Chat Sender - Courier */}
                 <Button
                   variant="primary"
                   icon={<MessageCircle size={16} />}
-                  onClick={() =>
-                    navigate(`/orders/${order.id}/chat`)
-                  }
+                  onClick={() => navigate(`/orders/${order.id}/chat`)}
                 >
                   Nhắn tin
                 </Button>
