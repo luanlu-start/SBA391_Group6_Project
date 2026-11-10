@@ -16,32 +16,41 @@ Kịch bản đi qua 15 UC của Thuận theo thứ tự dễ trình bày. UC-49
 
 3. `DisputeDemoSeeder` bổ sung dữ liệu khiếu nại vì luồng giao hàng (UC-28) và tạo khiếu nại (UC-50) chưa có:
    - 6 đơn `DEMO-HT-*` đã hoàn tất của người giao demo, để điểm uy tín có dữ liệu;
-   - một khiếu nại **đang mở** trên đơn `DEMO-KN-*` (tai nghe, có bảo hiểm, ký quỹ 120.000 ₫). Mỗi lần khởi động lại,
-     nếu không còn khiếu nại demo nào đang mở, seeder tạo thêm một hồ sơ mới để demo lại được;
+   - một khiếu nại **đang mở** trên đơn `DEMO-KN-*` (tai nghe, có bảo hiểm, ký quỹ 120.000 ₫), kèm ảnh bằng chứng và
+     bốn tin chat của đơn. Mỗi lần khởi động lại, nếu không còn khiếu nại demo nào đang mở, seeder tạo thêm một hồ sơ mới
+     để demo lại được;
    - một khiếu nại **đã đóng** trên đơn `DEMO-BT-01` có đề nghị bồi thường 400.000 ₫ cho Quỹ bảo đảm.
-   Tắt seeder bằng `app.demo.complaints-enabled=false`.
+   Tắt seeder bằng `app.demo.complaints-enabled=false`. Log khởi động có dòng `Created demo complaint on order DEMO-KN-…`.
 4. Nên demo trên database mới, hoặc tạo lại dữ liệu ngay trước buổi demo: tác vụ định kỳ (UC-63) chuyển các đơn đang tìm
    người giao quá 24 giờ sang "Hết hạn".
+5. Database tạo trước UC-32 thiếu cột `orders.is_relay`; `OrderRelayColumn` tự thêm cột này khi khởi động. Nếu log vẫn báo
+   `Invalid column name 'is_relay'` thì nhánh đang chạy chưa có bản sửa đó.
 
 ## 2. Khiếu nại, bồi thường và uy tín (UC-51, UC-52, UC-49)
 
 Đây là chuỗi nên demo liền mạch, mất khoảng 5 phút.
 
-1. **Kiểm duyệt viên** mở `/mod/complaints`: hồ sơ `KN-…` của đơn `DEMO-KN-*` nằm đầu hàng đợi, có hạn phản hồi 24 giờ.
-2. Mở hồ sơ, bấm **Tiếp nhận xử lý**. Xem ảnh bằng chứng, bấm **Xem lịch sử** để đọc chat của đơn, gửi một tin trao đổi.
+1. **Kiểm duyệt viên** mở `/mod/complaints`: hồ sơ `KN-…` của đơn `DEMO-KN-*` nằm đầu hàng đợi. Trong hồ sơ có hạn
+   phản hồi 24 giờ và hạn xử lý 5 ngày làm việc; ký quỹ đang bị đóng băng.
+2. Bấm **Tiếp nhận xử lý**. Xem ảnh bằng chứng, bấm **Xem lịch sử** để đọc chat giữa người gửi và người giao, rồi gửi
+   một tin trao đổi (cả ba bên đều thấy).
 3. Phán quyết **Chia ký quỹ theo tỷ lệ**, người gửi 40%, bồi thường 300.000 ₫, nhập lý do. Phần xem trước hiện
    hoàn 48.000 ₫ / trả người giao 72.000 ₫. Hồ sơ chuyển "Đã phán quyết", tiền **chưa** di chuyển.
 4. **Người gửi** mở `/me/complaints` → hồ sơ → thấy phán quyết và hạn kháng nghị 48 giờ, gửi **kháng nghị**.
 5. **Quản trị viên** mở `/mod/complaints/…` (lọc "Đang kháng nghị") → **Xem xét kháng nghị** → "Giữ nguyên phán quyết"
-   → **Xác nhận và xử lý tiền**. Hồ sơ đóng: ví người gửi nhận 48.000 ₫, người giao nhận 72.000 ₫, đơn chuyển hoàn tất.
+   → nhập ghi chú → **Xác nhận và xử lý tiền**. Hồ sơ đóng, ký quỹ "Đã chia hai bên": ví người gửi cộng 48.000 ₫,
+   ví người giao cộng 72.000 ₫, đơn chuyển hoàn tất.
    Người ra phán quyết không được tự xem xét kháng nghị, nên bước 3 dùng kiểm duyệt viên và bước 5 dùng Admin.
 6. **Quản trị viên** mở `/admin/guarantee`: có hai đề nghị chờ duyệt (400.000 ₫ từ dữ liệu demo và 300.000 ₫ vừa
    tạo), số dư quỹ 0 ₫.
-   - Duyệt khoản 400.000 ₫ → chuyển "Chờ quỹ", trang báo quỹ còn thiếu.
-   - Trích vào quỹ 500.000 ₫ → khoản 400.000 ₫ được chi ngay theo thứ tự phán quyết, phần biến động hiện cả hai giao dịch.
-7. **Người giao** mở `/courier/trust` (hoặc lối tắt "Uy tín và hạng" ở trang tài khoản khi đang ở chế độ người giao):
-   điểm, hạng, quyền lợi, tiến độ lên hạng và lịch sử. Nếu điểm chưa cập nhật, Admin bấm **Tính lại ngay** ở `/admin/trust`.
-8. Trang thu nhập `/courier/earnings` hiện cùng điều kiện lên hạng; đúng hạn và đánh giá hiện "Chưa có dữ liệu" cho tới
+   - **Xét duyệt** khoản 400.000 ₫ → **Duyệt chi** → chuyển "Chờ quỹ", trang báo quỹ còn thiếu 400.000 ₫.
+   - Trích vào quỹ 500.000 ₫ → khoản 400.000 ₫ được chi ngay theo thứ tự phán quyết, số dư còn 100.000 ₫, phần biến động
+     hiện cả hai giao dịch. Nhật ký `/admin/audit` có `COMPENSATION_APPROVED` và `GUARANTEE_FUND_CONTRIBUTED`.
+7. **Quản trị viên** mở `/admin/trust`, chọn "Tất cả người giao": người giao demo đã tụt từ Bạc xuống Đồng vì thua hai
+   khiếu nại. Bấm **Tính lại ngay** để tính lại toàn bộ.
+8. **Người giao** mở `/courier/trust` (hoặc lối tắt "Uy tín và hạng" ở trang tài khoản khi đang ở chế độ người giao):
+   điểm, hạng, quyền lợi, tiến độ lên hạng, thành phần điểm và lịch sử thay đổi theo từng khiếu nại.
+9. Trang thu nhập `/courier/earnings` hiện cùng điểm và điều kiện lên hạng; đúng hạn và đánh giá hiện "Chưa có dữ liệu" cho tới
    khi UC-28 và UC-47 có dữ liệu thật.
 
 ## 3. Các UC quản trị khác
