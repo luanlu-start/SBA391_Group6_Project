@@ -35,6 +35,7 @@ export default function AdminLayout() {
       { label: 'Tác vụ định kỳ', to: '/admin/jobs', icon: <Timer size={17} /> },
       { label: 'Loại hàng hóa', to: '/admin/categories', icon: <Boxes size={17} /> },
       { label: 'Duyệt rút tiền', to: '/admin/withdrawals', icon: <Banknote size={17} /> },
+      { label: 'Đối soát giao dịch', to: '/admin/reconcile', icon: <Scale size={17} /> },
       { label: 'Duyệt hồ sơ KYC', to: '/mod/kyc', icon: <ShieldCheck size={17} /> },
       { label: 'Kiểm duyệt đơn hàng', to: '/mod/orders', icon: <PackageSearch size={17} /> },
       { label: 'Thông báo', to: '/notifications', icon: <Bell size={17} /> },
