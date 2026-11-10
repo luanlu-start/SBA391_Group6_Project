@@ -458,6 +458,27 @@ mã lỗi và field validation theo [contract lỗi](API-ERRORS.md).
 - Giao diện: `/mod/complaints`, `/mod/complaints/:id` cho kiểm duyệt viên và Admin; `/me/complaints`,
   `/complaints/:id` cho các bên.
 
+## UC-52 đã triển khai — Quỹ bảo đảm và bồi thường (ADMIN)
+
+| Method | Đường dẫn | Chức năng |
+|---|---|---|
+| GET | `/api/v1/admin/guarantee-fund` | API-129: số dư, tổng chờ duyệt, tổng xếp hàng, tổng đã chi và 20 biến động gần nhất |
+| GET | `/api/v1/admin/guarantee-fund/compensations?status=` | Khoản bồi thường theo thứ tự phán quyết; `status` = `PENDING_REVIEW`, `QUEUED`, `PAID`, `REJECTED`, `ALL` |
+| POST | `/api/v1/admin/complaints/{id}/compensation` | API-128: `{decision: APPROVE, amount?, note?}` hoặc `{decision: REJECT, note}` |
+| POST | `/api/v1/admin/guarantee-fund/contributions` | Ghi nhận khoản trích vào quỹ `{amount, note}`, sau đó chi hàng đợi |
+
+- Khoản bồi thường `PENDING_REVIEW` được tạo trong cùng giao dịch khi khiếu nại đóng với `compensationAmount > 0`
+  (`ComplaintClosedEvent`); job 10 phút bổ sung cho hồ sơ đóng trước khi phân hệ chạy. Người nhận là người gửi của đơn.
+- Duyệt: số tiền 1 ₫ đến mức đề nghị; người nhận không được tự duyệt. Chi ngay nếu quỹ đủ và không có khoản nào đang
+  xếp hàng, ngược lại chuyển `QUEUED` (A1). Hàng đợi chi theo thời điểm phán quyết và dừng ở khoản đầu tiên chưa đủ quỹ
+  (BR-R-079); job 10 phút và mỗi lần trích quỹ đều xử lý hàng đợi.
+- Sổ cái: trích quỹ `GUARANTEE_FUND_CONTRIBUTION` (Nợ `PLATFORM_REVENUE`, Có `GUARANTEE_FUND`); chi bồi thường
+  `GUARANTEE_FUND_PAYOUT` (Nợ `GUARANTEE_FUND`, Có `USER_WALLET_{id}`) và cộng số dư khả dụng ví người nhận. Bảng
+  `guarantee_fund_accounts` giữ số dư và được khóa dòng khi chi để không chi vượt quỹ.
+- Luồng thanh toán hiện chưa tách hoa hồng khỏi tiền giải ngân, nên quỹ chưa tự nhận `FUND_SHARE` và phí bảo hiểm;
+  Admin ghi nhận khoản trích định kỳ cho tới khi luồng thanh toán bổ sung bút toán này.
+- Giao diện: `/admin/guarantee`.
+
 ## Contract đang chạy
 
 Response thành công dùng `ApiResponse<T>`: `success`, `status`, `code: 1000`,
