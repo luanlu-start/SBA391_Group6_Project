@@ -314,8 +314,8 @@ export default function CourierBatchPage() {
           className={`batch-alert ${alertInfo.type}`}
           style={{
             background: alertInfo.type === 'success' ? 'var(--success-bg)' : alertInfo.type === 'danger' ? 'var(--danger-bg)' : 'var(--warning-bg)',
-            border: `1px solid ${alertInfo.type === 'success' ? '#a7f3d0' : alertInfo.type === 'danger' ? '#fecaca' : '#fde68a'}`,
-            color: alertInfo.type === 'success' ? '#065f46' : alertInfo.type === 'danger' ? '#991b1b' : '#92400e',
+            border: `1px solid ${alertInfo.type === 'success' ? 'var(--success-border)' : alertInfo.type === 'danger' ? 'var(--danger-border)' : 'var(--warning-border)'}`,
+            color: alertInfo.type === 'success' ? 'var(--success-text)' : alertInfo.type === 'danger' ? 'var(--danger-text)' : 'var(--warning-text)',
             padding: '12px 18px',
             borderRadius: '10px',
             marginBottom: '20px',

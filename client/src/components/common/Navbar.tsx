@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import NotificationBell from '../../features/notifications/NotificationBell';
+import ThemeToggleButton from './ThemeToggleButton';
 import { useAuthentication } from '../../auth/useAuthentication';
 import { useAccountMode } from '../../auth/useAccountMode';
 import Button from '../ui/Button';
@@ -125,6 +126,7 @@ export default function Navbar() {
         </nav>
 
         <div className="navbar-actions ui-row">
+          <ThemeToggleButton />
           {user && <NotificationBell />}
           {canSwitch && !isStaff && (
             <select

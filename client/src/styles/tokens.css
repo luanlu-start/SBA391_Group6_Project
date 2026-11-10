@@ -1,4 +1,5 @@
-:root {
+:root,
+:root[data-theme="light"] {
   color-scheme: light;
   --font-main: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -11,6 +12,10 @@
   --bg-tertiary: #f1f5f9;
   --bg-glass: #ffffff;
   --bg-card: #ffffff;
+  --bg-overlay: rgba(255, 255, 255, 0.94);
+
+  --input-bg: #ffffff;
+  --input-border: #cbd5e1;
 
   --border-subtle: #e2e8f0;
   --border-focus: #f37021;
@@ -35,13 +40,33 @@
   --accent-ruby: #be123c;
 
   --success-bg: #ecfdf5;
+  --success-border: #a7f3d0;
+  --success-text: #065f46;
+  --success-hover: #d1fae5;
+
   --warning-bg: #fffbeb;
+  --warning-border: #fde68a;
+  --warning-text: #92400e;
+  --warning-hover: #fef3c7;
+
   --danger-bg: #fef2f2;
+  --danger-border: #fecaca;
+  --danger-text: #991b1b;
+  --danger-hover: #fee2e2;
+
   --info-bg: #eff6ff;
+  --info-border: #bfdbfe;
+  --info-text: #1e40af;
 
   --auth-visual-bg: #f1f5f9;
   --auth-map-grid: #e2e8f0;
   --auth-parcel-fill: #fff7ed;
+
+  --map-road-start: #e2e8f0;
+  --map-road-end: #cbd5e1;
+  --map-building-fill: #ffffff;
+  --map-building-shade: #e2e8f0;
+  --map-building-stroke: #cbd5e1;
 
   --space-1: 4px;
   --space-2: 8px;
@@ -68,4 +93,76 @@
 
   --transition-fast: 0.15s ease;
   --transition-normal: 0.2s ease;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg-primary: #0f172a;
+  --emerald-50: rgba(16, 185, 129, 0.14);
+  --emerald-200: rgba(52, 211, 153, 0.35);
+  --emerald-900: #6ee7b7;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #293548;
+  --bg-glass: #1e293b;
+  --bg-card: #1e293b;
+  --bg-overlay: rgba(30, 41, 59, 0.94);
+
+  --input-bg: #0f172a;
+  --input-border: #334155;
+
+  --border-subtle: #334155;
+  --border-focus: #fb923c;
+
+  --primary: #f37021;
+  --primary-hover: #fb923c;
+  --on-primary: #ffffff;
+  --primary-glow: rgba(243, 112, 33, 0.22);
+  --brand-border: rgba(243, 112, 33, 0.4);
+  --brand-soft: rgba(243, 112, 33, 0.14);
+
+  --secondary: #38bdf8;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-accent: #fb923c;
+
+  --accent-cyan: #22d3ee;
+  --accent-emerald: #34d399;
+  --accent-amber: #fbbf24;
+  --accent-rose: #fb7185;
+  --accent-ruby: #fb7185;
+
+  --success-bg: rgba(16, 185, 129, 0.14);
+  --success-border: rgba(52, 211, 153, 0.35);
+  --success-text: #6ee7b7;
+  --success-hover: rgba(16, 185, 129, 0.24);
+
+  --warning-bg: rgba(245, 158, 11, 0.14);
+  --warning-border: rgba(251, 191, 36, 0.35);
+  --warning-text: #fde68a;
+  --warning-hover: rgba(245, 158, 11, 0.24);
+
+  --danger-bg: rgba(244, 63, 94, 0.14);
+  --danger-border: rgba(251, 113, 133, 0.35);
+  --danger-text: #fda4af;
+  --danger-hover: rgba(244, 63, 94, 0.24);
+
+  --info-bg: rgba(56, 189, 248, 0.14);
+  --info-border: rgba(56, 189, 248, 0.35);
+  --info-text: #bae6fd;
+
+  --auth-visual-bg: #1e293b;
+  --auth-map-grid: #334155;
+  --auth-parcel-fill: #431407;
+
+  --map-road-start: #334155;
+  --map-road-end: #1e293b;
+  --map-building-fill: #273449;
+  --map-building-shade: #1a2436;
+  --map-building-stroke: #475569;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 4px 10px -1px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 12px 30px -3px rgba(0, 0, 0, 0.5);
 }

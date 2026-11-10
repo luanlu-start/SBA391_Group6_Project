@@ -9,6 +9,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" />
     <title>FPost | Nền tảng giao nhận hàng hóa</title>
+    <script>
+      try {
+        var t = localStorage.getItem('fpost_theme');
+        document.documentElement.dataset.theme = t === 'dark' ? 'dark' : 'light';
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

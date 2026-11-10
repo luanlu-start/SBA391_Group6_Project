@@ -906,7 +906,7 @@ export default function CourierTripsPage() {
               {detailModalTab === 'suggestions' && (
                 <div>
                   {selectedTrip.status === 'PAUSED' && (
-                    <div className="trip-alert-box warning" style={{ backgroundColor: 'var(--warning-bg)', border: '1px solid #fde68a', color: '#92400e' }}>
+                    <div className="trip-alert-box warning" style={{ backgroundColor: 'var(--warning-bg)', border: '1px solid var(--warning-border)', color: 'var(--warning-text)' }}>
                       <AlertCircle size={16} />
                       <span>Chuyến đi đang tạm dừng nhận đơn. Vui lòng mở lại nhận đơn để tự động cập nhật gợi ý mới nhất.</span>
                     </div>

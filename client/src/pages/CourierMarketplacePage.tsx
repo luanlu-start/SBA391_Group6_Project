@@ -212,9 +212,9 @@ export default function CourierMarketplacePage(): React.ReactElement {
             {!user && (
                 <div className="market-alert-banner info">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <AlertTriangle size={20} color="#0284c7" />
+                        <AlertTriangle size={20} color="var(--secondary)" />
                         <span style={{ fontSize: '0.92rem', lineHeight: '1.5' }}>
-                Bạn chưa đăng nhập. Để nhận đơn, vui lòng <strong style={{ color: '#0f172a' }}>Đăng nhập tài khoản Bưu tá</strong>
+                Bạn chưa đăng nhập. Để nhận đơn, vui lòng <strong style={{ color: 'var(--info-text)' }}>Đăng nhập tài khoản Bưu tá</strong>
                             {' '}(Tài khoản mẫu: <code className="market-alert-code">courier@fptpost.vn</code> / Mật khẩu: <code className="market-alert-code">12345678</code>).
             </span>
                     </div>

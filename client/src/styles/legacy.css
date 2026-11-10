@@ -146,19 +146,19 @@
 
 .health-pill.online {
   background: var(--success-bg);
-  border-color: #a7f3d0;
+  border-color: var(--success-border);
   color: var(--accent-emerald);
 }
 
 .health-pill.offline {
   background: var(--danger-bg);
-  border-color: #fecaca;
+  border-color: var(--danger-border);
   color: var(--accent-rose);
 }
 
 .health-pill.checking {
   background: var(--warning-bg);
-  border-color: #fde68a;
+  border-color: var(--warning-border);
   color: var(--accent-amber);
 }
 
@@ -303,19 +303,19 @@
 
 .badge-success {
   background: var(--success-bg);
-  border: 1px solid #a7f3d0;
+  border: 1px solid var(--success-border);
   color: var(--accent-emerald);
 }
 
 .badge-danger {
   background: var(--danger-bg);
-  border: 1px solid #fecaca;
+  border: 1px solid var(--danger-border);
   color: var(--accent-rose);
 }
 
 .badge-warning {
   background: var(--warning-bg);
-  border: 1px solid #fde68a;
+  border: 1px solid var(--warning-border);
   color: var(--accent-amber);
 }
 
@@ -331,14 +331,14 @@
 
 .alert-warning {
   background: var(--warning-bg);
-  border: 1px solid #fde68a;
-  color: #92400e;
+  border: 1px solid var(--warning-border);
+  color: var(--warning-text);
 }
 
 .alert-danger {
   background: var(--danger-bg);
-  border: 1px solid #fecaca;
-  color: #991b1b;
+  border: 1px solid var(--danger-border);
+  color: var(--danger-text);
 }
 
 .alert-tip {
@@ -413,7 +413,7 @@
 .bg-blue {
   background: var(--info-bg);
   color: var(--secondary);
-  border: 1px solid #bfdbfe;
+  border: 1px solid var(--info-border);
 }
 
 .bg-brand {
@@ -425,7 +425,7 @@
 .bg-emerald {
   background: var(--success-bg);
   color: var(--accent-emerald);
-  border: 1px solid #a7f3d0;
+  border: 1px solid var(--success-border);
 }
 
 .layer-title {

@@ -372,7 +372,7 @@ export default function BatchRouteMap({
             position: 'absolute',
             top: 12,
             right: 12,
-            background: 'rgba(255, 255, 255, 0.94)',
+            background: 'var(--bg-overlay)',
             border: '1px solid var(--border-subtle)',
             borderRadius: '8px',
             padding: '6px 12px',

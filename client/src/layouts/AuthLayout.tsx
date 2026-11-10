@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Package, Route } from 'lucide-react';
+import ThemeToggleButton from '../components/common/ThemeToggleButton';
 import '../styles/auth.css';
 
 export default function AuthLayout({ children, variant = 'login' }: { children: ReactNode; variant?: 'login' | 'register' | 'recovery' }) {
@@ -29,7 +30,10 @@ export default function AuthLayout({ children, variant = 'login' }: { children: 
         <p className="auth-visual-footer">FPost · Kết nối những hành trình</p>
       </aside>
       <section className="auth-panel" aria-label={variant === 'register' ? 'Đăng ký FPost' : variant === 'recovery' ? 'Khôi phục tài khoản FPost' : 'Đăng nhập FPost'}>
-        <Link className="auth-back" to="/"><ArrowLeft size={17} aria-hidden="true" />Về trang chủ</Link>
+        <div className="auth-panel-top">
+          <Link className="auth-back" to="/"><ArrowLeft size={17} aria-hidden="true" />Về trang chủ</Link>
+          <ThemeToggleButton />
+        </div>
         <div className="auth-content">
           <Link className="auth-brand auth-form-brand" to="/" aria-label="FPost — Trang chủ"><Package size={25} aria-hidden="true" />F<span>Post</span></Link>
           {children}

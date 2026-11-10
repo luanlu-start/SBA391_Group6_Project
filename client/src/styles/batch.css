@@ -305,7 +305,7 @@
 
 .batch-stop-item.completed {
   opacity: 0.78;
-  border-color: #a7f3d0;
+  border-color: var(--success-border);
   background: var(--success-bg);
 }
 
@@ -402,7 +402,7 @@
   position: absolute;
   bottom: 12px;
   left: 12px;
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--bg-overlay);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 8px 12px;

@@ -1,6 +1,7 @@
 import { NavLink, Link } from 'react-router-dom';
 import { Package, ArrowLeft } from 'lucide-react';
 import type { ReactNode } from 'react';
+import ThemeToggleButton from '../components/common/ThemeToggleButton';
 
 interface WorkspaceNavigationItem {
   label: string;
@@ -30,7 +31,7 @@ export default function WorkspaceLayout({ title, navigation, children, headerAct
       <Link to="/" className="ui-sidebar-link ui-sidebar-footer"><ArrowLeft size={16} />Về trang chủ</Link>
     </aside>
     <div className="ui-workspace-main">
-      <header className="ui-workspace-topbar"><span>{title}</span><div className="ui-row">{headerActions}</div></header>
+      <header className="ui-workspace-topbar"><span>{title}</span><div className="ui-row"><ThemeToggleButton />{headerActions}</div></header>
       <main id="main-content" className="ui-workspace-content">{children}</main>
     </div>
   </div>;

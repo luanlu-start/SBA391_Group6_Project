@@ -253,7 +253,7 @@ export default function SuggestedCouriersCard({
                         padding: '4px 8px',
                         borderRadius: '6px',
                         backgroundColor: 'var(--info-bg)',
-                        border: '1px solid #bfdbfe',
+                        border: '1px solid var(--info-border)',
                         color: 'var(--secondary)',
                         fontSize: '0.78rem',
                         fontWeight: 600,
@@ -281,8 +281,8 @@ export default function SuggestedCouriersCard({
                         fontWeight: 700,
                         border: `1px solid ${
                           item.matchScore >= 85
-                            ? '#a7f3d0'
-                            : '#fde68a'
+                            ? 'var(--success-border)'
+                            : 'var(--warning-border)'
                         }`,
                       }}
                     >
