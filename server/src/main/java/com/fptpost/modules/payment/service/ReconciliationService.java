@@ -116,23 +116,50 @@ public class ReconciliationService {
 
         // Gom nhóm các bút toán sổ cái liên quan đến cổng VNPay theo refId (txnRef)
         Map<String, LedgerTransaction> vnpayLedgerByRef = new HashMap<>();
+        Map<String, LedgerTransaction> adjustedLedgerByRef = new HashMap<>();
         for (LedgerTransaction ltx : ledgerTxns) {
             if ("PAYMENT_TRANSACTION".equalsIgnoreCase(ltx.getRefType()) && ltx.getRefId() != null) {
                 vnpayLedgerByRef.put(ltx.getRefId(), ltx);
+            } else if (ltx.getType() == LedgerTransactionType.RECONCILIATION_ADJUSTMENT && ltx.getRefId() != null) {
+                adjustedLedgerByRef.putIfAbsent(ltx.getRefId(), ltx);
             }
         }
 
-        ReconciliationReport report = ReconciliationReport.builder()
-                .reportDate(targetDate)
-                .createdBy(actorUserId)
-                .totalCount(0)
-                .matchedCount(0)
-                .mismatchCount(0)
-                .status(ReconciliationReportStatus.MATCHED)
-                .build();
+        // Upsert 1 báo cáo theo từng ngày báo cáo để không nhân bản thêm dòng lệch khi chạy lại nhiều lần
+        ReconciliationReport report = reportRepository.findFirstByReportDateOrderByCreatedAtDesc(targetDate)
+                .orElseGet(() -> ReconciliationReport.builder()
+                        .reportDate(targetDate)
+                        .createdBy(actorUserId)
+                        .totalCount(0)
+                        .matchedCount(0)
+                        .mismatchCount(0)
+                        .status(ReconciliationReportStatus.MATCHED)
+                        .build());
+
+        Map<String, ReconciliationItem> keptAdjustedByRef = new HashMap<>();
+        if (report.getItems() != null) {
+            report.getItems().removeIf(item -> item.getStatus() != ReconciliationItemStatus.ADJUSTED);
+            for (ReconciliationItem kept : report.getItems()) {
+                if (kept.getTxnRef() != null) {
+                    keptAdjustedByRef.put(kept.getTxnRef(), kept);
+                }
+            }
+        }
+
+        Map<String, ReconciliationItem> historicalAdjustedByRef = new HashMap<>();
+        List<ReconciliationItem> priorAdjustedItems =
+                itemRepository.findByReportReportDateAndStatus(targetDate, ReconciliationItemStatus.ADJUSTED);
+        if (priorAdjustedItems != null) {
+            for (ReconciliationItem prior : priorAdjustedItems) {
+                if (prior.getTxnRef() != null) {
+                    historicalAdjustedByRef.putIfAbsent(prior.getTxnRef(), prior);
+                }
+            }
+        }
 
         Set<String> processedRefs = new HashSet<>();
         int matched = 0;
+        int adjusted = 0;
         int mismatch = 0;
 
         for (PaymentTransaction ptx : paymentTxns) {
@@ -144,16 +171,12 @@ public class ReconciliationService {
 
             if (ptx.getStatus() == PaymentStatus.SUCCESS) {
                 if (ltx == null) {
-                    mismatch++;
-                    report.addItem(ReconciliationItem.builder()
-                            .txnRef(ref)
-                            .kind(kind)
-                            .internalAmount(0L)
-                            .vnpayAmount(vnpAmount)
-                            .status(ReconciliationItemStatus.MISMATCH)
-                            .discrepancyType(ReconciliationDiscrepancyType.MISSING_LEDGER)
-                            .note("Giao dịch VNPay thành công nhưng chưa có bút toán ghi sổ cái")
-                            .build());
+                    if (recordOrReuseAdjustment(report, keptAdjustedByRef, historicalAdjustedByRef, adjustedLedgerByRef,
+                            ref, kind, 0L, vnpAmount, ReconciliationDiscrepancyType.MISSING_LEDGER)) {
+                        adjusted++;
+                    } else {
+                        mismatch++;
+                    }
                 } else {
                     long internalAmt = ltx.getAmount() != null ? ltx.getAmount() : 0L;
                     if (internalAmt == vnpAmount) {
@@ -168,89 +191,154 @@ public class ReconciliationService {
                                 .note("Khớp số tiền giữa VNPay và Sổ cái (" + ltx.getTransactionCode() + ")")
                                 .build());
                     } else {
-                        mismatch++;
-                        report.addItem(ReconciliationItem.builder()
-                                .txnRef(ref)
-                                .kind(kind)
-                                .internalAmount(internalAmt)
-                                .vnpayAmount(vnpAmount)
-                                .status(ReconciliationItemStatus.MISMATCH)
-                                .discrepancyType(ReconciliationDiscrepancyType.AMOUNT_MISMATCH)
-                                .note("Lệch số tiền giữa VNPay (" + vnpAmount + ") và Sổ cái (" + internalAmt + ")")
-                                .build());
+                        if (recordOrReuseAdjustment(report, keptAdjustedByRef, historicalAdjustedByRef, adjustedLedgerByRef,
+                                ref, kind, internalAmt, vnpAmount, ReconciliationDiscrepancyType.AMOUNT_MISMATCH)) {
+                            adjusted++;
+                        } else {
+                            mismatch++;
+                        }
                     }
                 }
             } else if (ptx.getStatus() == PaymentStatus.PENDING
                     && ptx.getExpiresAt() != null
                     && ptx.getExpiresAt().isBefore(Instant.now())) {
                 if (ltx != null) {
-                    mismatch++;
-                    report.addItem(ReconciliationItem.builder()
-                            .txnRef(ref)
-                            .kind(kind)
-                            .internalAmount(ltx.getAmount() != null ? ltx.getAmount() : 0L)
-                            .vnpayAmount(0L)
-                            .status(ReconciliationItemStatus.MISMATCH)
-                            .discrepancyType(ReconciliationDiscrepancyType.MISSING_PAYMENT)
-                            .note("Giao dịch VNPay còn PENDING quá hạn nhưng đã có bút toán sổ cái")
-                            .build());
+                    long internalAmt = ltx.getAmount() != null ? ltx.getAmount() : 0L;
+                    if (recordOrReuseAdjustment(report, keptAdjustedByRef, historicalAdjustedByRef, adjustedLedgerByRef,
+                            ref, kind, internalAmt, 0L, ReconciliationDiscrepancyType.MISSING_PAYMENT)) {
+                        adjusted++;
+                    } else {
+                        mismatch++;
+                    }
                 } else {
-                    mismatch++;
-                    report.addItem(ReconciliationItem.builder()
-                            .txnRef(ref)
-                            .kind(kind)
-                            .internalAmount(0L)
-                            .vnpayAmount(vnpAmount)
-                            .status(ReconciliationItemStatus.MISMATCH)
-                            .discrepancyType(ReconciliationDiscrepancyType.STALE_PENDING)
-                            .note("Giao dịch VNPay treo PENDING quá thời hạn thanh toán")
-                            .build());
+                    if (recordOrReuseAdjustment(report, keptAdjustedByRef, historicalAdjustedByRef, adjustedLedgerByRef,
+                            ref, kind, 0L, vnpAmount, ReconciliationDiscrepancyType.STALE_PENDING)) {
+                        adjusted++;
+                    } else {
+                        mismatch++;
+                    }
                 }
             } else if (ltx != null) {
-                mismatch++;
-                report.addItem(ReconciliationItem.builder()
-                        .txnRef(ref)
-                        .kind(kind)
-                        .internalAmount(ltx.getAmount() != null ? ltx.getAmount() : 0L)
-                        .vnpayAmount(0L)
-                        .status(ReconciliationItemStatus.MISMATCH)
-                        .discrepancyType(ReconciliationDiscrepancyType.MISSING_PAYMENT)
-                        .note("Giao dịch VNPay thất bại/hủy nhưng phát sinh bút toán sổ cái")
-                        .build());
+                long internalAmt = ltx.getAmount() != null ? ltx.getAmount() : 0L;
+                if (recordOrReuseAdjustment(report, keptAdjustedByRef, historicalAdjustedByRef, adjustedLedgerByRef,
+                        ref, kind, internalAmt, 0L, ReconciliationDiscrepancyType.MISSING_PAYMENT)) {
+                    adjusted++;
+                } else {
+                    mismatch++;
+                }
             }
         }
 
         // Kiểm tra các bút toán sổ cái tham chiếu PAYMENT_TRANSACTION nhưng không có bản ghi PaymentTransaction trong ngày
         for (Map.Entry<String, LedgerTransaction> entry : vnpayLedgerByRef.entrySet()) {
-            if (!processedRefs.contains(entry.getKey())) {
+            String ref = entry.getKey();
+            if (!processedRefs.contains(ref)) {
+                processedRefs.add(ref);
                 LedgerTransaction ltx = entry.getValue();
                 long internalAmt = ltx.getAmount() != null ? ltx.getAmount() : 0L;
-                mismatch++;
-                report.addItem(ReconciliationItem.builder()
-                        .txnRef(entry.getKey())
-                        .kind(ltx.getType() != null ? ltx.getType().name() : "LEDGER_ONLY")
-                        .internalAmount(internalAmt)
-                        .vnpayAmount(0L)
-                        .status(ReconciliationItemStatus.MISMATCH)
-                        .discrepancyType(ReconciliationDiscrepancyType.MISSING_PAYMENT)
-                        .note("Có bút toán sổ cái (" + ltx.getTransactionCode() + ") nhưng thiếu giao dịch VNPay đối ứng")
-                        .build());
+                String kind = ltx.getType() != null ? ltx.getType().name() : "LEDGER_ONLY";
+                if (recordOrReuseAdjustment(report, keptAdjustedByRef, historicalAdjustedByRef, adjustedLedgerByRef,
+                        ref, kind, internalAmt, 0L, ReconciliationDiscrepancyType.MISSING_PAYMENT)) {
+                    adjusted++;
+                } else {
+                    mismatch++;
+                }
             }
         }
 
-        int total = matched + mismatch;
+        for (String keptRef : keptAdjustedByRef.keySet()) {
+            if (!processedRefs.contains(keptRef)) {
+                adjusted++;
+            }
+        }
+
+        int total = matched + adjusted + mismatch;
         report.setTotalCount(total);
         report.setMatchedCount(matched);
         report.setMismatchCount(mismatch);
-        report.setStatus(mismatch > 0
-                ? ReconciliationReportStatus.MISMATCH_FOUND
-                : ReconciliationReportStatus.MATCHED);
+        if (mismatch > 0) {
+            report.setStatus(ReconciliationReportStatus.MISMATCH_FOUND);
+        } else if (adjusted > 0) {
+            report.setStatus(ReconciliationReportStatus.RESOLVED);
+        } else {
+            report.setStatus(ReconciliationReportStatus.MATCHED);
+        }
 
         ReconciliationReport saved = reportRepository.save(report);
-        log.info("Completed daily reconciliation for date={}: total={}, matched={}, mismatch={}, status={}",
-                targetDate, total, matched, mismatch, saved.getStatus());
+        log.info("Completed daily reconciliation for date={}: total={}, matched={}, adjusted={}, mismatch={}, status={}",
+                targetDate, total, matched, adjusted, mismatch, saved.getStatus());
 
         return mapReportToResponse(saved, true);
+    }
+
+    private boolean recordOrReuseAdjustment(
+            ReconciliationReport report,
+            Map<String, ReconciliationItem> keptAdjustedByRef,
+            Map<String, ReconciliationItem> historicalAdjustedByRef,
+            Map<String, LedgerTransaction> adjustedLedgerByRef,
+            String ref,
+            String kind,
+            long internalAmount,
+            long vnpayAmount,
+            ReconciliationDiscrepancyType discrepancyType) {
+        if (keptAdjustedByRef.containsKey(ref)) {
+            return true;
+        }
+
+        ReconciliationItem historical = historicalAdjustedByRef.get(ref);
+        if (historical != null) {
+            report.addItem(ReconciliationItem.builder()
+                    .txnRef(ref)
+                    .kind(kind)
+                    .internalAmount(internalAmount)
+                    .vnpayAmount(vnpayAmount)
+                    .status(ReconciliationItemStatus.ADJUSTED)
+                    .discrepancyType(discrepancyType)
+                    .note(historical.getNote())
+                    .adjustmentTxnCode(historical.getAdjustmentTxnCode())
+                    .adjustedBy(historical.getAdjustedBy())
+                    .adjustedAt(historical.getAdjustedAt())
+                    .build());
+            return true;
+        }
+
+        LedgerTransaction adjLedger = adjustedLedgerByRef.get(ref);
+        if (adjLedger != null) {
+            report.addItem(ReconciliationItem.builder()
+                    .txnRef(ref)
+                    .kind(kind)
+                    .internalAmount(internalAmount)
+                    .vnpayAmount(vnpayAmount)
+                    .status(ReconciliationItemStatus.ADJUSTED)
+                    .discrepancyType(discrepancyType)
+                    .note(adjLedger.getDescription() != null ? adjLedger.getDescription() : "Đã tạo bút toán điều chỉnh đối soát")
+                    .adjustmentTxnCode(adjLedger.getTransactionCode())
+                    .adjustedBy(adjLedger.getCreatedBy())
+                    .adjustedAt(adjLedger.getCreatedAt())
+                    .build());
+            return true;
+        }
+
+        String defaultNote = switch (discrepancyType) {
+            case MISSING_LEDGER -> "Giao dịch VNPay thành công nhưng chưa có bút toán ghi sổ cái";
+            case AMOUNT_MISMATCH -> "Lệch số tiền giữa VNPay (" + vnpayAmount + ") và Sổ cái (" + internalAmount + ")";
+            case STALE_PENDING -> "Giao dịch VNPay treo PENDING quá thời hạn thanh toán";
+            case MISSING_PAYMENT -> internalAmount > 0 && vnpayAmount == 0
+                    ? "Có bút toán sổ cái nhưng VNPay chưa ghi nhận thành công"
+                    : "Chênh lệch đối ứng VNPay";
+            case NONE -> "";
+        };
+
+        report.addItem(ReconciliationItem.builder()
+                .txnRef(ref)
+                .kind(kind)
+                .internalAmount(internalAmount)
+                .vnpayAmount(vnpayAmount)
+                .status(ReconciliationItemStatus.MISMATCH)
+                .discrepancyType(discrepancyType)
+                .note(defaultNote)
+                .build());
+        return false;
     }
 
     /**

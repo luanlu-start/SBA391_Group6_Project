@@ -44,6 +44,128 @@ function formatDateTime(iso?: string) {
   }
 }
 
+const DISCREPANCY_LABELS: Record<
+  ReconciliationItemResponse['discrepancyType'],
+  { label: string; tone: 'warning' | 'danger' | 'info' | 'neutral'; summary: string }
+> = {
+  NONE: { label: 'Khớp', tone: 'neutral', summary: 'Không có sai lệch.' },
+  MISSING_LEDGER: {
+    label: 'Thiếu sổ cái (VNPay có tiền)',
+    tone: 'warning',
+    summary: 'Cổng VNPay báo giao dịch thành công nhưng sổ cái nội bộ FPTPost chưa có bút toán ghi nhận.',
+  },
+  STALE_PENDING: {
+    label: 'Giao dịch treo > 15 phút',
+    tone: 'warning',
+    summary: 'Khách đã mở cổng VNPay nhưng bỏ dở quá 15 phút chưa thanh toán — chưa có tiền thật vào hệ thống.',
+  },
+  AMOUNT_MISMATCH: {
+    label: 'Lệch số tiền',
+    tone: 'danger',
+    summary: 'Số tiền bên VNPay thu được và số tiền ghi trên sổ cái FPTPost không khớp nhau.',
+  },
+  MISSING_PAYMENT: {
+    label: 'Thiếu giao dịch VNPay',
+    tone: 'danger',
+    summary: 'Sổ cái nội bộ có ghi nhận tiền nhưng VNPay báo thất bại/hủy hoặc không có giao dịch đối ứng.',
+  },
+};
+
+interface ResolutionPreset {
+  id: string;
+  title: string;
+  description: string;
+  debitAccount: string;
+  creditAccount: string;
+  defaultNote: string;
+  needsUserId?: boolean;
+}
+
+function getPresetsForItem(item: ReconciliationItemResponse, userIdInput: string): ResolutionPreset[] {
+  const uid = userIdInput.replace(/\D/g, '') || '3';
+  const diff = Math.abs(item.vnpayAmount - item.internalAmount).toLocaleString('vi-VN');
+
+  if (item.discrepancyType === 'STALE_PENDING') {
+    return [
+      {
+        id: 'CLOSE_STALE',
+        title: 'Xác nhận giao dịch quá hạn & đóng cảnh báo treo',
+        description: 'Ghi nhận chốt sổ cho giao dịch khách bỏ dở quá 15 phút (không phát sinh cộng/trừ tiền ví khách).',
+        debitAccount: 'RECONCILIATION_SUSPENSE',
+        creditAccount: 'VNPAY_CLEARING',
+        defaultNote: `Xác nhận đóng cảnh báo giao dịch treo quá hạn ${item.txnRef} (không phát sinh thu tiền).`,
+      },
+    ];
+  }
+
+  if (item.discrepancyType === 'MISSING_LEDGER') {
+    return [
+      {
+        id: 'RECORD_VNPAY_SUSPENSE',
+        title: 'Ghi nhận bù tiền từ VNPay vào quỹ treo đối soát (Khuyên dùng)',
+        description: 'Dùng khi VNPay đã thu tiền và bạn cần khớp số liệu kế toán trung gian cho giao dịch này.',
+        debitAccount: 'VNPAY_CLEARING',
+        creditAccount: 'RECONCILIATION_SUSPENSE',
+        defaultNote: `Ghi nhận bổ sung khoản thu thành công từ VNPay (${item.txnRef}) vào tài khoản treo đối soát.`,
+      },
+      {
+        id: 'CREDIT_USER_WALLET',
+        title: 'Bù tiền trực tiếp vào Ví người dùng',
+        description: 'Dùng khi xác minh khách đã trả tiền thật trên VNPay nhưng ví người dùng chưa được cộng tiền.',
+        debitAccount: 'VNPAY_CLEARING',
+        creditAccount: `USER_WALLET_${uid}`,
+        defaultNote: `Ghi nhận bù tiền giao dịch VNPay ${item.txnRef} vào ví người dùng #${uid}.`,
+        needsUserId: true,
+      },
+    ];
+  }
+
+  if (item.discrepancyType === 'AMOUNT_MISMATCH') {
+    if (item.vnpayAmount >= item.internalAmount) {
+      return [
+        {
+          id: 'FIX_AMT_HIGHER_VNPAY',
+          title: `Ghi bù phần chênh lệch thiếu (${diff} đ) khớp với VNPay`,
+          description: 'VNPay thu nhiều hơn số tiền đang ghi trên sổ cái nội bộ.',
+          debitAccount: 'VNPAY_CLEARING',
+          creditAccount: 'RECONCILIATION_SUSPENSE',
+          defaultNote: `Điều chỉnh bù phần chênh lệch thiếu ${diff} đ cho giao dịch ${item.txnRef}.`,
+        },
+      ];
+    }
+    return [
+      {
+        id: 'FIX_AMT_LOWER_VNPAY',
+        title: `Ghi giảm phần chênh lệch dư (${diff} đ) trên sổ cái`,
+        description: 'Sổ cái nội bộ đang ghi cao hơn số tiền thực tế VNPay thu được.',
+        debitAccount: 'RECONCILIATION_SUSPENSE',
+        creditAccount: 'VNPAY_CLEARING',
+        defaultNote: `Điều chỉnh giảm phần chênh lệch dư ${diff} đ cho giao dịch ${item.txnRef}.`,
+      },
+    ];
+  }
+
+  return [
+    {
+      id: 'REVERSE_SUSPENSE',
+      title: 'Ghi bút toán đảo để cân bằng lại sổ cái (Khuyên dùng)',
+      description: 'Xác nhận giao dịch không thành công ở VNPay và cân bằng lại tài khoản đối soát trung gian.',
+      debitAccount: 'RECONCILIATION_SUSPENSE',
+      creditAccount: 'VNPAY_CLEARING',
+      defaultNote: `Ghi bút toán đảo cân bằng sổ cái cho giao dịch thiếu đối ứng VNPay ${item.txnRef}.`,
+    },
+    {
+      id: 'DEBIT_USER_WALLET',
+      title: 'Thu hồi từ Ví người dùng về tài khoản treo (Nếu đã cộng nhầm ví)',
+      description: 'Chỉ dùng khi xác minh hệ thống đã cộng nhầm tiền vào ví nhưng VNPay không thu được tiền.',
+      debitAccount: `USER_WALLET_${uid}`,
+      creditAccount: 'RECONCILIATION_SUSPENSE',
+      defaultNote: `Thu hồi số tiền hạch toán nhầm từ ví người dùng #${uid} cho giao dịch ${item.txnRef}.`,
+      needsUserId: true,
+    },
+  ];
+}
+
 export default function AdminReconciliationPage() {
   const todayStr = new Date().toISOString().slice(0, 10);
 
@@ -64,12 +186,15 @@ export default function AdminReconciliationPage() {
 
   // Adjustment modal state (API-108)
   const [adjustingItem, setAdjustingItem] = useState<ReconciliationItemResponse | null>(null);
+  const [selectedPresetId, setSelectedPresetId] = useState<string>('');
+  const [targetUserId, setTargetUserId] = useState<string>('3');
   const [debitAccount, setDebitAccount] = useState('VNPAY_CLEARING');
   const [creditAccount, setCreditAccount] = useState('RECONCILIATION_SUSPENSE');
   const [adjustAmount, setAdjustAmount] = useState('');
   const [adjustNote, setAdjustNote] = useState('');
   const [adjustSubmitting, setAdjustSubmitting] = useState(false);
 
+  const userInputId = useId();
   const debitInputId = useId();
   const creditInputId = useId();
   const amountInputId = useId();
@@ -144,16 +269,36 @@ export default function AdminReconciliationPage() {
 
   const openAdjustModal = (item: ReconciliationItemResponse) => {
     setAdjustingItem(item);
+    const defaultUid = '3';
+    setTargetUserId(defaultUid);
     const diff = Math.abs(item.vnpayAmount - item.internalAmount);
     setAdjustAmount(String(diff > 0 ? diff : item.vnpayAmount || item.internalAmount || 50000));
-    if (item.discrepancyType === 'MISSING_LEDGER') {
-      setDebitAccount('VNPAY_CLEARING');
-      setCreditAccount('RECONCILIATION_SUSPENSE');
-    } else {
-      setDebitAccount('RECONCILIATION_SUSPENSE');
-      setCreditAccount('VNPAY_CLEARING');
+    const presets = getPresetsForItem(item, defaultUid);
+    const first = presets[0];
+    setSelectedPresetId(first.id);
+    setDebitAccount(first.debitAccount);
+    setCreditAccount(first.creditAccount);
+    setAdjustNote(first.defaultNote);
+  };
+
+  const applyPreset = (preset: ResolutionPreset) => {
+    setSelectedPresetId(preset.id);
+    setDebitAccount(preset.debitAccount);
+    setCreditAccount(preset.creditAccount);
+    setAdjustNote(preset.defaultNote);
+  };
+
+  const handleTargetUserIdChange = (nextUid: string) => {
+    const cleanUid = nextUid.replace(/\D/g, '');
+    setTargetUserId(cleanUid);
+    if (!adjustingItem) return;
+    const presets = getPresetsForItem(adjustingItem, cleanUid || '3');
+    const matched = presets.find((p) => p.id === selectedPresetId);
+    if (matched) {
+      setDebitAccount(matched.debitAccount);
+      setCreditAccount(matched.creditAccount);
+      setAdjustNote(matched.defaultNote);
     }
-    setAdjustNote(`Điều chỉnh dòng lệch đối soát ${item.txnRef} (${item.discrepancyType})`);
   };
 
   const handleAdjustSubmit = async (e: FormEvent) => {
@@ -448,7 +593,11 @@ export default function AdminReconciliationPage() {
                         {item.discrepancyType === 'NONE' ? (
                           <span className="ui-muted">—</span>
                         ) : (
-                          <Badge tone="warning">{item.discrepancyType}</Badge>
+                          <span title={DISCREPANCY_LABELS[item.discrepancyType]?.summary}>
+                            <Badge tone={DISCREPANCY_LABELS[item.discrepancyType]?.tone || 'warning'}>
+                              {DISCREPANCY_LABELS[item.discrepancyType]?.label || item.discrepancyType}
+                            </Badge>
+                          </span>
                         )}
                       </td>
                       <td>
@@ -464,7 +613,7 @@ export default function AdminReconciliationPage() {
                           {item.status === 'MATCHED'
                             ? 'Khớp'
                             : item.status === 'ADJUSTED'
-                            ? 'Đã điều chỉnh'
+                            ? 'Đã xử lý'
                             : 'Lệch'}
                         </Badge>
                       </td>
@@ -484,7 +633,7 @@ export default function AdminReconciliationPage() {
                             onClick={() => openAdjustModal(item)}
                             icon={<Wrench size={14} />}
                           >
-                            Điều chỉnh
+                            Xử lý lệch
                           </Button>
                         ) : (
                           <span className="ui-muted">—</span>
@@ -503,87 +652,213 @@ export default function AdminReconciliationPage() {
       <Modal
         isOpen={!!adjustingItem}
         onClose={() => !adjustSubmitting && setAdjustingItem(null)}
-        title="Tạo bút toán điều chỉnh dòng lệch (UC-43)"
+        title="Xử lý dòng sai lệch đối soát (UC-43)"
         description={
           adjustingItem
-            ? `Xử lý dòng lệch ${adjustingItem.txnRef} (${adjustingItem.discrepancyType}) bằng bút toán sổ cái kép bất biến.`
+            ? `Mã tham chiếu ${adjustingItem.txnRef} — ${DISCREPANCY_LABELS[adjustingItem.discrepancyType]?.label || adjustingItem.discrepancyType}`
             : ''
         }
+        size="md"
       >
-        <form onSubmit={handleAdjustSubmit} className="ui-stack">
-          <Alert tone="warning">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-              <AlertTriangle size={16} />
-              <span>
-                Theo quy tắc <strong>BR-N-039</strong>, lịch sử sổ cái không bị sửa/xóa; hệ thống sẽ ghi một bút toán điều chỉnh mới cân bằng Nợ/Có.
-              </span>
-            </div>
-          </Alert>
+        {adjustingItem && (() => {
+          const info = DISCREPANCY_LABELS[adjustingItem.discrepancyType];
+          const presets = getPresetsForItem(adjustingItem, targetUserId);
+          const activePreset = presets.find((p) => p.id === selectedPresetId) || presets[0];
 
-          <Input
-            id={debitInputId}
-            label="Tài khoản ghi Nợ (Debit Account):"
-            value={debitAccount}
-            onChange={(e) => setDebitAccount(e.target.value.toUpperCase())}
-            placeholder="VD: VNPAY_CLEARING"
-            required
-          />
+          return (
+            <form onSubmit={handleAdjustSubmit} className="ui-stack">
+              {/* Giải thích dễ hiểu chuyện gì đang lệch */}
+              <div
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid var(--border-subtle)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                }}
+              >
+                <div style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+                  Vì sao giao dịch này bị lệch?
+                </div>
+                <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  {info?.summary}
+                </div>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                    gap: '8px',
+                    paddingTop: '8px',
+                    borderTop: '1px solid var(--border-subtle)',
+                    fontSize: '0.82rem',
+                  }}
+                >
+                  <div>
+                    <div style={{ color: 'var(--text-muted)' }}>Cổng VNPay</div>
+                    <strong style={{ color: 'var(--accent-cyan)' }}>
+                      {adjustingItem.vnpayAmount.toLocaleString('vi-VN')} đ
+                    </strong>
+                  </div>
+                  <div>
+                    <div style={{ color: 'var(--text-muted)' }}>Sổ cái FPTPost</div>
+                    <strong style={{ color: 'var(--text-primary)' }}>
+                      {adjustingItem.internalAmount.toLocaleString('vi-VN')} đ
+                    </strong>
+                  </div>
+                  <div>
+                    <div style={{ color: 'var(--text-muted)' }}>Chênh lệch</div>
+                    <strong style={{ color: 'var(--accent-amber)' }}>
+                      {Math.abs(adjustingItem.vnpayAmount - adjustingItem.internalAmount).toLocaleString('vi-VN')} đ
+                    </strong>
+                  </div>
+                </div>
+              </div>
 
-          <Input
-            id={creditInputId}
-            label="Tài khoản ghi Có (Credit Account):"
-            value={creditAccount}
-            onChange={(e) => setCreditAccount(e.target.value.toUpperCase())}
-            placeholder="VD: RECONCILIATION_SUSPENSE hoặc USER_WALLET_10"
-            required
-          />
+              {/* Chọn phương án xử lý bằng tiếng Việt thông thường */}
+              <div className="ui-stack" style={{ gap: '8px' }}>
+                <span style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Chọn cách xử lý:
+                </span>
+                {presets.map((preset) => {
+                  const selected = activePreset?.id === preset.id;
+                  return (
+                    <label
+                      key={preset.id}
+                      style={{
+                        display: 'flex',
+                        gap: '10px',
+                        alignItems: 'flex-start',
+                        padding: '10px 12px',
+                        borderRadius: 'var(--radius-md)',
+                        border: selected
+                          ? '1px solid var(--primary)'
+                          : '1px solid var(--border-subtle)',
+                        background: selected
+                          ? 'rgba(249, 115, 22, 0.08)'
+                          : 'rgba(255, 255, 255, 0.02)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="reconcile-preset"
+                        checked={selected}
+                        onChange={() => applyPreset(preset)}
+                        style={{ marginTop: '4px' }}
+                      />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                          {preset.title}
+                        </span>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                          {preset.description}
+                        </span>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
 
-          <Input
-            id={amountInputId}
-            label="Số tiền điều chỉnh (VNĐ):"
-            type="text"
-            inputMode="numeric"
-            value={adjustAmount}
-            onChange={(e) => setAdjustAmount(e.target.value.replace(/\D/g, ''))}
-            required
-          />
+              {activePreset?.needsUserId && (
+                <Input
+                  id={userInputId}
+                  label="ID tài khoản ví cần bù / thu hồi (VD: 3 cho sender@fptpost.vn):"
+                  value={targetUserId}
+                  onChange={(e) => handleTargetUserIdChange(e.target.value)}
+                  inputMode="numeric"
+                  placeholder="Nhập ID người dùng (số)"
+                  required
+                />
+              )}
 
-          <Input
-            id={noteInputId}
-            label="Lý do / Diễn giải bút toán điều chỉnh:"
-            value={adjustNote}
-            onChange={(e) => setAdjustNote(e.target.value)}
-            placeholder="Nhập lý do điều chỉnh dòng lệch..."
-            required
-          />
+              <Input
+                id={amountInputId}
+                label="Số tiền xử lý (VNĐ):"
+                type="text"
+                inputMode="numeric"
+                value={adjustAmount}
+                onChange={(e) => setAdjustAmount(e.target.value.replace(/\D/g, ''))}
+                required
+              />
 
-          <div className="ui-form-actions" style={{ marginTop: 'var(--space-3)' }}>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setAdjustingItem(null)}
-              disabled={adjustSubmitting}
-            >
-              Hủy
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              loading={adjustSubmitting}
-              loadingText="Đang ghi bút toán…"
-              disabled={
-                adjustSubmitting ||
-                !debitAccount.trim() ||
-                !creditAccount.trim() ||
-                debitAccount.trim() === creditAccount.trim() ||
-                Number(adjustAmount) <= 0 ||
-                !adjustNote.trim()
-              }
-            >
-              Xác nhận ghi bút toán điều chỉnh
-            </Button>
-          </div>
-        </form>
+              <Input
+                id={noteInputId}
+                label="Ghi chú lưu lịch sử kiểm toán:"
+                value={adjustNote}
+                onChange={(e) => setAdjustNote(e.target.value)}
+                placeholder="Nhập lý do xử lý dòng lệch..."
+                required
+              />
+
+              <details
+                style={{
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '8px 12px',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                }}
+              >
+                <summary style={{ cursor: 'pointer', fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                  Chi tiết tài khoản kế toán kép (Tự động điền sẵn — Nhấn nếu muốn sửa tay)
+                </summary>
+                <div className="ui-stack" style={{ marginTop: '10px', gap: '10px' }}>
+                  <Input
+                    id={debitInputId}
+                    label="Tài khoản ghi Nợ (Debit — Nguồn giảm / trung gian):"
+                    value={debitAccount}
+                    onChange={(e) => setDebitAccount(e.target.value.toUpperCase())}
+                    required
+                  />
+                  <Input
+                    id={creditInputId}
+                    label="Tài khoản ghi Có (Credit — Đích tăng / cân bằng):"
+                    value={creditAccount}
+                    onChange={(e) => setCreditAccount(e.target.value.toUpperCase())}
+                    required
+                  />
+                </div>
+              </details>
+
+              <Alert tone="warning">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                  <AlertTriangle size={16} />
+                  <span>
+                    Hệ thống giữ nguyên lịch sử cũ và tự ghi thêm 1 bút toán cân bằng Nợ/Có theo quy tắc <strong>BR-N-039</strong>.
+                  </span>
+                </div>
+              </Alert>
+
+              <div className="ui-form-actions" style={{ marginTop: 'var(--space-2)' }}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setAdjustingItem(null)}
+                  disabled={adjustSubmitting}
+                >
+                  Đóng
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  loading={adjustSubmitting}
+                  loadingText="Đang ghi bút toán…"
+                  disabled={
+                    adjustSubmitting ||
+                    !debitAccount.trim() ||
+                    !creditAccount.trim() ||
+                    debitAccount.trim() === creditAccount.trim() ||
+                    Number(adjustAmount) <= 0 ||
+                    !adjustNote.trim()
+                  }
+                >
+                  Xác nhận xử lý lệch
+                </Button>
+              </div>
+            </form>
+          );
+        })()}
       </Modal>
     </div>
   );
