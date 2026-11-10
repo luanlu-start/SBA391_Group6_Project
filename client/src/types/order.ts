@@ -167,6 +167,8 @@ export interface Order {
   createdAt: string;
   updatedAt?: string | null;
   imageUrls?: string[] | null;
+  isRelay?: boolean;
+  legs?: OrderLeg[];
 }
 
 export type OrderResponse = Order;
@@ -215,4 +217,62 @@ export interface PricingEstimateResponse {
   subtotalBeforeUrgency: number;
   totalEstimatedPrice: number;
   calculationMethod: string;
+}
+
+export interface RelayPoint {
+  address: string;
+  latitude: number;
+  longitude: number;
+  name?: string;
+}
+
+export interface OrderLeg {
+  id: number;
+  legNo: number;
+  pickupAddress: string;
+  pickupLatitude?: number;
+  pickupLongitude?: number;
+  deliveryAddress: string;
+  deliveryLatitude?: number;
+  deliveryLongitude?: number;
+  distanceKm: number;
+  legFee: number;
+  courierId?: number | null;
+  status: OrderStatus;
+  createdAt: string;
+}
+
+export interface RelayPricingEstimateRequest {
+  pickupLat?: number;
+  pickupLng?: number;
+  deliveryLat?: number;
+  deliveryLng?: number;
+  weightKg?: number;
+  declaredValue?: number;
+  urgency?: DeliveryUrgency;
+  relayPoints: RelayPoint[];
+}
+
+export interface LegPricingBreakdown {
+  legNo: number;
+  fromAddress: string;
+  toAddress: string;
+  distanceKm: number;
+  estimatedFee: number;
+  percentage: number;
+}
+
+export interface RelayPricingEstimateResponse {
+  totalDistanceKm: number;
+  totalEstimatedPrice: number;
+  urgency: DeliveryUrgency;
+  legs: LegPricingBreakdown[];
+}
+
+export interface RelayOrderRequest extends OrderRequest {
+  relayPoints: RelayPoint[];
+}
+
+export interface RelayOrderResponse extends Order {
+  legs: OrderLeg[];
 }
