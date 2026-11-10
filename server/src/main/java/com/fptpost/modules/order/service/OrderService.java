@@ -366,11 +366,11 @@ public class OrderService {
 //            }
 //        }
 
-        if (profile.getRestrictedUntil() != null && profile.getRestrictedUntil().isAfter(Instant.now())) {
+        if (profile != null && profile.getRestrictedUntil() != null && profile.getRestrictedUntil().isAfter(Instant.now())) {
             throw new AppException(OrderErrorCode.COURIER_ACCOUNT_RESTRICTED);
         }
 
-        CourierTier tier = profile.getTier() != null ? profile.getTier() : CourierTier.SILVER;
+        CourierTier tier = (profile != null && profile.getTier() != null) ? profile.getTier() : CourierTier.SILVER;
 
         //hạn mức giá trị bưu phẩm shipper có thể nhận, đang để mặc định 1000000
         BigDecimal highValueThreshold = new BigDecimal("1000000");
