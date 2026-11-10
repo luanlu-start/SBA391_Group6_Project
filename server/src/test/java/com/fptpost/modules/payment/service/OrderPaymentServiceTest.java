@@ -11,6 +11,8 @@ import com.fptpost.modules.order.repository.OrderRepository;
 import com.fptpost.modules.payment.config.VNPayConfig;
 import com.fptpost.modules.payment.dto.EscrowReleaseResponse;
 import com.fptpost.modules.payment.dto.EscrowResponse;
+import com.fptpost.modules.payment.dto.OrderPaymentRequest;
+import com.fptpost.modules.payment.dto.OrderPaymentResponse;
 import com.fptpost.modules.payment.exception.PaymentErrorCode;
 import com.fptpost.modules.payment.model.*;
 import com.fptpost.modules.payment.repository.EscrowRepository;
@@ -80,7 +82,7 @@ class OrderPaymentServiceTest {
 
     @BeforeEach
     void setUp() {
-        realLedgerService = new LedgerService(ledgerTransactionRepository);
+        realLedgerService = new LedgerService(ledgerTransactionRepository, walletRepository);
     }
 
     @Nested
@@ -444,6 +446,84 @@ class OrderPaymentServiceTest {
 
             assertThat(result).isSameAs(existing);
             verify(ledgerTransactionRepository, never()).save(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("4. Thanh toán ký quỹ đơn hàng (payOrder) - UC-35")
+    class PayOrderTests {
+
+        @Test
+        @DisplayName("Thanh toán ký quỹ bằng WALLET khi đơn ở trạng thái FINDING_SHIPPER -> tạo Escrow HELD, giữ đơn FINDING_SHIPPER để shipper nhận")
+        void payOrder_Success_OnFindingShipper() {
+            Order order = Order.builder()
+                    .id(ORDER_ID)
+                    .orderCode(ORDER_CODE)
+                    .senderId(SENDER_ID)
+                    .status(OrderStatus.FINDING_SHIPPER)
+                    .declaredValue(BigDecimal.valueOf(200_000L))
+                    .build();
+
+            Wallet senderWallet = Wallet.builder()
+                    .id(1L)
+                    .userId(SENDER_ID)
+                    .available(500_000L)
+                    .escrowHeld(0L)
+                    .pendingWithdraw(0L)
+                    .build();
+
+            OrderPaymentRequest req = OrderPaymentRequest.builder()
+                    .paymentMethod(EscrowPaymentMethod.WALLET)
+                    .build();
+
+            when(orderRepository.findById(ORDER_ID)).thenReturn(Optional.of(order));
+            when(escrowRepository.existsByOrderId(ORDER_ID)).thenReturn(false);
+            when(walletRepository.findByUserIdForUpdate(SENDER_ID)).thenReturn(Optional.of(senderWallet));
+
+            OrderPaymentResponse res = orderPaymentService.payOrder(SENDER_ID, ORDER_ID, req, null);
+
+            assertThat(res.getStatus()).isEqualTo("SUCCESS");
+            assertThat(res.getAmount()).isEqualTo(200_000L);
+            assertThat(order.getStatus()).isEqualTo(OrderStatus.FINDING_SHIPPER);
+            assertThat(senderWallet.getAvailable()).isEqualTo(300_000L);
+            assertThat(senderWallet.getEscrowHeld()).isEqualTo(200_000L);
+            verify(escrowRepository).save(any(Escrow.class));
+        }
+
+        @Test
+        @DisplayName("Thanh toán ký quỹ bằng WALLET khi đơn đã có shipper (AWAITING_PAYMENT) -> chuyển sang SHIPPER_ASSIGNED")
+        void payOrder_Success_OnAwaitingPayment() {
+            Order order = Order.builder()
+                    .id(ORDER_ID)
+                    .orderCode(ORDER_CODE)
+                    .senderId(SENDER_ID)
+                    .courierId(COURIER_ID)
+                    .status(OrderStatus.AWAITING_PAYMENT)
+                    .priceAgreed(BigDecimal.valueOf(180_000L))
+                    .build();
+
+            Wallet senderWallet = Wallet.builder()
+                    .id(1L)
+                    .userId(SENDER_ID)
+                    .available(500_000L)
+                    .escrowHeld(0L)
+                    .pendingWithdraw(0L)
+                    .build();
+
+            OrderPaymentRequest req = OrderPaymentRequest.builder()
+                    .paymentMethod(EscrowPaymentMethod.WALLET)
+                    .build();
+
+            when(orderRepository.findById(ORDER_ID)).thenReturn(Optional.of(order));
+            when(escrowRepository.existsByOrderId(ORDER_ID)).thenReturn(false);
+            when(walletRepository.findByUserIdForUpdate(SENDER_ID)).thenReturn(Optional.of(senderWallet));
+
+            OrderPaymentResponse res = orderPaymentService.payOrder(SENDER_ID, ORDER_ID, req, null);
+
+            assertThat(res.getStatus()).isEqualTo("SUCCESS");
+            assertThat(res.getAmount()).isEqualTo(180_000L);
+            assertThat(order.getStatus()).isEqualTo(OrderStatus.SHIPPER_ASSIGNED);
+            assertThat(senderWallet.getEscrowHeld()).isEqualTo(180_000L);
         }
     }
 }

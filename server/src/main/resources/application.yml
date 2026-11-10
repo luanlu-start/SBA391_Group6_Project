@@ -21,7 +21,7 @@ spring:
   datasource:
     url: ${SQLSERVER_URL:jdbc:sqlserver://${COMPUTERNAME}:1433;databaseName=group6_project_db;encrypt=true;trustServerCertificate=true}
     username: ${SQLSERVER_USERNAME:sa}
-    password: ${SQLSERVER_PASSWORD:123}
+    password: ${SQLSERVER_PASSWORD:sa}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
   jpa:
     open-in-view: false
@@ -110,6 +110,9 @@ app:
     login-lock-minutes: 15
     max-devices: 5
     cookie-secure: ${AUTH_COOKIE_SECURE:false}
+  payout:
+    # manual: Admin transfers and enters the reference; mock: settles instantly for demos.
+    provider: ${PAYOUT_PROVIDER:manual}
 
 # VNPay Payment Gateway Configuration
 vnpay:

@@ -56,6 +56,42 @@ public class WithdrawalRequest {
     @Column(name = "rejection_reason", length = 500)
     private String rejectionReason;
 
+    @Column(name = "first_approved_by")
+    private Long firstApprovedBy;
+
+    @Column(name = "first_approved_at")
+    private Instant firstApprovedAt;
+
+    @Column(name = "approved_by")
+    private Long approvedBy;
+
+    @Column(name = "approved_at")
+    private Instant approvedAt;
+
+    @Column(name = "rejected_by")
+    private Long rejectedBy;
+
+    @Column(name = "rejected_at")
+    private Instant rejectedAt;
+
+    @Column(name = "payout_provider", length = 30)
+    private String payoutProvider;
+
+    @Column(name = "payout_reference", length = 100)
+    private String payoutReference;
+
+    @Column(name = "payout_submitted_at")
+    private Instant payoutSubmittedAt;
+
+    @Column(name = "settled_by")
+    private Long settledBy;
+
+    @Column(name = "settled_at")
+    private Instant settledAt;
+
+    @Column(name = "failure_reason", length = 500)
+    private String failureReason;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

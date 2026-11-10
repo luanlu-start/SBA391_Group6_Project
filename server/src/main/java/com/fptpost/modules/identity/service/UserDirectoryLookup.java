@@ -1,5 +1,6 @@
 package com.fptpost.modules.identity.service;
 
+import com.fptpost.modules.identity.dto.response.UserAccountEntry;
 import com.fptpost.modules.identity.dto.response.UserDirectoryEntry;
 import com.fptpost.modules.identity.repository.UserDirectoryRepository;
 import lombok.RequiredArgsConstructor;
@@ -11,8 +12,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Locale;
 import java.util.Collection;
+import java.util.Map;
 import java.util.UUID;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /** Read-only cross-module directory access for administrative selectors, including historical/locked accounts. */
 @Service
@@ -40,5 +44,16 @@ public class UserDirectoryLookup {
             throw new IllegalArgumentException("Invalid directory lookup bounds");
         }
         return publicIds.isEmpty() ? List.of() : repository.findEntriesByPublicIds(publicIds);
+    }
+
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
+    public Map<Long, UserAccountEntry> accounts(Collection<Long> ids) {
+        if (ids == null || ids.size() > 1000 || ids.stream().anyMatch(Objects::isNull)) {
+            throw new IllegalArgumentException("Invalid directory lookup bounds");
+        }
+        if (ids.isEmpty()) return Map.of();
+        return repository.findAccountsByIds(ids).stream()
+                .collect(Collectors.toMap(UserAccountEntry::id, Function.identity()));
     }
 }

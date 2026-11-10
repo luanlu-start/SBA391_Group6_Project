@@ -13,12 +13,14 @@ export type OrderStatus =
   | 'IN_TRANSIT'
   | 'IN_DELIVERY'
   | 'DELIVERED'
+  | 'DISPUTED'
   | 'COMPLETED'
   | 'CANCELLED'
   | 'RETURNING'
   | 'RETURNED'
   | 'FAILED'
-  | 'EXPIRED';
+  | 'EXPIRED'
+  | 'REJECTED';
 
 export interface OrderStatusConfig {
   label: string;
@@ -26,7 +28,7 @@ export interface OrderStatusConfig {
 }
 
 export const ORDER_STATUS_MAP: Record<OrderStatus, OrderStatusConfig> = {
-  PENDING: { label: 'Chờ xử lý', tone: 'warning' },
+  PENDING: { label: 'Chờ kiểm duyệt', tone: 'warning' },
   DRAFT: { label: 'Bản nháp', tone: 'neutral' },
   PENDING_CONFIRMATION: { label: 'Chờ xác nhận', tone: 'warning' },
   CONFIRMED: { label: 'Đã xác nhận', tone: 'info' },
@@ -40,12 +42,14 @@ export const ORDER_STATUS_MAP: Record<OrderStatus, OrderStatusConfig> = {
   IN_TRANSIT: { label: 'Đang vận chuyển', tone: 'warning' },
   IN_DELIVERY: { label: 'Đang giao hàng', tone: 'warning' },
   DELIVERED: { label: 'Đã giao hàng', tone: 'success' },
+  DISPUTED: { label: 'Đang khiếu nại', tone: 'danger' },
   COMPLETED: { label: 'Hoàn thành', tone: 'success' },
   CANCELLED: { label: 'Đã hủy', tone: 'danger' },
   RETURNING: { label: 'Đang trả hàng', tone: 'warning' },
   RETURNED: { label: 'Đã trả hàng', tone: 'danger' },
   FAILED: { label: 'Thất bại', tone: 'danger' },
   EXPIRED: { label: 'Hết hạn', tone: 'danger' },
+  REJECTED: { label: 'Bị từ chối kiểm duyệt', tone: 'danger' },
 };
 
 export type DeliveryUrgency = 'STANDARD' | 'SAME_DAY' | 'EXPRESS_2H';
@@ -102,6 +106,7 @@ export interface MarketplaceOrderDetail {
   maskedReceiverPhone: string;
   productName: string;
   productDescription?: string | null;
+  categoryId?: number | null;
   quantity: number;
   weightKg: number;
   declaredValue?: number | null;
@@ -147,6 +152,7 @@ export interface Order {
   receiverPhone: string;
   productName: string;
   productDescription?: string | null;
+  categoryId?: number | null;
   quantity: number;
   weightKg: number;
   declaredValue?: number | null;
@@ -161,6 +167,8 @@ export interface Order {
   createdAt: string;
   updatedAt?: string | null;
   imageUrls?: string[] | null;
+  isRelay?: boolean;
+  legs?: OrderLeg[];
 }
 
 export type OrderResponse = Order;
@@ -177,6 +185,7 @@ export interface OrderRequest {
   receiverPhone: string;
   productName: string;
   productDescription?: string;
+  categoryId?: number;
   quantity: number;
   weightKg: number;
   declaredValue?: number;
@@ -208,4 +217,62 @@ export interface PricingEstimateResponse {
   subtotalBeforeUrgency: number;
   totalEstimatedPrice: number;
   calculationMethod: string;
+}
+
+export interface RelayPoint {
+  address: string;
+  latitude: number;
+  longitude: number;
+  name?: string;
+}
+
+export interface OrderLeg {
+  id: number;
+  legNo: number;
+  pickupAddress: string;
+  pickupLatitude?: number;
+  pickupLongitude?: number;
+  deliveryAddress: string;
+  deliveryLatitude?: number;
+  deliveryLongitude?: number;
+  distanceKm: number;
+  legFee: number;
+  courierId?: number | null;
+  status: OrderStatus;
+  createdAt: string;
+}
+
+export interface RelayPricingEstimateRequest {
+  pickupLat?: number;
+  pickupLng?: number;
+  deliveryLat?: number;
+  deliveryLng?: number;
+  weightKg?: number;
+  declaredValue?: number;
+  urgency?: DeliveryUrgency;
+  relayPoints: RelayPoint[];
+}
+
+export interface LegPricingBreakdown {
+  legNo: number;
+  fromAddress: string;
+  toAddress: string;
+  distanceKm: number;
+  estimatedFee: number;
+  percentage: number;
+}
+
+export interface RelayPricingEstimateResponse {
+  totalDistanceKm: number;
+  totalEstimatedPrice: number;
+  urgency: DeliveryUrgency;
+  legs: LegPricingBreakdown[];
+}
+
+export interface RelayOrderRequest extends OrderRequest {
+  relayPoints: RelayPoint[];
+}
+
+export interface RelayOrderResponse extends Order {
+  legs: OrderLeg[];
 }

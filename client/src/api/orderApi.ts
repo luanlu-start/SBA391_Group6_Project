@@ -1,7 +1,14 @@
 import axiosClient from './axiosClient';
 import type { ApiResponse } from '../types/api';
-import type { Order, OrderRequest, PricingEstimateRequest, PricingEstimateResponse } from '../types/order';
-import type { EscrowReleaseResponse, EscrowResponse, OrderPaymentRequest, OrderPaymentResponse } from '../types/payment';
+import type { Order, OrderLeg, OrderRequest, PricingEstimateRequest, PricingEstimateResponse, RelayOrderRequest, RelayOrderResponse, RelayPricingEstimateRequest, RelayPricingEstimateResponse } from '../types/order';
+import type {
+  EscrowReleaseResponse,
+  EscrowResponse,
+  OrderPaymentRequest,
+  OrderPaymentResponse,
+  RefundToSourceRequest,
+  RefundToSourceResponse,
+} from '../types/payment';
 
 export const orderApi = {
   create: (data: OrderRequest) => {
@@ -82,8 +89,33 @@ export const orderApi = {
     return axiosClient.get<unknown, ApiResponse<EscrowResponse>>(`/orders/${id}/escrow`);
   },
 
+  estimateRelayPricing: (data: RelayPricingEstimateRequest) => {
+    return axiosClient.post<unknown, ApiResponse<RelayPricingEstimateResponse>>('/orders/relay/estimate', data);
+  },
+
+  createRelay: (data: RelayOrderRequest) => {
+    return axiosClient.post<unknown, ApiResponse<RelayOrderResponse>>('/orders/relay', data);
+  },
+
+  getOrderLegs: (orderId: number | string) => {
+    return axiosClient.get<unknown, ApiResponse<OrderLeg[]>>(`/orders/${orderId}/legs`);
+  },
+
   releaseEscrow: (orderId: number | string) => {
     return axiosClient.post<unknown, ApiResponse<EscrowReleaseResponse>>(`/admin/escrow/${orderId}/release`);
+  },
+
+  refundToSource: (orderId: number | string, data?: RefundToSourceRequest) => {
+    return axiosClient.post<unknown, ApiResponse<RefundToSourceResponse>>(
+      `/orders/${orderId}/refund-to-source`,
+      data || {}
+    );
+  },
+
+  getRefundRequests: (orderId: number | string) => {
+    return axiosClient.get<unknown, ApiResponse<RefundToSourceResponse[]>>(
+      `/orders/${orderId}/refund-to-source`
+    );
   },
 };
 

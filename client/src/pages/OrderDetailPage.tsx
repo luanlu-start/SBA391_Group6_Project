@@ -13,7 +13,6 @@ import {
   Pencil,
   XCircle,
 } from 'lucide-react';
-import PickupQrPanel from '../components/order/PickupQrPanel';
 import type { Order } from '../types/order';
 import { ORDER_STATUS_MAP } from '../types/order';
 import { orderApi } from '../api/orderApi';
@@ -218,12 +217,6 @@ export default function OrderDetailPage() {
       <div className="ui-showcase-grid">
         {/* Left Column: Shipment & Product Details */}
         <div className="ui-stack">
-        {/* UC-25: QR xác nhận lấy hàng */}
-        {order.status === 'SHIPPER_ASSIGNED' && (
-          <SectionCard title="QR xác nhận lấy hàng">
-            <PickupQrPanel orderId={order.id} />
-          </SectionCard>
-        )}
           {/* Thông tin vận chuyển */}
           <SectionCard
             title="Thông tin vận chuyển & Tuyến đường"

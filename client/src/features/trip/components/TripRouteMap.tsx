@@ -5,13 +5,14 @@ import { getMapTileConfig } from '../../../utils/mapConfig';
 import { MapPin, Compass } from 'lucide-react';
 
 interface TripRouteMapProps {
-  originLat: number | null;
-  originLng: number | null;
-  destinationLat: number | null;
-  destinationLng: number | null;
+  originLat: number | null | undefined;
+  originLng: number | null | undefined;
+  destinationLat: number | null | undefined;
+  destinationLng: number | null | undefined;
   onSelectPoint?: (type: 'origin' | 'destination', lat: number, lng: number, address?: string) => void;
   onRouteCalculated?: (distanceKm: number, durationMinutes: number, polylineGeoJson?: string) => void;
   activePickingMode?: 'origin' | 'destination' | null;
+  routePolyline?: string;
 }
 
 export default function TripRouteMap({
@@ -22,45 +23,56 @@ export default function TripRouteMap({
   onSelectPoint,
   onRouteCalculated,
   activePickingMode,
+  routePolyline,
 }: TripRouteMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const originMarkerRef = useRef<L.CircleMarker | null>(null);
-  const destMarkerRef = useRef<L.CircleMarker | null>(null);
-  const routeLineRef = useRef<L.Polyline | null>(null);
+  const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
   const [calculatingRoute, setCalculatingRoute] = useState(false);
 
-  // Initialize Map
+  // 1. Initialize Map
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
+    if (!containerRef.current) return;
 
-    const defaultLat = originLat || 10.0299;
-    const defaultLng = originLng || 105.7705;
+    const oLat = originLat != null && !isNaN(Number(originLat)) ? Number(originLat) : 10.0299;
+    const oLng = originLng != null && !isNaN(Number(originLng)) ? Number(originLng) : 105.7705;
 
     const map = L.map(containerRef.current, {
       zoomControl: true,
       attributionControl: true,
-    }).setView([defaultLat, defaultLng], 13);
-    mapRef.current = map;
+    }).setView([oLat, oLng], 13);
 
+    // Free Google Maps / OpenStreetMap Tile Layer
     const tileConfig = getMapTileConfig();
     L.tileLayer(tileConfig.url, tileConfig.options).addTo(map);
 
-    const resizeTimer = setTimeout(() => {
+    setMapInstance(map);
+
+    // Container resize observer for smooth tab transitions
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => {
+        map.invalidateSize();
+      });
+      resizeObserver.observe(containerRef.current);
+    }
+
+    const timer = setTimeout(() => {
       map.invalidateSize();
-    }, 200);
+    }, 150);
 
     return () => {
-      clearTimeout(resizeTimer);
+      clearTimeout(timer);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
       map.remove();
-      mapRef.current = null;
+      setMapInstance(null);
     };
   }, []);
 
-  // Map Click Listener
+  // 2. Map Click Listener for picking mode
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !onSelectPoint || !activePickingMode) return;
+    if (!mapInstance || !onSelectPoint || !activePickingMode) return;
 
     const handleClick = async (e: L.LeafletMouseEvent) => {
       const lat = Number(e.latlng.lat.toFixed(6));
@@ -89,78 +101,148 @@ export default function TripRouteMap({
       onSelectPoint(activePickingMode, lat, lng, addressText);
     };
 
-    map.on('click', handleClick);
+    mapInstance.on('click', handleClick);
     return () => {
-      map.off('click', handleClick);
+      mapInstance.off('click', handleClick);
     };
-  }, [activePickingMode, onSelectPoint]);
+  }, [mapInstance, activePickingMode, onSelectPoint]);
 
-  // Update Markers & Route
+  // 3. Render Route and Markers
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
+    if (!mapInstance) return;
 
-    // Origin Marker (Green)
-    if (originLat && originLng) {
-      if (!originMarkerRef.current) {
-        originMarkerRef.current = L.circleMarker([originLat, originLng], {
-          color: '#10b981',
-          fillColor: '#34d399',
-          fillOpacity: 0.9,
-          weight: 3,
-          radius: 9,
-        }).addTo(map);
-        originMarkerRef.current.bindTooltip('Điểm xuất phát', {
-          permanent: true,
-          direction: 'top',
-          offset: [0, -10],
-          className: 'trip-map-tooltip origin',
-        });
-      } else {
-        originMarkerRef.current.setLatLng([originLat, originLng]);
-      }
-    } else if (originMarkerRef.current) {
-      originMarkerRef.current.remove();
-      originMarkerRef.current = null;
+    const oLat = originLat != null && !isNaN(Number(originLat)) ? Number(originLat) : null;
+    const oLng = originLng != null && !isNaN(Number(originLng)) ? Number(originLng) : null;
+    const dLat = destinationLat != null && !isNaN(Number(destinationLat)) ? Number(destinationLat) : null;
+    const dLng = destinationLng != null && !isNaN(Number(destinationLng)) ? Number(destinationLng) : null;
+
+    // Use a fresh layer group for this render cycle (100% clean, no leaks)
+    const layerGroup = L.layerGroup().addTo(mapInstance);
+
+    const createPinIcon = (type: 'origin' | 'destination') => {
+      return L.divIcon({
+        className: 'trip-custom-marker-wrapper',
+        html: `
+          <div class="trip-custom-marker">
+            <div class="trip-marker-pulse ${type}"></div>
+            <div class="trip-marker-pin ${type}">
+              <div class="trip-marker-inner"></div>
+            </div>
+          </div>
+        `,
+        iconSize: [26, 26],
+        iconAnchor: [13, 26],
+      });
+    };
+
+    // Add Origin Marker
+    if (oLat != null && oLng != null) {
+      const originMarker = L.marker([oLat, oLng], {
+        icon: createPinIcon('origin'),
+        zIndexOffset: 1000,
+      }).addTo(layerGroup);
+
+      originMarker.bindTooltip('Điểm xuất phát', {
+        permanent: true,
+        direction: 'top',
+        offset: [0, -28],
+        className: 'trip-map-tooltip origin',
+      });
     }
 
-    // Destination Marker (FPT Orange)
-    if (destinationLat && destinationLng) {
-      if (!destMarkerRef.current) {
-        destMarkerRef.current = L.circleMarker([destinationLat, destinationLng], {
-          color: '#f37021',
-          fillColor: '#ff8a42',
-          fillOpacity: 0.9,
-          weight: 3,
-          radius: 9,
-        }).addTo(map);
-        destMarkerRef.current.bindTooltip('Điểm đến', {
-          permanent: true,
-          direction: 'top',
-          offset: [0, -10],
-          className: 'trip-map-tooltip destination',
-        });
-      } else {
-        destMarkerRef.current.setLatLng([destinationLat, destinationLng]);
-      }
-    } else if (destMarkerRef.current) {
-      destMarkerRef.current.remove();
-      destMarkerRef.current = null;
+    // Add Destination Marker
+    if (dLat != null && dLng != null) {
+      const destMarker = L.marker([dLat, dLng], {
+        icon: createPinIcon('destination'),
+        zIndexOffset: 1000,
+      }).addTo(layerGroup);
+
+      destMarker.bindTooltip('Điểm đến', {
+        permanent: true,
+        direction: 'top',
+        offset: [0, -28],
+        className: 'trip-map-tooltip destination',
+      });
     }
 
-    // Calculate Routing if both points exist
-    if (originLat && originLng && destinationLat && destinationLng) {
+    // Helper to draw dual-stroke high-contrast route
+    const drawRouteOnMap = (coords: [number, number][]) => {
+      // Background Glow
+      L.polyline(coords, {
+        color: '#f37021',
+        weight: 8,
+        opacity: 0.35,
+        lineCap: 'round',
+        lineJoin: 'round',
+      }).addTo(layerGroup);
+
+      // Core Line
+      L.polyline(coords, {
+        color: '#ff8a42',
+        weight: 4,
+        opacity: 0.95,
+        lineCap: 'round',
+        lineJoin: 'round',
+      }).addTo(layerGroup);
+
+      const bounds = L.latLngBounds(coords);
+      mapInstance.invalidateSize();
+      mapInstance.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+
+      setTimeout(() => {
+        if (mapInstance) {
+          mapInstance.invalidateSize();
+          mapInstance.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+        }
+      }, 200);
+    };
+
+    // Draw route if both points exist
+    if (oLat != null && oLng != null && dLat != null && dLng != null) {
+      // 1. Try saved routePolyline
+      if (routePolyline) {
+        try {
+          const parsed = JSON.parse(routePolyline);
+          let rawCoordinates: [number, number][] | undefined;
+
+          if (Array.isArray(parsed?.coordinates)) {
+            rawCoordinates = parsed.coordinates;
+          } else if (Array.isArray(parsed?.geometry?.coordinates)) {
+            rawCoordinates = parsed.geometry.coordinates;
+          } else if (Array.isArray(parsed) && parsed.length > 0) {
+            rawCoordinates = parsed;
+          }
+
+          if (rawCoordinates && rawCoordinates.length > 0) {
+            const coords: [number, number][] = rawCoordinates.map((c) => {
+              if (c[0] > 90 || c[0] < -90) {
+                return [c[1], c[0]]; // [lng, lat] -> [lat, lng]
+              }
+              return [c[0], c[1]];
+            });
+
+            drawRouteOnMap(coords);
+            return () => {
+              layerGroup.remove();
+            };
+          }
+        } catch {
+          // Fall through to OSRM
+        }
+      }
+
+      // 2. Fetch driving route from OSRM
+      let isCancelled = false;
       setCalculatingRoute(true);
 
       const fetchRoute = async () => {
         try {
-          // OSRM Driving public route
-          const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${originLng},${originLat};${destinationLng},${destinationLat}?overview=full&geometries=geojson`;
+          const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${oLng},${oLat};${dLng},${dLat}?overview=full&geometries=geojson`;
           const response = await fetch(osrmUrl);
 
-          if (response.ok) {
+          if (!isCancelled && response.ok) {
             const data = await response.json();
-            if (data?.routes?.[0]) {
+            if (data?.routes?.[0]?.geometry?.coordinates) {
               const route = data.routes[0];
               const distKm = Number((route.distance / 1000).toFixed(1));
               const durMin = Math.round(route.duration / 60);
@@ -168,23 +250,7 @@ export default function TripRouteMap({
                 (c: [number, number]) => [c[1], c[0]]
               );
 
-              if (routeLineRef.current) {
-                routeLineRef.current.setLatLngs(coordinates);
-              } else {
-                routeLineRef.current = L.polyline(coordinates, {
-                  color: '#f37021',
-                  weight: 5,
-                  opacity: 0.85,
-                  smoothFactor: 1,
-                }).addTo(map);
-              }
-
-              // Fit map bounds
-              const bounds = L.latLngBounds([
-                [originLat, originLng],
-                [destinationLat, destinationLng],
-              ]);
-              map.fitBounds(bounds, { padding: [50, 50] });
+              drawRouteOnMap(coordinates);
 
               if (onRouteCalculated) {
                 onRouteCalculated(distKm, durMin, JSON.stringify(route.geometry));
@@ -194,61 +260,49 @@ export default function TripRouteMap({
           }
           throw new Error('OSRM routing unavailable');
         } catch {
-          // Fallback according to BR-C-021: Haversine distance * 1.3
-          const R = 6371; // km
-          const dLat = ((destinationLat - originLat) * Math.PI) / 180;
-          const dLon = ((destinationLng - originLng) * Math.PI) / 180;
-          const a =
-            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos((originLat * Math.PI) / 180) *
-              Math.cos((destinationLat * Math.PI) / 180) *
-              Math.sin(dLon / 2) *
-              Math.sin(dLon / 2);
-          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-          const directKm = R * c;
-          const fallbackKm = Number((directKm * 1.3).toFixed(1));
-          const fallbackMin = Math.round((fallbackKm / 30) * 60); // approx 30km/h
+          if (!isCancelled) {
+            // Direct fallback connection
+            const coords: [number, number][] = [
+              [oLat, oLng],
+              [dLat, dLng],
+            ];
 
-          const coords: [number, number][] = [
-            [originLat, originLng],
-            [destinationLat, destinationLng],
-          ];
-
-          if (routeLineRef.current) {
-            routeLineRef.current.setLatLngs(coords);
-          } else {
-            routeLineRef.current = L.polyline(coords, {
+            L.polyline(coords, {
               color: '#f37021',
               weight: 4,
               dashArray: '8, 8',
-              opacity: 0.8,
-            }).addTo(map);
-          }
+              opacity: 0.9,
+            }).addTo(layerGroup);
 
-          const bounds = L.latLngBounds(coords);
-          map.fitBounds(bounds, { padding: [50, 50] });
-
-          if (onRouteCalculated) {
-            onRouteCalculated(fallbackKm, fallbackMin, undefined);
+            const bounds = L.latLngBounds(coords);
+            mapInstance.invalidateSize();
+            mapInstance.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
           }
         } finally {
-          setCalculatingRoute(false);
+          if (!isCancelled) {
+            setCalculatingRoute(false);
+          }
         }
       };
 
       fetchRoute();
+
+      return () => {
+        isCancelled = true;
+        layerGroup.remove();
+      };
     } else {
-      if (routeLineRef.current) {
-        routeLineRef.current.remove();
-        routeLineRef.current = null;
+      // Only 1 point or none
+      if (oLat != null && oLng != null) {
+        mapInstance.setView([oLat, oLng], 14);
+      } else if (dLat != null && dLng != null) {
+        mapInstance.setView([dLat, dLng], 14);
       }
-      if (originLat && originLng) {
-        map.setView([originLat, originLng], 14);
-      } else if (destinationLat && destinationLng) {
-        map.setView([destinationLat, destinationLng], 14);
-      }
+      return () => {
+        layerGroup.remove();
+      };
     }
-  }, [originLat, originLng, destinationLat, destinationLng]);
+  }, [mapInstance, originLat, originLng, destinationLat, destinationLng, routePolyline]);
 
   return (
     <div className="trip-map-wrapper">
@@ -265,7 +319,7 @@ export default function TripRouteMap({
       {calculatingRoute && (
         <div className="trip-map-loading-banner">
           <Compass size={15} className="spin-icon" />
-          <span>Đang tính toán tuyến đường tối ưu...</span>
+          <span>Đang tải lộ trình đường đi...</span>
         </div>
       )}
     </div>

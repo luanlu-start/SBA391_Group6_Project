@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import { MapPin, Check, Loader2, Navigation } from 'lucide-react';
 import Modal from '../../../components/ui/Modal';
 import Button from '../../../components/ui/Button';
+import { getMapTileConfig } from '../../../utils/mapConfig';
 
 interface MapPickerModalProps {
   isOpen: boolean;
@@ -57,15 +58,8 @@ export default function MapPickerModal({
       }).setView([selectedLat, selectedLng], 14);
       mapRef.current = map;
 
-      // Use Google Maps raster tiles: Free, ultra-fast CDN in VN, no API key required, highly detailed Vietnamese street names
-      L.tileLayer(
-        'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
-        {
-          attribution: '&copy; Google Maps',
-          subdomains: ['0', '1', '2', '3'],
-          maxZoom: 20,
-        }
-      ).addTo(map);
+      const tileConfig = getMapTileConfig();
+      L.tileLayer(tileConfig.url, tileConfig.options).addTo(map);
 
       // Distinct, visible FPTPost brand SVG circle marker
       const marker = L.circleMarker([selectedLat, selectedLng], {

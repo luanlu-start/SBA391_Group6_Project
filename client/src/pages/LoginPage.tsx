@@ -12,7 +12,7 @@ export default function LoginPage() {
   const state = location.state as { passwordReset?: boolean; passwordChanged?: boolean; contactChanged?: boolean } | null;
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
-  if (user) return <Navigate to={getLoginDestination(location.state)} replace />;
+  if (user) return <Navigate to={getLoginDestination(location.state, user.roles)} replace />;
 
   return (
     <AuthLayout>

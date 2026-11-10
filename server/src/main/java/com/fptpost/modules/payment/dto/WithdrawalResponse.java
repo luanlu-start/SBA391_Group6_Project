@@ -52,6 +52,12 @@ public class WithdrawalResponse {
     @Schema(description = "Lý do từ chối nếu có")
     private String rejectionReason;
 
+    @Schema(description = "Nguyên nhân chi thất bại nếu có")
+    private String failureReason;
+
+    @Schema(description = "Mã tham chiếu chuyển khoản khi đã chi")
+    private String payoutReference;
+
     @Schema(description = "Thời gian tạo yêu cầu")
     private Instant createdAt;
 

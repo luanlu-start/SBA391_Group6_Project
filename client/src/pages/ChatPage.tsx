@@ -18,6 +18,7 @@ import {
 } from '../features/chat/schemas/chatMessageSchema';
 import type { ChatRoom } from '../types/chat';
 import '../styles/chat.css';
+import ReportViolationButton from '../features/violation-reports/components/ReportViolationButton';
 
 export default function ChatPage() {
   const { orderId } = useParams();
@@ -251,6 +252,9 @@ function ConversationPanel({ room }: { room: ChatRoom }) {
                 <time dateTime={message.createdAt}>
                   {new Date(message.createdAt).toLocaleString('vi-VN')}
                 </time>
+
+                <ReportViolationButton targetType="MESSAGE" targetId={message.id}
+                  targetName={`Tin nhắn: ${message.content.slice(0, 80)}`} />
               </article>
             );
           })}

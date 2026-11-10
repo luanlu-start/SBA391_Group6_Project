@@ -2,7 +2,6 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuthentication } from '../auth/useAuthentication';
 import { useCourier } from '../features/courier/hooks/useCourier';
 import CourierRegistrationForm from '../features/courier/components/CourierRegistrationForm';
-import AccountNavigation from '../features/profile/components/AccountNavigation';
 import PageHeader from '../components/ui/PageHeader';
 import SectionCard from '../components/ui/SectionCard';
 import Alert from '../components/ui/Alert';
@@ -16,7 +15,7 @@ export default function CourierRegisterPage() {
   if (initializing) return <p role="status">Đang kiểm tra phiên đăng nhập…</p>;
   if (!user) return <Navigate to="/login" replace />;
   if (courier.status?.profile) return <Navigate to="/courier" replace />;
-  return <div className="ui-stack account-page"><PageHeader eyebrow="Người giao" title="Trở thành người giao" description="Chọn phương tiện, khu vực và thời gian phù hợp với hành trình của bạn." /><AccountNavigation />
+  return <div className="ui-stack account-page"><PageHeader eyebrow="Người giao" title="Trở thành người giao" description="Chọn phương tiện, khu vực và thời gian phù hợp với hành trình của bạn." />
     {courier.loading ? <p role="status">Đang kiểm tra điều kiện đăng ký…</p> : courier.error ? <><ApiErrorNotice error={courier.error} /><Button onClick={courier.reload}>Thử lại</Button></> : courier.status &&
       (courier.status.eligible ? <SectionCard title="Thông tin hoạt động"><CourierRegistrationForm commitmentVersion={courier.status.commitmentVersion} onRegistered={() => navigate('/courier', { replace: true, state: { registered: true } })} /></SectionCard>
         : <SectionCard title="Xác minh danh tính trước khi đăng ký"><div className="ui-stack"><Alert tone="info">

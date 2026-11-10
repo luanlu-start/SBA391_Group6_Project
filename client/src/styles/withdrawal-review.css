@@ -1,0 +1,25 @@
+.withdrawal-review-filter-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: var(--space-4); }
+.withdrawal-review-filter-footer {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap;
+  margin-top: var(--space-5);
+}
+.withdrawal-review-muted { color: var(--text-secondary); font-size: .875rem; }
+.withdrawal-review-code { font-family: var(--font-mono); overflow-wrap: anywhere; }
+.withdrawal-review-time { white-space: nowrap; }
+.withdrawal-review-cell { display: grid; gap: var(--space-1); min-width: 150px; }
+.withdrawal-review-badges { display: flex; flex-wrap: wrap; gap: var(--space-2); min-width: 110px; }
+.withdrawal-review-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
+.withdrawal-review-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); margin: 0; }
+.withdrawal-review-grid div { min-width: 0; }
+.withdrawal-review-grid dt { color: var(--text-secondary); font-size: .8125rem; margin-bottom: var(--space-1); }
+.withdrawal-review-grid dd { margin: 0; overflow-wrap: anywhere; }
+.withdrawal-review-panel { border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: var(--space-4); }
+.withdrawal-review-panel h3 { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-3); font-size: 1rem; }
+.withdrawal-review-timeline { display: grid; gap: var(--space-2); margin: 0; padding-left: var(--space-5); }
+.withdrawal-review-decision { border-top: 1px solid var(--border-subtle); padding-top: var(--space-4); }
+.withdrawal-review-errors { margin: var(--space-2) 0 0; padding-left: var(--space-5); }
+@media (max-width: 960px) { .withdrawal-review-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) {
+  .withdrawal-review-filter-grid, .withdrawal-review-grid { grid-template-columns: minmax(0, 1fr); }
+  .withdrawal-review-actions > .ui-button { flex: 1 1 auto; }
+}

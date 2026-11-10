@@ -51,6 +51,10 @@ public class OrderService {
     private final OrderMapper orderMapper;
     private final PricingCalculatorService pricingCalculatorService;
     private final CourierProfileRepository courierProfileRepository;
+    private final OrderSubmissionScreening orderSubmissionScreening;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.fptpost.modules.payment.service.OrderPaymentService orderPaymentService;
 
     @Transactional
     public OrderResponse createOrder(Long senderId, OrderRequest request) {
@@ -80,6 +84,7 @@ public class OrderService {
         }
 
         Order saved = orderRepository.save(order);
+        orderSubmissionScreening.screen(saved);
         return orderMapper.toResponse(saved);
     }
 
@@ -97,7 +102,8 @@ public class OrderService {
             throw new AppException(OrderErrorCode.ORDER_ACCESS_DENIED);
         }
 
-        if (order.getStatus() != OrderStatus.PENDING) {
+        boolean openWithoutCourier = order.getStatus() == OrderStatus.FINDING_SHIPPER && order.getCourierId() == null;
+        if (order.getStatus() != OrderStatus.PENDING && !openWithoutCourier) {
             throw new AppException(OrderErrorCode.ORDER_CANNOT_BE_EDITED);
         }
 
@@ -121,6 +127,7 @@ public class OrderService {
         }
 
         Order updated = orderRepository.save(order);
+        orderSubmissionScreening.screen(updated);
         return orderMapper.toResponse(updated);
     }
 
@@ -156,7 +163,12 @@ public class OrderService {
             throw new AppException(OrderErrorCode.ORDER_ACCESS_DENIED);
         }
 
-        if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.FINDING_SHIPPER) {
+        if (order.getStatus() != OrderStatus.PENDING
+                && order.getStatus() != OrderStatus.PENDING_ESCROW
+                && order.getStatus() != OrderStatus.ESCROWED
+                && order.getStatus() != OrderStatus.FINDING_SHIPPER
+                && order.getStatus() != OrderStatus.AWAITING_PAYMENT
+                && order.getStatus() != OrderStatus.SHIPPER_ASSIGNED) {
             throw new AppException(OrderErrorCode.ORDER_CANNOT_BE_CANCELLED);
         }
 
@@ -169,11 +181,20 @@ public class OrderService {
         }
 
         Order updated = orderRepository.save(order);
+        if (orderPaymentService != null) {
+            orderPaymentService.refundEscrowIfHeldOnCancel(id, false, reason);
+        }
         return orderMapper.toResponse(updated);
     }
 
     public OrderResponse getOrderById(Long id) {
         Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new AppException(OrderErrorCode.ORDER_NOT_FOUND));
+        return orderMapper.toResponse(order);
+    }
+
+    public OrderResponse getOrderByCode(String orderCode) {
+        Order order = orderRepository.findByOrderCode(orderCode == null ? "" : orderCode.trim())
                 .orElseThrow(() -> new AppException(OrderErrorCode.ORDER_NOT_FOUND));
         return orderMapper.toResponse(order);
     }
@@ -351,11 +372,11 @@ public class OrderService {
 //            }
 //        }
 
-        if (profile.getRestrictedUntil() != null && profile.getRestrictedUntil().isAfter(Instant.now())) {
+        if (profile != null && profile.getRestrictedUntil() != null && profile.getRestrictedUntil().isAfter(Instant.now())) {
             throw new AppException(OrderErrorCode.COURIER_ACCOUNT_RESTRICTED);
         }
 
-        CourierTier tier = profile.getTier() != null ? profile.getTier() : CourierTier.SILVER;
+        CourierTier tier = (profile != null && profile.getTier() != null) ? profile.getTier() : CourierTier.SILVER;
 
         //hạn mức giá trị bưu phẩm shipper có thể nhận, đang để mặc định 1000000
         BigDecimal highValueThreshold = new BigDecimal("1000000");
@@ -386,7 +407,11 @@ public class OrderService {
         }
 
         order.setCourierId(courierUser.getId());
-        order.setStatus(OrderStatus.AWAITING_PAYMENT);
+        if (orderPaymentService != null && orderPaymentService.hasHeldEscrow(order.getId())) {
+            order.setStatus(OrderStatus.SHIPPER_ASSIGNED);
+        } else {
+            order.setStatus(OrderStatus.AWAITING_PAYMENT);
+        }
 
         BigDecimal agreedPrice = order.getPriceSuggested() != null ? order.getPriceSuggested()
                 : (order.getDeclaredValue() != null ? order.getDeclaredValue() : BigDecimal.valueOf(30000));

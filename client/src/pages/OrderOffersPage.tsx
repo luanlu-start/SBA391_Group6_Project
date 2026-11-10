@@ -17,8 +17,11 @@ import {
 } from 'lucide-react';
 import { offerApi } from '../api/offerApi';
 import { orderApi } from '../api/orderApi';
+import { invitationApi } from '../api/invitationApi';
 import type { Offer, OfferAcceptResponse } from '../types/offer';
 import { OFFER_STATUS_MAP } from '../types/offer';
+import type { Invitation } from '../types/invitation';
+import { INVITATION_STATUS_MAP } from '../types/invitation';
 import type { Order } from '../types/order';
 import { ORDER_STATUS_MAP } from '../types/order';
 import { getApiError, type ApiError } from '../api/ApiError';
@@ -29,6 +32,8 @@ import Badge from '../components/ui/Badge';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ApiErrorNotice from '../components/ApiErrorNotice';
 import Modal from '../components/ui/Modal';
+import InviteCourierModal from '../features/order/components/InviteCourierModal';
+import SuggestedCouriersCard from '../features/matching/components/SuggestedCouriersCard';
 
 const numberFormat = new Intl.NumberFormat('vi-VN');
 
@@ -38,6 +43,9 @@ export default function OrderOffersPage(): React.ReactElement {
 
     const [order, setOrder] = useState<Order | null>(null);
     const [offers, setOffers] = useState<Offer[]>([]);
+    const [invitations, setInvitations] = useState<Invitation[]>([]);
+    const [isInviteModalOpen, setIsInviteModalOpen] = useState<boolean>(false);
+    const [invitedCourierId, setInvitedCourierId] = useState<number | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [actionLoading, setActionLoading] = useState<boolean>(false);
     const [error, setError] = useState<ApiError | null>(null);
@@ -60,12 +68,14 @@ export default function OrderOffersPage(): React.ReactElement {
         setLoading(true);
         setError(null);
         try {
-            const [orderRes, offersRes] = await Promise.all([
+            const [orderRes, offersRes, invRes] = await Promise.all([
                 orderApi.getById(id),
                 offerApi.getOffersForOrder(id),
+                invitationApi.getOrderInvitations(id).catch(() => ({ data: [] })),
             ]);
             setOrder(orderRes.data);
             setOffers(offersRes.data || []);
+            setInvitations((invRes as { data?: Invitation[] })?.data || []);
         } catch (err) {
             setError(getApiError(err));
         } finally {
@@ -137,6 +147,20 @@ export default function OrderOffersPage(): React.ReactElement {
         }
     };
 
+    const handleCancelInvitation = async (invitationId: number) => {
+        if (!id || !window.confirm('Bạn có chắc chắn muốn hủy lời mời giao hàng này?')) return;
+        setActionLoading(true);
+        setActionError(null);
+        try {
+            await invitationApi.cancelInvitation(id, invitationId);
+            await loadData();
+        } catch (err) {
+            setActionError(getApiError(err));
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
     if (loading) {
         return <LoadingSpinner text="Đang tải danh sách chào giá cho đơn hàng…" />;
     }
@@ -186,6 +210,15 @@ export default function OrderOffersPage(): React.ReactElement {
                         <Badge dot tone={orderStatusConfig.tone}>
                             {orderStatusConfig.label}
                         </Badge>
+                        {isOrderOpen && (
+                            <Button
+                                variant="primary"
+                                icon={<Send size={16} />}
+                                onClick={() => setIsInviteModalOpen(true)}
+                            >
+                                Mời tài xế trực tiếp
+                            </Button>
+                        )}
                         <Button
                             variant="ghost"
                             icon={<ArrowLeft size={16} />}
@@ -283,6 +316,179 @@ export default function OrderOffersPage(): React.ReactElement {
                         </div>
                     </div>
                 </div>
+            </SectionCard>
+
+            {/* Tài xế tiện đường gợi ý (Ghép đơn - chuyến) */}
+            <SuggestedCouriersCard
+                orderId={order.id}
+                isOrderOpen={isOrderOpen}
+                onInviteCourier={(courierId) => {
+                    setInvitedCourierId(courierId);
+                    setIsInviteModalOpen(true);
+                }}
+            />
+
+            {/* Lời mời trực tiếp */}
+            <SectionCard
+                title={`Lời mời trực tiếp (${invitations.length})`}
+                description="Gửi lời mời trực tiếp cho các bưu tá tin cậy hoặc từ danh sách yêu thích"
+                actions={
+                    isOrderOpen ? (
+                        <Button
+                            variant="primary"
+                            icon={<Send size={15} />}
+                            onClick={() => setIsInviteModalOpen(true)}
+                        >
+                            Mời tài xế trực tiếp
+                        </Button>
+                    ) : undefined
+                }
+            >
+                {invitations.length === 0 ? (
+                    <div
+                        style={{
+                            padding: '24px',
+                            textAlign: 'center',
+                            background: 'var(--bg-secondary)',
+                            borderRadius: 'var(--radius-md)',
+                            color: 'var(--text-muted)',
+                            border: '1px dashed var(--border-subtle)',
+                        }}
+                    >
+                        <Send size={24} style={{ opacity: 0.4, marginBottom: '6px' }} />
+                        <p style={{ margin: 0, fontSize: '0.875rem' }}>
+                            Chưa có lời mời trực tiếp nào được gửi cho đơn hàng này.
+                        </p>
+                        {isOrderOpen && (
+                            <div style={{ marginTop: '10px' }}>
+                                <Button
+                                    variant="primary"
+                                    icon={<Send size={14} />}
+                                    onClick={() => setIsInviteModalOpen(true)}
+                                >
+                                    Mời tài xế ngay
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
+                        {invitations.map((inv) => {
+                            const statusConf = INVITATION_STATUS_MAP[inv.status] || {
+                                label: inv.status,
+                                tone: 'neutral',
+                                description: '',
+                            };
+                            return (
+                                <div
+                                    key={inv.id}
+                                    style={{
+                                        padding: '16px',
+                                        borderRadius: 'var(--radius-md)',
+                                        background: 'var(--bg-secondary)',
+                                        border: '1px solid var(--border-subtle)',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        justifyContent: 'space-between',
+                                        gap: '12px',
+                                    }}
+                                >
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <div
+                                                    style={{
+                                                        width: '38px',
+                                                        height: '38px',
+                                                        borderRadius: '50%',
+                                                        background: 'var(--brand-soft)',
+                                                        color: 'var(--primary)',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        fontWeight: 600,
+                                                        border: '1px solid var(--brand-border)',
+                                                    }}
+                                                >
+                                                    {inv.courierName ? inv.courierName.charAt(0).toUpperCase() : 'T'}
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.92rem' }}>
+                                                        {inv.courierName}
+                                                    </div>
+                                                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                                                        {inv.courierPhone || 'Bưu tá FPTPost'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <Badge dot tone={statusConf.tone}>
+                                                {statusConf.label}
+                                            </Badge>
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                                            <Badge tone="neutral">
+                                                {inv.courierTier || 'Tài xế'}
+                                            </Badge>
+                                            <Badge tone="warning">
+                                                ★ {inv.courierTrustScore ?? 50} điểm
+                                            </Badge>
+                                            <Badge tone="info">
+                                                {inv.courierCompletedOrders ?? 0} đơn
+                                            </Badge>
+                                        </div>
+
+                                        {inv.message && (
+                                            <div
+                                                style={{
+                                                    fontSize: '0.8125rem',
+                                                    color: 'var(--text-secondary)',
+                                                    background: 'var(--bg-tertiary)',
+                                                    padding: '8px 10px',
+                                                    borderRadius: 'var(--radius-sm)',
+                                                    fontStyle: 'italic',
+                                                }}
+                                            >
+                                                &quot;{inv.message}&quot;
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div
+                                        style={{
+                                            borderTop: '1px solid var(--border-subtle)',
+                                            paddingTop: '8px',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            fontSize: '0.75rem',
+                                            color: 'var(--text-muted)',
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            <Clock size={12} />
+                                            <span>
+                                                Hết hạn: {new Date(inv.expiresAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}{' '}
+                                                {new Date(inv.expiresAt).toLocaleDateString('vi-VN')}
+                                            </span>
+                                        </div>
+
+                                        {inv.status === 'PENDING' && (
+                                            <Button
+                                                variant="danger"
+                                                onClick={() => handleCancelInvitation(inv.id)}
+                                                disabled={actionLoading}
+                                                style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                                            >
+                                                Hủy lời mời
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </SectionCard>
 
             {/* Offers List */}
@@ -728,6 +934,21 @@ export default function OrderOffersPage(): React.ReactElement {
                     </div>
                 </div>
             </Modal>
+
+            {/* Modal: Mời tài xế giao hàng trực tiếp */}
+            {id && (
+                <InviteCourierModal
+                    isOpen={isInviteModalOpen}
+                    onClose={() => {
+                        setIsInviteModalOpen(false);
+                        setInvitedCourierId(null);
+                    }}
+                    orderId={id}
+                    orderCode={order.orderCode}
+                    onSuccess={loadData}
+                    initialCourierId={invitedCourierId}
+                />
+            )}
         </div>
     );
 }

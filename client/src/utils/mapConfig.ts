@@ -14,7 +14,6 @@ export function getMapTileConfig(): MapTileConfig {
 
   switch (provider) {
     case 'geoapify': {
-      // Free Geoapify demo/fallback key if none provided
       const key = apiKey || '6c478a5e0d37446bb38258dc7117830b';
       return {
         url: `https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}.png?apiKey=${key}`,
@@ -32,16 +31,6 @@ export function getMapTileConfig(): MapTileConfig {
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
           maxZoom: 19,
           subdomains: ['a', 'b', 'c'],
-        },
-      };
-
-    case 'voyager':
-      return {
-        url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-        options: {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-          maxZoom: 19,
-          subdomains: ['a', 'b', 'c', 'd'],
         },
       };
 

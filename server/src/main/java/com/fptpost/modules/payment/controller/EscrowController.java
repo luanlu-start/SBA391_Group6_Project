@@ -7,9 +7,12 @@ import com.fptpost.modules.identity.model.User;
 import com.fptpost.modules.identity.repository.UserRepository;
 import com.fptpost.modules.payment.dto.EscrowReleaseResponse;
 import com.fptpost.modules.payment.dto.EscrowResponse;
+import com.fptpost.modules.payment.dto.RefundToSourceRequest;
+import com.fptpost.modules.payment.dto.RefundToSourceResponse;
 import com.fptpost.modules.payment.service.OrderPaymentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +22,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -65,6 +69,32 @@ public class EscrowController {
 
         EscrowReleaseResponse response = orderPaymentService.releaseEscrow(orderId, operatorUserId, isAdmin);
         return ResponseEntity.ok(ApiResponse.success("Giải ngân tiền ký quỹ cho người giao hàng thành công", response));
+    }
+
+    @Operation(summary = "Yêu cầu hoàn tiền đơn hàng về nguồn VNPay (UC-37, API-091)",
+            description = "Người gửi yêu cầu hoàn lại khoản tiền của đơn đã hủy/hết hạn từ ví về nguồn thanh toán VNPay gốc.")
+    @PostMapping("/api/v1/orders/{id}/refund-to-source")
+    public ResponseEntity<ApiResponse<RefundToSourceResponse>> requestRefundToSource(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody(required = false) RefundToSourceRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        Long currentUserId = resolveUserId(jwt);
+        log.info("Sender {} requesting refund-to-source for orderId={}", currentUserId, id);
+        RefundToSourceResponse response = orderPaymentService.requestRefundToSource(id, currentUserId, request);
+        return ResponseEntity.ok(ApiResponse.success(response.getMessage(), response));
+    }
+
+    @Operation(summary = "Xem lịch sử yêu cầu hoàn tiền về nguồn VNPay của đơn hàng (UC-37)",
+            description = "Lấy danh sách các yêu cầu hoàn tiền về nguồn VNPay của đơn hàng.")
+    @GetMapping("/api/v1/orders/{id}/refund-to-source")
+    public ResponseEntity<ApiResponse<List<RefundToSourceResponse>>> getOrderRefundRequests(
+            @PathVariable("id") Long id,
+            @AuthenticationPrincipal Jwt jwt,
+            Authentication authentication) {
+        Long currentUserId = resolveUserId(jwt);
+        boolean isAdmin = checkIsAdmin(jwt, authentication);
+        List<RefundToSourceResponse> list = orderPaymentService.getOrderRefundRequests(id, currentUserId, isAdmin);
+        return ResponseEntity.ok(ApiResponse.success("Lấy thông tin hoàn tiền đơn hàng thành công", list));
     }
 
     private Long resolveUserId(Jwt jwt) {

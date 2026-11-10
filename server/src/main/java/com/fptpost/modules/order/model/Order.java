@@ -14,7 +14,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = "images")
+@ToString(exclude = {"images", "legs"})
 @EqualsAndHashCode(of = "id")
 @Entity
 @Table(name = "orders", indexes = {
@@ -37,6 +37,9 @@ public class Order {
 
     @Column(name = "courier_id")
     private Long courierId;
+
+    @Column(name = "trip_id")
+    private Long tripId;
 
     @Nationalized
     @Column(name = "pickup_address", nullable = false, length = 500, columnDefinition = "nvarchar(500)")
@@ -72,6 +75,9 @@ public class Order {
     @Nationalized
     @Column(name = "product_description", length = 1000, columnDefinition = "nvarchar(1000)")
     private String productDescription;
+
+    @Column(name = "category_id")
+    private Long categoryId;
 
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
@@ -113,6 +119,19 @@ public class Order {
 
     @Column(name = "ended_at")
     private Instant endedAt;
+
+    @Builder.Default
+    @Column(name = "is_relay", nullable = false)
+    private Boolean isRelay = false;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<OrderLeg> legs = new ArrayList<>();
+
+    public void addLeg(OrderLeg leg) {
+        legs.add(leg);
+        leg.setOrder(this);
+    }
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default

@@ -4,6 +4,7 @@ import com.fptpost.modules.payment.model.PaymentTransaction;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,4 +23,6 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
     List<PaymentTransaction> findByUserIdOrderByCreatedAtDesc(Long userId);
 
     Optional<PaymentTransaction> findByOrderId(Long orderId);
+
+    List<PaymentTransaction> findByCreatedAtBetweenOrderByCreatedAtAsc(Instant start, Instant end);
 }

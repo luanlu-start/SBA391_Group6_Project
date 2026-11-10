@@ -2,6 +2,7 @@ package com.fptpost.modules.payment.service;
 
 import com.fptpost.modules.payment.model.*;
 import com.fptpost.modules.payment.repository.LedgerTransactionRepository;
+import com.fptpost.modules.payment.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,35 @@ import java.util.UUID;
 public class LedgerService {
 
     private final LedgerTransactionRepository ledgerTransactionRepository;
+    private final WalletRepository walletRepository;
+
+    @Transactional
+    public void creditReward(Long userId, long amount, LedgerTransactionType type, String refId, String description) {
+        if (amount <= 0) return;
+
+        Wallet wallet = walletRepository.findByUserIdForUpdate(userId).orElseGet(() -> walletRepository.save(
+                Wallet.builder().userId(userId).available(0L).escrowHeld(0L).pendingWithdraw(0L).build()));
+        String key = type.name() + "_" + refId + "_" + userId;
+        if (ledgerTransactionRepository.existsByIdempotencyKey(key)) return;
+
+        LedgerTransaction transaction = LedgerTransaction.builder()
+                .transactionCode("LTX-REWARD-" + UUID.randomUUID())
+                .type(type)
+                .status(LedgerTransactionStatus.COMPLETED)
+                .idempotencyKey(key)
+                .refType(type.name())
+                .refId(refId)
+                .amount(amount)
+                .createdBy(userId)
+                .description(description)
+                .build();
+        transaction.addEntry(LedgerEntry.builder().accountCode("PROMO_EXPENSE").accountType("EXPENSE")
+                .debit(amount).credit(0L).build());
+        transaction.addEntry(LedgerEntry.builder().accountCode("USER_WALLET_" + userId).accountType("LIABILITY")
+                .debit(0L).credit(amount).build());
+        ledgerTransactionRepository.save(transaction);
+        wallet.setAvailable(Math.addExact(wallet.getAvailable(), amount));
+    }
 
     @Transactional
     public LedgerTransaction recordWalletTopup(Long userId, Long amount, String txnRef) {
@@ -265,6 +295,222 @@ public class LedgerService {
 
         LedgerTransaction saved = ledgerTransactionRepository.save(txn);
         log.info("Saved ledger transaction for withdrawal cancellation: txnCode={}, requestCode={}, amount={}", txnCode, requestCode, amount);
+        return saved;
+    }
+
+    @Transactional
+    public LedgerTransaction recordWithdrawalRefund(Long userId, Long amount, String requestCode) {
+        String idemKey = "REFUND_WDR_" + requestCode;
+        if (ledgerTransactionRepository.existsByIdempotencyKey(idemKey)) {
+            return ledgerTransactionRepository.findByIdempotencyKey(idemKey).orElse(null);
+        }
+
+        LedgerTransaction txn = LedgerTransaction.builder()
+                .transactionCode("LTX-WDR-REF-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
+                .type(LedgerTransactionType.WITHDRAWAL_REFUND)
+                .status(LedgerTransactionStatus.COMPLETED)
+                .idempotencyKey(idemKey)
+                .refType("WITHDRAWAL_REQUEST")
+                .refId(requestCode)
+                .amount(amount)
+                .description("Hoàn tiền yêu cầu rút #" + requestCode + " về số dư khả dụng ví ID " + userId)
+                .build();
+
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("CLEARING_WITHDRAWAL")
+                .accountType("LIABILITY")
+                .debit(amount)
+                .credit(0L)
+                .build());
+
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("USER_WALLET_" + userId)
+                .accountType("LIABILITY")
+                .debit(0L)
+                .credit(amount)
+                .build());
+
+        return ledgerTransactionRepository.save(txn);
+    }
+
+    @Transactional
+    public LedgerTransaction recordWithdrawalPayout(Long userId, Long amount, String requestCode, String payoutReference) {
+        String idemKey = "PAYOUT_WDR_" + requestCode;
+        if (ledgerTransactionRepository.existsByIdempotencyKey(idemKey)) {
+            return ledgerTransactionRepository.findByIdempotencyKey(idemKey).orElse(null);
+        }
+
+        LedgerTransaction txn = LedgerTransaction.builder()
+                .transactionCode("LTX-WDR-PAY-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
+                .type(LedgerTransactionType.WITHDRAWAL_PAYOUT)
+                .status(LedgerTransactionStatus.COMPLETED)
+                .idempotencyKey(idemKey)
+                .refType("WITHDRAWAL_REQUEST")
+                .refId(requestCode)
+                .amount(amount)
+                .description("Chi trả yêu cầu rút #" + requestCode + " cho người dùng ID " + userId
+                        + ", tham chiếu " + payoutReference)
+                .build();
+
+        // Clearing liability is settled against the platform's payout bank account.
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("CLEARING_WITHDRAWAL")
+                .accountType("LIABILITY")
+                .debit(amount)
+                .credit(0L)
+                .build());
+
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("PAYOUT_BANK")
+                .accountType("ASSET")
+                .debit(0L)
+                .credit(amount)
+                .build());
+
+        return ledgerTransactionRepository.save(txn);
+    }
+
+    /**
+     * Hạch toán hoàn tiền ký quỹ đơn hàng về ví người gửi (UC-37, BR-F-075).
+     */
+    @Transactional
+    public LedgerTransaction recordEscrowRefund(Long orderId, Long senderId, Long amount, String escrowRef) {
+        String idemKey = "ESCROW_REFUND_" + orderId + "_" + escrowRef;
+        if (ledgerTransactionRepository.existsByIdempotencyKey(idemKey)) {
+            return ledgerTransactionRepository.findByIdempotencyKey(idemKey).orElse(null);
+        }
+
+        String txnCode = "LTX-ESCROW-RFD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        LedgerTransaction txn = LedgerTransaction.builder()
+                .transactionCode(txnCode)
+                .type(LedgerTransactionType.ESCROW_REFUND)
+                .status(LedgerTransactionStatus.COMPLETED)
+                .idempotencyKey(idemKey)
+                .orderId(orderId)
+                .refType("ESCROW")
+                .refId(escrowRef)
+                .amount(amount)
+                .createdBy(senderId)
+                .description("Hoàn tiền ký quỹ đơn hàng #" + orderId + " về ví người gửi ID " + senderId)
+                .build();
+
+        // Ghi Nợ (Debit): ESCROW_ORDER_{orderId} (Giảm khoản ký quỹ đang giữ)
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("ESCROW_ORDER_" + orderId)
+                .accountType("LIABILITY")
+                .debit(amount)
+                .credit(0L)
+                .build());
+
+        // Ghi Có (Credit): USER_WALLET_{senderId} (Tăng số dư khả dụng ví người gửi)
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("USER_WALLET_" + senderId)
+                .accountType("LIABILITY")
+                .debit(0L)
+                .credit(amount)
+                .build());
+
+        LedgerTransaction saved = ledgerTransactionRepository.save(txn);
+        log.info("Saved ledger transaction for escrow refund: txnCode={}, orderId={}, senderId={}, amount={}",
+                txnCode, orderId, senderId, amount);
+        return saved;
+    }
+
+    /**
+     * Hạch toán hoàn tiền từ ví người gửi về nguồn thanh toán VNPay gốc (UC-37, BR-F-076, API-091).
+     */
+    @Transactional
+    public LedgerTransaction recordVNPaySourceRefund(Long orderId, Long senderId, Long amount, String vnpayRefundRef) {
+        String idemKey = "VNPAY_SRC_REFUND_" + orderId + "_" + vnpayRefundRef;
+        if (ledgerTransactionRepository.existsByIdempotencyKey(idemKey)) {
+            return ledgerTransactionRepository.findByIdempotencyKey(idemKey).orElse(null);
+        }
+
+        String txnCode = "LTX-VNP-RFD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        LedgerTransaction txn = LedgerTransaction.builder()
+                .transactionCode(txnCode)
+                .type(LedgerTransactionType.ESCROW_REFUND)
+                .status(LedgerTransactionStatus.COMPLETED)
+                .idempotencyKey(idemKey)
+                .orderId(orderId)
+                .refType("VNPAY_REFUND")
+                .refId(vnpayRefundRef)
+                .amount(amount)
+                .createdBy(senderId)
+                .description("Hoàn tiền về nguồn VNPay cho đơn hàng #" + orderId + " (Mã hoàn: " + vnpayRefundRef + ")")
+                .build();
+
+        // Ghi Nợ (Debit): USER_WALLET_{senderId} (Chuyển tiền hoàn từ ví về nguồn VNPay)
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("USER_WALLET_" + senderId)
+                .accountType("LIABILITY")
+                .debit(amount)
+                .credit(0L)
+                .build());
+
+        // Ghi Có (Credit): VNPAY_CLEARING (Đối ứng cổng thanh toán VNPay hoàn tiền về thẻ/tài khoản)
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("VNPAY_CLEARING")
+                .accountType("ASSET")
+                .debit(0L)
+                .credit(amount)
+                .build());
+
+        LedgerTransaction saved = ledgerTransactionRepository.save(txn);
+        log.info("Saved ledger transaction for VNPay source refund: txnCode={}, orderId={}, amount={}",
+                txnCode, orderId, amount);
+        return saved;
+    }
+
+    /**
+     * Hạch toán bút toán điều chỉnh dòng lệch đối soát giao dịch hằng ngày (UC-43, API-108, BR-F-083, BR-N-039).
+     */
+    @Transactional
+    public LedgerTransaction recordReconciliationAdjustment(
+            Long itemId,
+            String txnRef,
+            String debitAccount,
+            String creditAccount,
+            Long amount,
+            String note,
+            Long adminUserId) {
+        String idemKey = "RECONCILE_ADJ_ITEM_" + itemId;
+        if (ledgerTransactionRepository.existsByIdempotencyKey(idemKey)) {
+            return ledgerTransactionRepository.findByIdempotencyKey(idemKey).orElse(null);
+        }
+
+        String txnCode = "LTX-RECON-ADJ-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        LedgerTransaction txn = LedgerTransaction.builder()
+                .transactionCode(txnCode)
+                .type(LedgerTransactionType.RECONCILIATION_ADJUSTMENT)
+                .status(LedgerTransactionStatus.COMPLETED)
+                .idempotencyKey(idemKey)
+                .refType("RECONCILIATION_ITEM")
+                .refId(txnRef != null ? txnRef : String.valueOf(itemId))
+                .amount(amount)
+                .createdBy(adminUserId)
+                .description("Bút toán điều chỉnh đối soát #" + itemId + " (" + txnRef + "): " + note)
+                .build();
+
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode(debitAccount)
+                .accountType(debitAccount.startsWith("USER_WALLET_") || debitAccount.startsWith("ESCROW_")
+                        || debitAccount.startsWith("CLEARING_") ? "LIABILITY" : "ASSET")
+                .debit(amount)
+                .credit(0L)
+                .build());
+
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode(creditAccount)
+                .accountType(creditAccount.startsWith("USER_WALLET_") || creditAccount.startsWith("ESCROW_")
+                        || creditAccount.startsWith("CLEARING_") ? "LIABILITY" : "ASSET")
+                .debit(0L)
+                .credit(amount)
+                .build());
+
+        LedgerTransaction saved = ledgerTransactionRepository.save(txn);
+        log.info("Saved ledger reconciliation adjustment: txnCode={}, itemId={}, amount={}, debit={}, credit={}",
+                txnCode, itemId, amount, debitAccount, creditAccount);
         return saved;
     }
 }

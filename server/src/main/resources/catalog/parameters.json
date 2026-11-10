@@ -1088,5 +1088,25 @@
     "defaultValue": "10000",
     "unit": "VND/người",
     "description": "Mỗi bên nhận sau khi người được mời hoàn tất đơn đầu tiên."
+  },
+  {
+    "prmId": "PRM-110",
+    "key": "WEEKLY_DELIVERY_TARGET",
+    "group": "Theo dõi & Vận hành",
+    "name": "Số đơn giao thành công để nhận huy hiệu tuần",
+    "valueType": "INTEGER",
+    "defaultValue": "5",
+    "unit": "đơn/tuần",
+    "description": "Ngưỡng đơn giao thành công mỗi tuần, tính từ thứ Hai theo giờ Việt Nam."
+  },
+  {
+    "prmId": "PRM-111",
+    "key": "WEEKLY_DELIVERY_REWARD",
+    "group": "Theo dõi & Vận hành",
+    "name": "Thưởng đạt huy hiệu giao hàng trong tuần",
+    "valueType": "INTEGER",
+    "defaultValue": "0",
+    "unit": "VND/tuần",
+    "description": "Số tiền cộng vào ví khi đạt huy hiệu tuần. Giá trị 0 chỉ cấp huy hiệu."
   }
 ]

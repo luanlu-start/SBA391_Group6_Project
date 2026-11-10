@@ -1,6 +1,5 @@
 package com.fptpost.modules.order.controller;
 
-import java.util.Map;
 import com.fptpost.common.response.ApiResponse;
 import com.fptpost.modules.order.dto.OrderCancelRequest;
 import com.fptpost.modules.order.dto.OrderRequest;
@@ -8,8 +7,13 @@ import com.fptpost.modules.order.dto.OrderResponse;
 import com.fptpost.modules.order.dto.PricingEstimateRequest;
 import com.fptpost.modules.order.dto.PricingEstimateResponse;
 import com.fptpost.modules.order.service.OrderService;
-import com.fptpost.modules.order.service.PickupConfirmationService;
 import com.fptpost.modules.order.service.PricingCalculatorService;
+import com.fptpost.modules.order.service.RelayOrderService;
+import com.fptpost.modules.order.dto.request.RelayOrderRequest;
+import com.fptpost.modules.order.dto.request.RelayPricingEstimateRequest;
+import com.fptpost.modules.order.dto.response.OrderLegResponse;
+import com.fptpost.modules.order.dto.response.RelayOrderResponse;
+import com.fptpost.modules.order.dto.response.RelayPricingEstimateResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -45,7 +49,7 @@ public class OrderController {
     private final OrderPaymentService orderPaymentService;
     private final PricingCalculatorService pricingCalculatorService;
     private final UserRepository userRepository;
-    private final PickupConfirmationService pickupConfirmationService;
+    private final RelayOrderService relayOrderService;
 
     @PostMapping("/pricing/estimate")
     @Operation(summary = "Ước tính giá và cước phí đơn hàng (UC-11, API-029)",
@@ -54,6 +58,15 @@ public class OrderController {
             @Valid @RequestBody PricingEstimateRequest request) {
         PricingEstimateResponse response = pricingCalculatorService.estimatePrice(request);
         return ResponseEntity.ok(ApiResponse.success("Ước tính cước phí thành công", response));
+    }
+
+    @PostMapping("/relay/estimate")
+    @Operation(summary = "Ước tính cước và phân chia chặng đơn giao tiếp sức",
+               description = "Tính toán khoảng cách và chia cước phí theo từng chặng (BR-R-047)")
+    public ResponseEntity<ApiResponse<RelayPricingEstimateResponse>> estimateRelayPricing(
+            @Valid @RequestBody RelayPricingEstimateRequest request) {
+        RelayPricingEstimateResponse response = relayOrderService.estimateRelayPricing(request);
+        return ResponseEntity.ok(ApiResponse.success("Ước tính cước tiếp sức thành công", response));
     }
 
     @PostMapping(value = "/upload-images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -83,6 +96,34 @@ public class OrderController {
         OrderResponse created = orderService.createOrder(senderId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.created("Order created successfully", created));
+    }
+
+    @PostMapping("/relay")
+    @PreAuthorize("hasRole('SENDER')")
+    @Operation(summary = "Tạo đơn giao tiếp sức (UC-32, API-082)",
+               description = "Tạo mới đơn hàng giao tiếp sức chia theo chặng (BR-F-059, BR-R-047)")
+    public ResponseEntity<ApiResponse<RelayOrderResponse>> createRelayOrder(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody RelayOrderRequest request) {
+        Long senderId = null;
+        if (jwt != null && jwt.getSubject() != null) {
+            senderId = resolveUserId(jwt);
+        } else if (request.getSenderId() != null) {
+            senderId = request.getSenderId();
+        } else {
+            throw new AppException(GlobalErrorCode.UNAUTHORIZED);
+        }
+
+        RelayOrderResponse created = relayOrderService.createRelayOrder(senderId, request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.created("Đơn tiếp sức đã được tạo thành công", created));
+    }
+
+    @GetMapping("/{id}/legs")
+    @Operation(summary = "Xem danh sách các chặng của đơn tiếp sức (UC-32, BR-F-062)")
+    public ResponseEntity<ApiResponse<List<OrderLegResponse>>> getOrderLegs(@PathVariable Long id) {
+        List<OrderLegResponse> legs = relayOrderService.getOrderLegs(id);
+        return ResponseEntity.ok(ApiResponse.success(legs));
     }
 
     @PutMapping("/{id}")
@@ -149,54 +190,15 @@ public class OrderController {
         );
     }
 
-    @GetMapping("/{id}/pickup-qr")
-    @PreAuthorize("hasRole('SENDER')")
-    @Operation(summary = "UC-25 - Lấy QR xác nhận lấy hàng")
-    public ResponseEntity<ApiResponse<Map<String, String>>> getPickupQr(
-            @PathVariable Long id,
-            @AuthenticationPrincipal Jwt jwt) {
-
-        Long senderId = resolveUserId(jwt);
-        String qrToken = pickupConfirmationService.getPickupQr(id, senderId);
-
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        "Pickup QR generated",
-                        Map.of("qrToken", qrToken)
-                )
-        );
-    }
-
-    @PostMapping(
-            value = "/{id}/confirm-pickup",
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
-    )
-    @PreAuthorize("hasRole('COURIER')")
-    @Operation(summary = "UC-25 - Xác nhận lấy hàng bằng QR và ảnh")
-    public ResponseEntity<ApiResponse<OrderResponse>> confirmPickup(
-            @PathVariable Long id,
-            @AuthenticationPrincipal Jwt jwt,
-            @RequestParam("qrToken") String qrToken,
-            @RequestParam("photo") MultipartFile photo) {
-
-        Long courierId = resolveUserId(jwt);
-
-        OrderResponse result = pickupConfirmationService.confirmPickup(
-                id, courierId, qrToken, photo
-        );
-
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        "Pickup confirmed successfully",
-                        result
-                )
-        );
-    }
-
     @GetMapping("/{id}")
-    @Operation(summary = "Xem chi tiết đơn hàng", description = "Lấy thông tin chi tiết của một đơn hàng theo ID")
-    public ResponseEntity<ApiResponse<OrderResponse>> getOrderById(@PathVariable Long id) {
-        OrderResponse order = orderService.getOrderById(id);
+    @Operation(summary = "Xem chi tiết đơn hàng", description = "Lấy thông tin chi tiết của một đơn hàng theo ID hoặc mã vận đơn")
+    public ResponseEntity<ApiResponse<OrderResponse>> getOrderById(@PathVariable String id) {
+        OrderResponse order;
+        try {
+            order = orderService.getOrderById(Long.parseLong(id));
+        } catch (NumberFormatException ex) {
+            order = orderService.getOrderByCode(id);
+        }
         return ResponseEntity.ok(ApiResponse.success("Order retrieved successfully", order));
     }
 

@@ -31,6 +31,7 @@ public class OrderResponse {
     private String receiverPhone;
     private String productName;
     private String productDescription;
+    private Long categoryId;
     private Integer quantity;
     private BigDecimal weightKg;
     private BigDecimal declaredValue;
@@ -44,4 +45,5 @@ public class OrderResponse {
     private Instant updatedAt;
     private Instant endedAt;
     private List<String> imageUrls;
+    private Boolean isRelay;
 }

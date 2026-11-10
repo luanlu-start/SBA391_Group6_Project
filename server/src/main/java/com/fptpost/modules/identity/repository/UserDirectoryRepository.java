@@ -1,5 +1,6 @@
 package com.fptpost.modules.identity.repository;
 
+import com.fptpost.modules.identity.dto.response.UserAccountEntry;
 import com.fptpost.modules.identity.dto.response.UserDirectoryEntry;
 import com.fptpost.modules.identity.model.User;
 import org.springframework.data.domain.Pageable;
@@ -22,4 +23,8 @@ public interface UserDirectoryRepository extends Repository<User, Long> {
     @Query("select new com.fptpost.modules.identity.dto.response.UserDirectoryEntry(u.publicId, p.fullName, u.email) "
             + "from User u left join UserProfile p on p.userId = u.id where u.publicId in :ids")
     List<UserDirectoryEntry> findEntriesByPublicIds(@Param("ids") Collection<UUID> ids);
+
+    @Query("select new com.fptpost.modules.identity.dto.response.UserAccountEntry(u.id, u.publicId, p.fullName, u.email) "
+            + "from User u left join UserProfile p on p.userId = u.id where u.id in :ids")
+    List<UserAccountEntry> findAccountsByIds(@Param("ids") Collection<Long> ids);
 }

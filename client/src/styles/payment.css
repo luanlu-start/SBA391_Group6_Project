@@ -557,4 +557,180 @@
   border-color: var(--accent-rose);
 }
 
+/* ==========================================================================
+   UC-61: Thu nhập & Thống kê hiệu suất người giao (Dark Theme)
+   ========================================================================== */
+
+.earnings-tier-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-4);
+  align-items: stretch;
+}
+
+.earnings-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.earnings-tier-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.earnings-progress-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.earnings-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.earnings-progress-track {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.earnings-progress-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.35s ease;
+}
+
+.earnings-progress-fill.orders {
+  background: linear-gradient(90deg, #10b981, var(--accent-emerald));
+}
+
+.earnings-progress-fill.score {
+  background: linear-gradient(90deg, #3b82f6, var(--accent-cyan));
+}
+
+.earnings-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(120px, 1fr));
+  gap: var(--space-3);
+}
+
+.earnings-metric-tile {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-1);
+}
+
+.earnings-metric-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.earnings-metric-value {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-feature-settings: "tnum";
+}
+
+.earnings-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.earnings-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.earnings-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.earnings-chart-box {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  height: 210px;
+  padding: var(--space-4) var(--space-3) var(--space-2);
+  overflow-x: auto;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.earnings-chart-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 42px;
+  flex: 1 0 42px;
+  height: 100%;
+}
+
+.earnings-chart-top {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--accent-emerald);
+  margin-bottom: 4px;
+  white-space: nowrap;
+}
+
+.earnings-chart-bar {
+  width: 24px;
+  border-radius: 6px 6px 2px 2px;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  transition: transform var(--transition-fast);
+}
+
+.earnings-chart-col:hover .earnings-chart-bar {
+  transform: translateY(-2px);
+}
+
+.earnings-chart-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+  white-space: nowrap;
+}
+
+
+
 

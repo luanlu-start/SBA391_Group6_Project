@@ -3,11 +3,11 @@ import { useLocation } from 'react-router-dom';
 import type { ChangeEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Upload, Trash2, Loader2, UserCheck, MapPin } from 'lucide-react';
+import { Upload, Trash2, Loader2, UserCheck, MapPin, GitFork } from 'lucide-react';
 import { orderApi } from '../../../api/orderApi';
 import { getApiError } from '../../../api/ApiError';
 import type { ApiError } from '../../../api/ApiError';
-import type { Order, OrderRequest, DeliveryUrgency, PricingEstimateResponse } from '../../../types/order';
+import type { Order, OrderRequest, DeliveryUrgency, PricingEstimateResponse, RelayPricingEstimateResponse, RelayOrderRequest } from '../../../types/order';
 import { DELIVERY_URGENCY_MAP } from '../../../types/order';
 import { orderSchema } from '../schemas/orderSchema';
 import type { OrderFormValues } from '../schemas/orderSchema';
@@ -17,6 +17,9 @@ import Textarea from '../../../components/ui/Textarea';
 import Button from '../../../components/ui/Button';
 import ApiErrorNotice from '../../../components/ApiErrorNotice';
 import Select from '../../../components/ui/Select';
+import Alert from '../../../components/ui/Alert';
+import { categoryApi } from '../../../api/categoryApi';
+import type { ItemCategory } from '../../../types/category';
 import { profileService } from '../../../services/profileService';
 import type { SavedAddress } from '../../../types/profile';
 import MapPickerModal from './MapPickerModal';
@@ -52,15 +55,34 @@ export default function OrderForm({ initialData, onSuccess, onCancel }: OrderFor
     lng: initialData?.deliveryLongitude ?? null,
   });
 
-  // Modal chọn bản đồ
-  const [mapTarget, setMapTarget] = useState<'pickup' | 'delivery' | null>(null);
+  // Tọa độ điểm hẹn tiếp sức (UC-32)
+  const [relayCoords, setRelayCoords] = useState<{ lat: number | null; lng: number | null }>({
+    lat: null,
+    lng: null,
+  });
 
-  // Trạng thái tính cước (UC-11)
+  // Modal chọn bản đồ
+  const [mapTarget, setMapTarget] = useState<'pickup' | 'delivery' | 'relay' | null>(null);
+
+  // Trạng thái tính cước thông thường (UC-11)
   const [pricing, setPricing] = useState<PricingEstimateResponse | null>(null);
   const [pricingLoading, setPricingLoading] = useState(false);
   const [pricingError, setPricingError] = useState<string | null>(null);
 
+  // Trạng thái tính cước tiếp sức (UC-32 / BR-R-047)
+  const [relayPricing, setRelayPricing] = useState<RelayPricingEstimateResponse | null>(null);
+  const [relayPricingLoading, setRelayPricingLoading] = useState(false);
+  const [relayPricingError, setRelayPricingError] = useState<string | null>(null);
+
   const userId = user?.id;
+  const [categories, setCategories] = useState<ItemCategory[]>([]);
+  useEffect(() => {
+    let active = true;
+    categoryApi.getActiveList()
+      .then(res => { if (active && res.data) setCategories(res.data); })
+      .catch(err => console.error('Lỗi tải danh mục loại hàng:', err));
+    return () => { active = false; };
+  }, []);
   useEffect(() => {
     if (!userId) return;
     let active = true;
@@ -87,6 +109,7 @@ export default function OrderForm({ initialData, onSuccess, onCancel }: OrderFor
       deliveryLongitude: initialData?.deliveryLongitude ?? null,
       receiverName: initialData?.receiverName || '',
       receiverPhone: initialData?.receiverPhone || '',
+      categoryId: initialData?.categoryId != null ? String(initialData.categoryId) : '',
       productName: initialData?.productName || '',
       productDescription: initialData?.productDescription || '',
       quantity: initialData ? String(initialData.quantity) : '1',
@@ -95,15 +118,26 @@ export default function OrderForm({ initialData, onSuccess, onCancel }: OrderFor
       urgency: (initialData?.urgency as DeliveryUrgency) || 'STANDARD',
       deliveryNote: initialData?.deliveryNote || '',
       imageUrls: '',
+      isRelay: false,
+      relayAddress: '',
+      relayLatitude: null,
+      relayLongitude: null,
+      relayName: '',
     },
   });
 
   const weightKgWatch = watch('weightKg');
   const declaredValueWatch = watch('declaredValue');
   const urgencyWatch = watch('urgency');
+  const categoryIdWatch = watch('categoryId');
+  const isRelayWatch = watch('isRelay');
+  const relayAddressWatch = watch('relayAddress');
+  const selectedCategory = categories.find((c) => String(c.id) === String(categoryIdWatch));
 
   // Tự động tính toán khoảng cách và giá cước theo thời gian thực (UC-11)
   useEffect(() => {
+    if (isRelayWatch) return;
+
     let active = true;
     const timeoutId = setTimeout(() => {
       const weight = Number(weightKgWatch);
@@ -145,7 +179,67 @@ export default function OrderForm({ initialData, onSuccess, onCancel }: OrderFor
       active = false;
       clearTimeout(timeoutId);
     };
-  }, [pickupCoords, deliveryCoords, weightKgWatch, declaredValueWatch, urgencyWatch]);
+  }, [isRelayWatch, pickupCoords, deliveryCoords, weightKgWatch, declaredValueWatch, urgencyWatch]);
+
+  // Tự động tính cước tiếp sức khi bật Giao tiếp sức (UC-32 / BR-R-047)
+  useEffect(() => {
+    if (!isRelayWatch) {
+      setRelayPricing(null);
+      return;
+    }
+
+    let active = true;
+    const timeoutId = setTimeout(() => {
+      const weight = Number(weightKgWatch);
+      const declared = declaredValueWatch ? Number(declaredValueWatch) : 0;
+      const urgency = (urgencyWatch as DeliveryUrgency) || 'STANDARD';
+
+      if (isNaN(weight) || weight <= 0) return;
+      if (!pickupCoords.lat || !pickupCoords.lng || !deliveryCoords.lat || !deliveryCoords.lng || !relayCoords.lat || !relayCoords.lng) {
+        return;
+      }
+
+      setRelayPricingLoading(true);
+      setRelayPricingError(null);
+
+      orderApi
+        .estimateRelayPricing({
+          pickupLat: pickupCoords.lat,
+          pickupLng: pickupCoords.lng,
+          deliveryLat: deliveryCoords.lat,
+          deliveryLng: deliveryCoords.lng,
+          weightKg: weight,
+          declaredValue: declared >= 0 ? declared : 0,
+          urgency: urgency,
+          relayPoints: [
+            {
+              address: relayAddressWatch?.trim() || 'Điểm tiếp sức trung gian',
+              latitude: relayCoords.lat,
+              longitude: relayCoords.lng,
+            },
+          ],
+        })
+        .then(res => {
+          if (active) {
+            setRelayPricing(res.data);
+          }
+        })
+        .catch(err => {
+          if (active) {
+            const failure = getApiError(err);
+            setRelayPricingError(failure.message || 'Không thể ước tính cước phí tiếp sức.');
+          }
+        })
+        .finally(() => {
+          if (active) setRelayPricingLoading(false);
+        });
+    }, 400);
+
+    return () => {
+      active = false;
+      clearTimeout(timeoutId);
+    };
+  }, [isRelayWatch, pickupCoords, deliveryCoords, relayCoords, relayAddressWatch, weightKgWatch, declaredValueWatch, urgencyWatch]);
 
   async function handleFileSelect(event: ChangeEvent<HTMLInputElement>) {
     const files = event.target.files;
@@ -210,6 +304,13 @@ export default function OrderForm({ initialData, onSuccess, onCancel }: OrderFor
       if (suggestedAddress) {
         setValue('deliveryAddress', suggestedAddress, { shouldValidate: true });
       }
+    } else if (mapTarget === 'relay') {
+      setRelayCoords({ lat, lng });
+      setValue('relayLatitude', lat);
+      setValue('relayLongitude', lng);
+      if (suggestedAddress) {
+        setValue('relayAddress', suggestedAddress, { shouldValidate: true });
+      }
     }
     setMapTarget(null);
   }
@@ -217,7 +318,7 @@ export default function OrderForm({ initialData, onSuccess, onCancel }: OrderFor
   async function submit(values: OrderFormValues) {
     setApiError(null);
     try {
-      const payload: OrderRequest = {
+      const basePayload: OrderRequest = {
         pickupAddress: values.pickupAddress.trim(),
         pickupLatitude: pickupCoords.lat ?? undefined,
         pickupLongitude: pickupCoords.lng ?? undefined,
@@ -228,21 +329,37 @@ export default function OrderForm({ initialData, onSuccess, onCancel }: OrderFor
         receiverPhone: values.receiverPhone.trim(),
         productName: values.productName.trim(),
         productDescription: values.productDescription?.trim() || undefined,
+        categoryId: values.categoryId ? Number(values.categoryId) : undefined,
         quantity: Number(values.quantity),
         weightKg: Number(values.weightKg),
         declaredValue: values.declaredValue ? Number(values.declaredValue) : 0,
         urgency: values.urgency,
-        distanceKm: pricing?.distanceKm,
-        priceSuggested: pricing?.totalEstimatedPrice,
+        distanceKm: values.isRelay ? relayPricing?.totalDistanceKm : pricing?.distanceKm,
+        priceSuggested: values.isRelay ? relayPricing?.totalEstimatedPrice : pricing?.totalEstimatedPrice,
         deliveryNote: values.deliveryNote?.trim() || undefined,
         imageUrls: uploadedImages.length > 0 ? uploadedImages : undefined,
       };
 
-      const response = isEditMode && initialData
-        ? await orderApi.update(initialData.id, payload)
-        : await orderApi.create(payload);
-
-      onSuccess(response.data);
+      if (values.isRelay) {
+        const relayPayload: RelayOrderRequest = {
+          ...basePayload,
+          relayPoints: [
+            {
+              address: values.relayAddress!.trim(),
+              latitude: relayCoords.lat || 0,
+              longitude: relayCoords.lng || 0,
+              name: values.relayName?.trim() || 'Điểm hẹn bàn giao trung gian',
+            },
+          ],
+        };
+        const response = await orderApi.createRelay(relayPayload);
+        onSuccess(response.data);
+      } else {
+        const response = isEditMode && initialData
+          ? await orderApi.update(initialData.id, basePayload)
+          : await orderApi.create(basePayload);
+        onSuccess(response.data);
+      }
     } catch (cause) {
       const failure = getApiError(cause);
       setApiError(failure);
@@ -351,9 +468,103 @@ export default function OrderForm({ initialData, onSuccess, onCancel }: OrderFor
           </div>
         </fieldset>
 
-        {/* 2. Thông tin người nhận & Điểm giao hàng */}
+        {/* 2. Giao tiếp sức tuyến dài (Relay Delivery - UC-32) */}
+        {!isEditMode && (
+          <fieldset className="ui-form-section" disabled={isSubmitting}>
+            <legend>2. Hình thức giao tiếp sức (Relay Delivery)</legend>
+            <p className="ui-form-description">
+              Tùy chọn tách hành trình dài thành nhiều chặng để nhiều bưu tá tiếp sức chuyển hàng (UC-32).
+            </p>
+            <div className="ui-form-grid">
+              <div
+                className="ui-span-full"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '0.85rem 1rem',
+                  borderRadius: 'var(--radius-md, 10px)',
+                  background: isRelayWatch ? 'var(--brand-soft, rgba(243, 112, 33, 0.12))' : 'var(--bg-secondary, #181e27)',
+                  border: isRelayWatch ? '1px solid var(--primary, #f37021)' : '1px solid var(--border-subtle, #333d4c)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  id="isRelayToggle"
+                  {...register('isRelay')}
+                  style={{ width: '18px', height: '18px', accentColor: 'var(--primary, #f37021)', cursor: 'pointer' }}
+                />
+                <label htmlFor="isRelayToggle" style={{ cursor: 'pointer', flex: 1, margin: 0 }}>
+                  <div style={{ fontWeight: 600, color: 'var(--text-primary, #f1f4fb)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <GitFork size={16} style={{ color: 'var(--primary, #f37021)' }} />
+                    <span>Bật giao tiếp sức cho tuyến đường dài (Relay Delivery)</span>
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary, #b0bdd2)', marginTop: '2px' }}>
+                    Hành trình sẽ được chia làm 2 chặng độc lập. Tài xế Chặng 1 và Chặng 2 sẽ bàn giao bưu kiện tại điểm hẹn an toàn.
+                  </div>
+                </label>
+              </div>
+
+              {isRelayWatch && (
+                <div
+                  className="ui-span-full"
+                  style={{
+                    padding: '1rem',
+                    borderRadius: 'var(--radius-md, 10px)',
+                    background: 'var(--bg-tertiary, #242d39)',
+                    border: '1px solid var(--border-subtle, #333d4c)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, color: 'var(--text-accent, #ffb17d)', fontSize: '0.9rem' }}>
+                    <MapPin size={16} style={{ color: 'var(--primary, #f37021)' }} />
+                    <span>Điểm hẹn bàn giao an toàn trung gian (Điểm tiếp sức)</span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary, #b0bdd2)' }}>
+                    Chọn một điểm hẹn công cộng, an toàn (bưu cục, trạm xăng, siêu thị, trung tâm thương mại...) để tài xế Chặng 1 giao hàng cho tài xế Chặng 2.
+                  </p>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1 }}>
+                      <Input
+                        label="Địa chỉ điểm hẹn bàn giao tiếp sức"
+                        placeholder="Số nhà, tên đường hoặc địa điểm công cộng (ví dụ: Vincom Mega Mall, Trạm xăng Petrolimex...)"
+                        required={isRelayWatch}
+                        maxLength={500}
+                        {...register('relayAddress')}
+                        error={errors.relayAddress?.message}
+                      />
+                    </div>
+                    <div style={{ paddingTop: '28px' }}>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        icon={<MapPin size={16} style={{ color: 'var(--primary, #f37021)' }} />}
+                        onClick={() => setMapTarget('relay')}
+                        title="Mở bản đồ chọn điểm hẹn tiếp sức"
+                      >
+                        Bản đồ
+                      </Button>
+                    </div>
+                  </div>
+                  {relayCoords.lat && relayCoords.lng && (
+                    <div style={{ fontSize: '0.8rem', color: 'var(--accent-emerald, #6cdeb4)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <MapPin size={13} style={{ color: 'var(--accent-emerald, #6cdeb4)' }} />
+                      <span>Đã ghim tọa độ điểm hẹn: [{relayCoords.lat}, {relayCoords.lng}]</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </fieldset>
+        )}
+
+        {/* 3. Thông tin người nhận & Điểm giao hàng */}
         <fieldset className="ui-form-section" disabled={isSubmitting}>
-          <legend>2. Người nhận & Điểm giao hàng</legend>
+          <legend>3. Người nhận & Điểm giao hàng</legend>
           <p className="ui-form-description">Thông tin người tiếp nhận và địa chỉ giao bưu kiện.</p>
           <div className="ui-form-grid">
             <Input
@@ -433,11 +644,34 @@ export default function OrderForm({ initialData, onSuccess, onCancel }: OrderFor
           </div>
         </fieldset>
 
-        {/* 3. Thông tin hàng hóa & bưu kiện */}
+        {/* 4. Thông tin hàng hóa & bưu kiện */}
         <fieldset className="ui-form-section" disabled={isSubmitting}>
-          <legend>3. Hàng hóa & Gói dịch vụ</legend>
+          <legend>4. Hàng hóa & Gói dịch vụ</legend>
           <p className="ui-form-description">Chi tiết vật phẩm, khối lượng và gói dịch vụ vận chuyển.</p>
           <div className="ui-form-grid">
+            <Select
+              label="Loại hàng hóa"
+              fieldClassName="ui-span-full"
+              hint="Chọn danh mục phân loại phù hợp cho hàng hóa của bạn."
+              {...register('categoryId')}
+              error={errors.categoryId?.message}
+            >
+              <option value="">-- Chọn danh mục loại hàng --</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name} {cat.isProhibited ? '⚠️ [Hàng cấm]' : ''}
+                </option>
+              ))}
+            </Select>
+
+            {selectedCategory?.isProhibited && (
+              <div className="ui-span-full">
+                <Alert tone="danger">
+                  <strong>Cảnh báo:</strong> &quot;{selectedCategory.name}&quot; thuộc danh mục hàng cấm vận chuyển. Bưu tá có quyền từ chối tiếp nhận kiện hàng này.
+                </Alert>
+              </div>
+            )}
+
             <Input
               label="Tên hàng hóa"
               placeholder="Tài liệu, Điện thoại, Quần áo..."
@@ -570,18 +804,24 @@ export default function OrderForm({ initialData, onSuccess, onCancel }: OrderFor
           </div>
         </fieldset>
 
-        {/* 4. Bảng tính cước phí ước tính (UC-11) */}
+        {/* 5. Bảng tính cước phí ước tính (UC-11 & UC-32) */}
         <fieldset className="ui-form-section" disabled={isSubmitting}>
-          <legend>4. Bảng ước tính cước phí (UC-11)</legend>
+          <legend>5. Bảng ước tính cước phí</legend>
           <p className="ui-form-description">
             Cước phí được tự động tính toán dựa trên khoảng cách định tuyến, khối lượng và gói dịch vụ.
           </p>
-          <PricingBreakdown pricing={pricing} loading={pricingLoading} error={pricingError} />
+          <PricingBreakdown
+            pricing={pricing}
+            relayPricing={relayPricing}
+            isRelay={isRelayWatch}
+            loading={isRelayWatch ? relayPricingLoading : pricingLoading}
+            error={isRelayWatch ? relayPricingError : pricingError}
+          />
         </fieldset>
 
-        {/* 5. Hình ảnh bưu kiện */}
+        {/* 6. Hình ảnh bưu kiện */}
         <fieldset className="ui-form-section" disabled={isSubmitting}>
-          <legend>5. Hình ảnh bưu kiện (Tùy chọn)</legend>
+          <legend>6. Hình ảnh bưu kiện (Tùy chọn)</legend>
           <p className="ui-form-description">
             Chụp ảnh gói hàng trước khi gửi để làm bằng chứng vận chuyển và hỗ trợ khiếu nại (tối đa 5 ảnh, JPG/PNG/WEBP/GIF, ≤ 5MB/ảnh).
           </p>
@@ -699,9 +939,27 @@ export default function OrderForm({ initialData, onSuccess, onCancel }: OrderFor
         <MapPickerModal
           isOpen={Boolean(mapTarget)}
           onClose={() => setMapTarget(null)}
-          title={mapTarget === 'pickup' ? 'Chọn tọa độ điểm lấy hàng' : 'Chọn tọa độ điểm giao hàng'}
-          initialLat={mapTarget === 'pickup' ? pickupCoords.lat : deliveryCoords.lat}
-          initialLng={mapTarget === 'pickup' ? pickupCoords.lng : deliveryCoords.lng}
+          title={
+            mapTarget === 'pickup'
+              ? 'Chọn tọa độ điểm lấy hàng'
+              : mapTarget === 'delivery'
+              ? 'Chọn tọa độ điểm giao hàng'
+              : 'Chọn tọa độ điểm hẹn tiếp sức trung gian'
+          }
+          initialLat={
+            mapTarget === 'pickup'
+              ? pickupCoords.lat
+              : mapTarget === 'delivery'
+              ? deliveryCoords.lat
+              : relayCoords.lat
+          }
+          initialLng={
+            mapTarget === 'pickup'
+              ? pickupCoords.lng
+              : mapTarget === 'delivery'
+              ? deliveryCoords.lng
+              : relayCoords.lng
+          }
           onConfirm={handleMapConfirm}
         />
       )}

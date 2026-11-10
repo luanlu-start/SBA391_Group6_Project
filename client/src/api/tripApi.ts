@@ -1,6 +1,13 @@
 import axiosClient from './axiosClient';
 import type { ApiResponse } from '../types/api';
-import type { Trip, TripCreateRequest, TripStatus, PageResponse } from '../types/trip';
+import type {
+  Trip,
+  TripCreateRequest,
+  TripUpdateRequest,
+  TripStatus,
+  TripAttachedOrder,
+  PageResponse,
+} from '../types/trip';
 
 export const tripApi = {
   create: (data: TripCreateRequest) => {
@@ -15,7 +22,27 @@ export const tripApi = {
     return axiosClient.get<unknown, ApiResponse<Trip>>(`/trips/${id}`);
   },
 
+  update: (id: number | string, data: TripUpdateRequest) => {
+    return axiosClient.put<unknown, ApiResponse<Trip>>(`/trips/${id}`, data);
+  },
+
+  togglePause: (id: number | string) => {
+    return axiosClient.post<unknown, ApiResponse<Trip>>(`/trips/${id}/pause`);
+  },
+
   cancel: (id: number | string) => {
     return axiosClient.post<unknown, ApiResponse<Trip>>(`/trips/${id}/cancel`);
+  },
+
+  complete: (id: number | string) => {
+    return axiosClient.post<unknown, ApiResponse<Trip>>(`/trips/${id}/complete`);
+  },
+
+  getAttachedOrders: (id: number | string) => {
+    return axiosClient.get<unknown, ApiResponse<TripAttachedOrder[]>>(`/trips/${id}/orders`);
+  },
+
+  getSuggestedOrders: (id: number | string) => {
+    return axiosClient.get<unknown, ApiResponse<TripAttachedOrder[]>>(`/trips/${id}/suggested-orders`);
   },
 };

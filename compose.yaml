@@ -60,6 +60,8 @@ services:
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
       VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-}
       VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-}
+      VNPAY_RETURN_URL: ${VNPAY_RETURN_URL:-http://localhost:${FRONTEND_PORT:-5173}/payment/vnpay-return}
+      PAYOUT_PROVIDER: ${PAYOUT_PROVIDER:-manual}
       SPRING_PROFILES_ACTIVE: ${BACKEND_PROFILES:-dev}
       SQLSERVER_URL: ${SQLSERVER_URL:-jdbc:sqlserver://sqlserver:1433;databaseName=group6_project_db;encrypt=true;trustServerCertificate=true}
       SQLSERVER_USERNAME: ${SQLSERVER_USERNAME:-sa}

@@ -26,6 +26,7 @@ export const orderSchema = z.object({
     .min(9, 'Số điện thoại người nhận cần ít nhất 9 ký tự.')
     .max(20, 'Số điện thoại không được vượt quá 20 ký tự.')
     .regex(/^[0-9+() -]+$/, 'Số điện thoại không hợp lệ.'),
+  categoryId: z.string().optional(),
   productName: z
     .string()
     .trim()
@@ -60,6 +61,21 @@ export const orderSchema = z.object({
   imageUrls: z
     .string()
     .optional(),
+  isRelay: z.boolean().optional(),
+  relayAddress: z.string().optional(),
+  relayLatitude: z.number().nullable().optional(),
+  relayLongitude: z.number().nullable().optional(),
+  relayName: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.isRelay) {
+    if (!data.relayAddress || data.relayAddress.trim().length < 5) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['relayAddress'],
+        message: 'Vui lòng nhập địa chỉ điểm hẹn bàn giao tiếp sức (tối thiểu 5 ký tự).',
+      });
+    }
+  }
 });
 
 export type OrderFormValues = z.infer<typeof orderSchema>;
