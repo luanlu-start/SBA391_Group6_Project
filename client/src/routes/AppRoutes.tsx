@@ -36,6 +36,7 @@ import AdminJobsPage from '../pages/AdminJobsPage';
 import AdminCategoriesPage from '../pages/AdminCategoriesPage';
 import AdminWithdrawalsPage from '../pages/AdminWithdrawalsPage';
 import WalletPage from '../pages/WalletPage';
+import BankAccountsPage from '../pages/BankAccountsPage';
 import OrderPaymentPage from '../pages/OrderPaymentPage';
 import VNPayReturnPage from '../pages/VNPayReturnPage';
 import OrdersPage from '../pages/OrdersPage';
@@ -112,6 +113,7 @@ export default function AppRoutes() {
         <Route index element={<HomePage />} />
         <Route path="products" element={<ProductsPage />} />
         <Route path="wallet" element={<WalletPage />} />
+        <Route path="wallet/banks" element={<BankAccountsPage />} />
         <Route path="orders/payment" element={<OrderPaymentPage />} />
         <Route path="orders/:id/payment" element={<OrderPaymentPage />} />
         <Route path="payment/vnpay-return" element={<VNPayReturnPage />} />

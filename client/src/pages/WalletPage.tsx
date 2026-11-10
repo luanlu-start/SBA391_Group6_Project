@@ -35,6 +35,7 @@ import type {
   WithdrawalResponse,
   WithdrawalStatus,
   LedgerTransactionType,
+  BankAccountResponse,
 } from '../types/payment';
 import PageHeader from '../components/ui/PageHeader';
 import SectionCard from '../components/ui/SectionCard';
@@ -169,8 +170,10 @@ export default function WalletPage() {
   const [statementMonth, setStatementMonth] = useState<number>(currentDate.getMonth() + 1);
   const [statementYear, setStatementYear] = useState<number>(currentDate.getFullYear());
 
-  // Withdrawal Request state (UC-40)
+  // Withdrawal Request state (UC-40 & UC-39)
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [bankAccounts, setBankAccounts] = useState<BankAccountResponse[]>([]);
+  const [selectedBankAccountId, setSelectedBankAccountId] = useState<number | ''>('');
   const [withdrawAmount, setWithdrawAmount] = useState<number>(50_000);
   const [withdrawAmountInput, setWithdrawAmountInput] = useState<string>('50000');
   const [withdrawBank, setWithdrawBank] = useState<string>('Vietcombank');
@@ -264,6 +267,17 @@ export default function WalletPage() {
       loadWallet();
       loadTransactions(0);
       loadWithdrawals(0);
+      walletApi.getBankAccounts().then((res) => {
+        const list = res.data || [];
+        setBankAccounts(list);
+        const firstReady = list.find((a) => a.readyForWithdrawal);
+        if (firstReady) {
+          setSelectedBankAccountId(firstReady.id);
+          setWithdrawBank(firstReady.bankName);
+          setWithdrawAccount(firstReady.maskedAccountNumber);
+          setWithdrawHolder(firstReady.holderName);
+        }
+      }).catch(() => {});
     }
   }, [user]);
 
@@ -447,6 +461,7 @@ export default function WalletPage() {
 
       const res = await walletApi.createWithdrawal({
         amount: withdrawAmount,
+        bankAccountId: selectedBankAccountId ? Number(selectedBankAccountId) : undefined,
         bankName: withdrawBank.trim(),
         accountNumber: withdrawAccount.trim(),
         accountHolderName: withdrawHolder.trim().toUpperCase(),
@@ -505,6 +520,14 @@ export default function WalletPage() {
               icon={<Banknote size={15} />}
             >
               Rút tiền về ngân hàng
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => navigate('/wallet/banks')}
+              icon={<CreditCard size={15} />}
+            >
+              TK ngân hàng
             </Button>
             <Button
               variant="secondary"
@@ -1082,6 +1105,49 @@ export default function WalletPage() {
               error={withdrawValidationError?.includes('Số tiền') ? withdrawValidationError : undefined}
             />
           </div>
+
+          {bankAccounts.length > 0 && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-1)' }}>
+                <label htmlFor="wdr-linked-bank-select" className="ui-label">
+                  Chọn tài khoản ngân hàng đã liên kết (UC-39):
+                </label>
+                <button
+                  type="button"
+                  className="withdrawal-quick-max-btn"
+                  onClick={() => {
+                    setIsWithdrawModalOpen(false);
+                    navigate('/wallet/banks');
+                  }}
+                >
+                  + Quản lý TK ngân hàng
+                </button>
+              </div>
+              <select
+                id="wdr-linked-bank-select"
+                className="ui-control ui-select"
+                value={selectedBankAccountId}
+                onChange={(e) => {
+                  const val = e.target.value ? Number(e.target.value) : '';
+                  setSelectedBankAccountId(val);
+                  const found = bankAccounts.find((b) => b.id === val);
+                  if (found) {
+                    setWithdrawBank(found.bankName);
+                    setWithdrawAccount(found.maskedAccountNumber);
+                    setWithdrawHolder(found.holderName);
+                  }
+                }}
+              >
+                <option value="">-- Nhập thủ công bên dưới --</option>
+                {bankAccounts.map((acc) => (
+                  <option key={acc.id} value={acc.id} disabled={!acc.readyForWithdrawal}>
+                    {acc.bankName} · {acc.maskedAccountNumber} · {acc.holderName}{' '}
+                    {acc.readyForWithdrawal ? '(Sẵn sàng)' : '(Đang chờ 24h)'}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <label htmlFor="wdr-bank-select" className="ui-label" style={{ marginBottom: 'var(--space-1)' }}>
