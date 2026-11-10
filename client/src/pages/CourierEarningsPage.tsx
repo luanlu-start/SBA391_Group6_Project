@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Clock,
   DollarSign,
+  Hourglass,
   Package,
   RefreshCw,
   ShieldCheck,
@@ -21,6 +22,7 @@ import SectionCard from '../components/ui/SectionCard';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Alert from '../components/ui/Alert';
+import EmptyState from '../components/ui/EmptyState';
 import '../styles/payment.css';
 
 const CourierEarningsPage: React.FC = () => {
@@ -71,31 +73,34 @@ const CourierEarningsPage: React.FC = () => {
     loadData(period, fromDate, toDate);
   };
 
-  const formatVND = (amount: number) =>
-    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount || 0);
+  const formatVND = (amount: number) => `${(amount || 0).toLocaleString('vi-VN')} đ`;
 
-  const formatPercent = (rate: number) => `${(rate * 100).toFixed(0)}%`;
+  const formatCompactVND = (amount: number) => {
+    if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(1).replace(/\.0$/, '')}tr`;
+    if (amount >= 1_000) return `${Math.round(amount / 1_000)}k`;
+    return `${amount}`;
+  };
 
-  const maxChartGross = Math.max(
-    1,
-    ...(earnings?.chartPoints.map((pt) => pt.grossAmount) || [1])
-  );
+  const formatPercent = (rate: number) => `${Math.round((rate || 0) * 100)}%`;
+
+  const maxChartGross = Math.max(1, ...(earnings?.chartPoints.map((pt) => pt.grossAmount) || [1]));
 
   return (
-    <div className="wallet-container">
+    <div className="ui-stack" style={{ maxWidth: 1120, margin: '0 auto' }}>
       <PageHeader
-        eyebrow="Người giao • UC-61"
+        eyebrow="Người giao · UC-61"
         title="Thu nhập & Thống kê hiệu suất"
-        description="Theo dõi doanh thu gộp, phí hoa hồng nền tảng, thu nhập ròng theo từng đơn và tiến độ thăng hạng người giao."
+        description="Theo dõi doanh thu gộp, phí hoa hồng nền tảng, thu nhập ròng thực nhận theo từng đơn và tiến độ thăng hạng."
         actions={
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
             <Link to="/wallet" className="ui-button ui-button-secondary ui-button-sm">
-              <Wallet size={15} /> Ví tiền & Rút tiền
+              <Wallet size={15} /> Ví tiền &amp; Rút tiền
             </Link>
             <Button
               variant="secondary"
               size="sm"
               onClick={() => loadData()}
+              disabled={loading}
               icon={<RefreshCw size={15} />}
             >
               Làm mới
@@ -104,408 +109,352 @@ const CourierEarningsPage: React.FC = () => {
         }
       />
 
-      {error && (
-        <div style={{ marginBottom: '16px' }}>
-          <Alert tone="danger">{error}</Alert>
-        </div>
-      )}
+      {error && <Alert tone="danger">{error}</Alert>}
 
       {/* Bộ lọc kỳ thống kê */}
-      <div
-        className="stat-card"
-        style={{
-          marginBottom: '20px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '12px',
-        }}
+      <SectionCard
+        title="Bộ lọc kỳ thống kê"
+        description={
+          earnings
+            ? `Đang hiển thị dữ liệu từ ${earnings.fromDate} đến ${earnings.toDate}`
+            : 'Chọn nhanh khoảng thời gian hoặc lọc theo ngày cụ thể'
+        }
       >
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 600, fontSize: '0.9rem', marginRight: '4px' }}>
-            <Calendar size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-            Kỳ thống kê:
-          </span>
-          <Button
-            size="sm"
-            variant={period === 'DAY' ? 'primary' : 'secondary'}
-            onClick={() => handlePeriodChange('DAY')}
-          >
-            7 ngày qua
-          </Button>
-          <Button
-            size="sm"
-            variant={period === 'WEEK' ? 'primary' : 'secondary'}
-            onClick={() => handlePeriodChange('WEEK')}
-          >
-            4 tuần qua
-          </Button>
-          <Button
-            size="sm"
-            variant={period === 'MONTH' ? 'primary' : 'secondary'}
-            onClick={() => handlePeriodChange('MONTH')}
-          >
-            Tháng này
-          </Button>
-        </div>
+        <div className="tx-filter-bar" style={{ marginBottom: 0 }}>
+          <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+              <Calendar size={15} color="var(--primary)" />
+              Kỳ:
+            </span>
+            <Button
+              size="sm"
+              variant={period === 'DAY' ? 'primary' : 'secondary'}
+              onClick={() => handlePeriodChange('DAY')}
+            >
+              7 ngày qua
+            </Button>
+            <Button
+              size="sm"
+              variant={period === 'WEEK' ? 'primary' : 'secondary'}
+              onClick={() => handlePeriodChange('WEEK')}
+            >
+              4 tuần qua
+            </Button>
+            <Button
+              size="sm"
+              variant={period === 'MONTH' ? 'primary' : 'secondary'}
+              onClick={() => handlePeriodChange('MONTH')}
+            >
+              Tháng này
+            </Button>
+          </div>
 
-        <form
-          onSubmit={handleApplyDateFilter}
-          style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}
-        >
-          <input
-            type="date"
-            className="form-input"
-            style={{ width: 'auto', padding: '6px 10px' }}
-            value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            aria-label="Từ ngày"
-          />
-          <span>→</span>
-          <input
-            type="date"
-            className="form-input"
-            style={{ width: 'auto', padding: '6px 10px' }}
-            value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            aria-label="Đến ngày"
-          />
-          <Button type="submit" size="sm" variant="secondary">
-            Lọc ngày
-          </Button>
-        </form>
-      </div>
+          <form
+            onSubmit={handleApplyDateFilter}
+            style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap', marginLeft: 'auto' }}
+          >
+            <input
+              type="date"
+              className="ui-control ui-input"
+              style={{ width: 'auto' }}
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              aria-label="Từ ngày"
+            />
+            <span style={{ color: 'var(--text-muted)' }}>→</span>
+            <input
+              type="date"
+              className="ui-control ui-input"
+              style={{ width: 'auto' }}
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              aria-label="Đến ngày"
+            />
+            <Button type="submit" size="sm" variant="secondary">
+              Lọc ngày
+            </Button>
+          </form>
+        </div>
+      </SectionCard>
 
       {loading ? (
-        <div className="stat-card" style={{ textAlign: 'center', padding: '48px' }}>
-          Đang tải thống kê thu nhập và hiệu suất...
-        </div>
+        <SectionCard title="Đang tải dữ liệu">
+          <div style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--text-muted)' }}>
+            <RefreshCw className="spin" size={28} style={{ margin: '0 auto var(--space-2)' }} />
+            <p>Đang tổng hợp thống kê thu nhập và hiệu suất…</p>
+          </div>
+        </SectionCard>
       ) : (
         <>
-          {/* KPI Cards Thu nhập (BR-F-118) */}
+          {/* 4 KPI Cards Thu nhập (Dark Theme matching WalletPage) */}
           {earnings && (
-            <div className="wallet-grid" style={{ marginBottom: '24px' }}>
-              <div className="balance-card">
-                <div>
-                  <div className="balance-label">
-                    Thu nhập ròng ({earnings.fromDate} → {earnings.toDate})
-                  </div>
-                  <div className="balance-amount">{formatVND(earnings.netEarnings)}</div>
-                  <div style={{ fontSize: '0.88rem', opacity: 0.9, marginTop: '6px' }}>
-                    Đã trừ hoa hồng nền tảng ({formatPercent(earnings.commissionRate)}) trên{' '}
-                    <strong>{earnings.completedOrdersCount}</strong> đơn hoàn thành
-                  </div>
+            <div className="wallet-dashboard">
+              <div className="wallet-stat-card primary">
+                <div className="card-glow" />
+                <div className="wallet-stat-header">
+                  <span>Thu nhập ròng thực nhận</span>
+                  <Wallet size={18} />
                 </div>
-                <div className="balance-actions">
-                  <div style={{ fontSize: '0.85rem' }}>
-                    Hôm nay: <strong>{formatVND(earnings.todayNetEarnings)}</strong>
-                  </div>
-                  <div style={{ fontSize: '0.85rem' }}>
-                    Đang giao (chờ giải ngân): <strong>{formatVND(earnings.pendingEscrowAmount)}</strong>
-                  </div>
+                <div className="wallet-stat-value" style={{ color: 'var(--accent-emerald)' }}>
+                  {formatVND(earnings.netEarnings)}
+                </div>
+                <div className="wallet-stat-subtext">
+                  Hôm nay: <strong style={{ color: 'var(--text-primary)' }}>{formatVND(earnings.todayNetEarnings)}</strong>
+                  {' · '}
+                  <strong>{earnings.completedOrdersCount}</strong> đơn đã tất toán
                 </div>
               </div>
 
-              <div className="stat-card">
-                <div>
-                  <div className="stat-header">
-                    <div className="stat-icon">
-                      <TrendingUp size={20} />
-                    </div>
-                  </div>
-                  <div className="stat-title">Doanh thu gộp</div>
-                  <div className="stat-value">{formatVND(earnings.grossEarnings)}</div>
+              <div className="wallet-stat-card">
+                <div className="wallet-stat-header">
+                  <span>Doanh thu gộp</span>
+                  <TrendingUp size={18} />
                 </div>
-                <div className="stat-sub">
-                  Tổng tiền cước trước khi khấu trừ hoa hồng
+                <div className="wallet-stat-value">{formatVND(earnings.grossEarnings)}</div>
+                <div className="wallet-stat-subtext">
+                  Tổng tiền cước đơn hàng trước khi trừ hoa hồng
                 </div>
               </div>
 
-              <div className="stat-card">
-                <div>
-                  <div className="stat-header">
-                    <div className="stat-icon" style={{ color: '#d97706' }}>
-                      <DollarSign size={20} />
-                    </div>
-                  </div>
-                  <div className="stat-title">Phí hoa hồng nền tảng</div>
-                  <div className="stat-value" style={{ color: '#d97706' }}>
-                    -{formatVND(earnings.commissionAmount)}
-                  </div>
+              <div className="wallet-stat-card">
+                <div className="wallet-stat-header">
+                  <span>Phí hoa hồng nền tảng</span>
+                  <DollarSign size={18} />
                 </div>
-                <div className="stat-sub">
-                  Mức chiết khấu hạng hiện tại: <strong>{formatPercent(earnings.commissionRate)}</strong>
+                <div className="wallet-stat-value" style={{ color: 'var(--accent-amber)' }}>
+                  -{formatVND(earnings.commissionAmount)}
+                </div>
+                <div className="wallet-stat-subtext">
+                  Chiết khấu hạng hiện tại: <strong style={{ color: 'var(--text-primary)' }}>{formatPercent(earnings.commissionRate)}</strong>
+                </div>
+              </div>
+
+              <div className="wallet-stat-card">
+                <div className="wallet-stat-header">
+                  <span>Đang giao (Chờ giải ngân)</span>
+                  <Hourglass size={18} />
+                </div>
+                <div className="wallet-stat-value" style={{ color: 'var(--accent-cyan)' }}>
+                  {formatVND(earnings.pendingEscrowAmount)}
+                </div>
+                <div className="wallet-stat-subtext">
+                  Sẽ cộng vào thu nhập ròng khi hoàn tất giao &amp; giải ngân
                 </div>
               </div>
             </div>
           )}
 
-          {/* Tiến độ thăng hạng & Chỉ số hiệu suất (API-159, BR-F-119, BR-R-073) */}
+          {/* Hạng người giao & Tiến độ thăng hạng (API-159, BR-F-119, BR-R-073) */}
           {stats && (
-            <div style={{ marginBottom: '24px' }}>
-              <SectionCard
-                title="Hạng người giao & Tiến độ thăng hạng"
-                description="Thăng hạng cao hơn để giảm tỷ lệ hoa hồng nền tảng từ 8% xuống tối đa 4% và mở khóa đơn giá trị cao."
-              >
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-                    gap: '20px',
-                    alignItems: 'stretch',
-                  }}
-                >
-                  {/* Hạng hiện tại */}
-                  <div
-                    style={{
-                      padding: '16px',
-                      borderRadius: '12px',
-                      background: 'var(--bg-subtle, #f8fafc)',
-                      border: '1px solid var(--border-subtle, #e2e8f0)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Hạng hiện tại</span>
-                      <Badge tone="info">{stats.currentTier}</Badge>
-                    </div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 700, margin: '8px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Award size={22} style={{ color: '#ea580c' }} />
-                      {stats.currentTierDisplayName}
-                    </div>
-                    <div style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                      Điểm uy tín: <strong>{stats.trustScore} / 100</strong> • Hoa hồng:{' '}
-                      <strong>{formatPercent(stats.commissionRate)}</strong>
-                    </div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '8px' }}>
-                      Đơn hoàn thành tích lũy: <strong>{stats.completedOrders} đơn</strong>
-                    </div>
+            <SectionCard
+              title="Hạng người giao & Tiến độ thăng hạng"
+              description="Thăng hạng cao hơn giúp giảm phí hoa hồng từ 8% xuống tối đa 4% và mở khóa đơn hàng giá trị cao."
+              actions={
+                <Badge tone="info" dot>
+                  Hạng {stats.currentTierDisplayName} ({stats.currentTier})
+                </Badge>
+              }
+            >
+              <div className="earnings-tier-grid">
+                {/* Cột 1: Thông tin hạng hiện tại */}
+                <div className="earnings-panel">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
+                      Cấp bậc hiện tại
+                    </span>
+                    <Badge tone="warning">Hoa hồng {formatPercent(stats.commissionRate)}</Badge>
                   </div>
 
-                  {/* Tiến độ lên hạng tiếp theo */}
-                  <div
-                    style={{
-                      padding: '16px',
-                      borderRadius: '12px',
-                      background: 'var(--bg-subtle, #f8fafc)',
-                      border: '1px solid var(--border-subtle, #e2e8f0)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <span style={{ fontWeight: 600, fontSize: '0.92rem' }}>
-                        Mục tiêu tiếp theo: Hạng {stats.nextTierDisplayName} (Hoa hồng {formatPercent(stats.nextTierCommissionRate)})
-                      </span>
-                    </div>
+                  <div className="earnings-tier-title">
+                    <Award size={24} color="var(--primary)" />
+                    <span>{stats.currentTierDisplayName}</span>
+                  </div>
 
-                    {/* Progress 1: Số đơn hoàn thành */}
-                    <div style={{ marginBottom: '12px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.83rem', marginBottom: '4px' }}>
-                        <span>Đơn hoàn thành: {stats.completedOrders} / {stats.nextTierMinOrders}</span>
-                        <span>
-                          {stats.ordersNeededForNextTier > 0
-                            ? `Còn thiếu ${stats.ordersNeededForNextTier} đơn`
-                            : 'Đã đạt chuẩn'}
-                        </span>
-                      </div>
-                      <div style={{ height: '8px', background: '#e2e8f0', borderRadius: '999px', overflow: 'hidden' }}>
-                        <div
-                          style={{
-                            width: `${stats.ordersProgressPercent}%`,
-                            height: '100%',
-                            background: '#16a34a',
-                            transition: 'width 0.3s ease',
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Progress 2: Điểm uy tín */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
                     <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.83rem', marginBottom: '4px' }}>
-                        <span>Điểm uy tín: {stats.trustScore} / {stats.nextTierMinScore}</span>
-                        <span>
-                          {stats.scoreNeededForNextTier > 0
-                            ? `Cần thêm +${stats.scoreNeededForNextTier} điểm`
-                            : 'Đã đạt chuẩn'}
-                        </span>
-                      </div>
-                      <div style={{ height: '8px', background: '#e2e8f0', borderRadius: '999px', overflow: 'hidden' }}>
-                        <div
-                          style={{
-                            width: `${stats.scoreProgressPercent}%`,
-                            height: '100%',
-                            background: '#2563eb',
-                            transition: 'width 0.3s ease',
-                          }}
-                        />
-                      </div>
+                      Điểm uy tín hiện có:{' '}
+                      <strong style={{ color: 'var(--accent-cyan)' }}>{stats.trustScore} / 100 điểm</strong>
                     </div>
-                  </div>
-
-                  {/* 4 Chỉ số hiệu suất */}
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: '1fr 1fr',
-                      gap: '10px',
-                    }}
-                  >
-                    <div
-                      style={{
-                        padding: '12px',
-                        borderRadius: '10px',
-                        background: 'var(--bg-subtle, #f8fafc)',
-                        border: '1px solid var(--border-subtle, #e2e8f0)',
-                      }}
-                    >
-                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Tỷ lệ hoàn thành</div>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#16a34a', marginTop: '4px' }}>
-                        <CheckCircle2 size={15} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
-                        {stats.completionRate}%
-                      </div>
+                    <div>
+                      Đơn hoàn thành tích lũy:{' '}
+                      <strong style={{ color: 'var(--text-primary)' }}>{stats.completedOrders} đơn</strong>
                     </div>
-                    <div
-                      style={{
-                        padding: '12px',
-                        borderRadius: '10px',
-                        background: 'var(--bg-subtle, #f8fafc)',
-                        border: '1px solid var(--border-subtle, #e2e8f0)',
-                      }}
-                    >
-                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Giao đúng hạn</div>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#2563eb', marginTop: '4px' }}>
-                        <Clock size={15} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
-                        {stats.onTimeRate}%
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        padding: '12px',
-                        borderRadius: '10px',
-                        background: 'var(--bg-subtle, #f8fafc)',
-                        border: '1px solid var(--border-subtle, #e2e8f0)',
-                      }}
-                    >
-                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Đánh giá TB</div>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#d97706', marginTop: '4px' }}>
-                        <Star size={15} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
-                        {stats.ratingAvg} / 5.0
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        padding: '12px',
-                        borderRadius: '10px',
-                        background: 'var(--bg-subtle, #f8fafc)',
-                        border: '1px solid var(--border-subtle, #e2e8f0)',
-                      }}
-                    >
-                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Tỷ lệ khiếu nại</div>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 700, marginTop: '4px' }}>
-                        <ShieldCheck size={15} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
-                        {stats.complaintRate}%
-                      </div>
+                    <div>
+                      Đơn đang phụ trách:{' '}
+                      <strong style={{ color: 'var(--text-primary)' }}>{stats.inDeliveryOrders} đơn</strong>
                     </div>
                   </div>
                 </div>
-              </SectionCard>
-            </div>
+
+                {/* Cột 2: Tiến độ lên hạng tiếp theo */}
+                <div className="earnings-panel">
+                  <div>
+                    <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                      Mục tiêu tiếp theo
+                    </div>
+                    <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-accent)' }}>
+                      Hạng {stats.nextTierDisplayName} (Hoa hồng {formatPercent(stats.nextTierCommissionRate)})
+                    </div>
+                  </div>
+
+                  <div className="earnings-progress-block">
+                    <div className="earnings-progress-meta">
+                      <span>Số đơn: <strong style={{ color: 'var(--text-primary)' }}>{stats.completedOrders} / {stats.nextTierMinOrders}</strong></span>
+                      <span style={{ color: stats.ordersNeededForNextTier === 0 ? 'var(--accent-emerald)' : 'var(--text-muted)' }}>
+                        {stats.ordersNeededForNextTier > 0
+                          ? `Thiếu ${stats.ordersNeededForNextTier} đơn`
+                          : 'Đã đạt chuẩn'}
+                      </span>
+                    </div>
+                    <div className="earnings-progress-track">
+                      <div
+                        className="earnings-progress-fill orders"
+                        style={{ width: `${stats.ordersProgressPercent}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="earnings-progress-block">
+                    <div className="earnings-progress-meta">
+                      <span>Điểm uy tín: <strong style={{ color: 'var(--text-primary)' }}>{stats.trustScore} / {stats.nextTierMinScore}</strong></span>
+                      <span style={{ color: stats.scoreNeededForNextTier <= 0 ? 'var(--accent-emerald)' : 'var(--text-muted)' }}>
+                        {stats.scoreNeededForNextTier > 0
+                          ? `Cần thêm +${stats.scoreNeededForNextTier} điểm`
+                          : 'Đã đạt chuẩn'}
+                      </span>
+                    </div>
+                    <div className="earnings-progress-track">
+                      <div
+                        className="earnings-progress-fill score"
+                        style={{ width: `${stats.scoreProgressPercent}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cột 3: 4 Chỉ số hiệu suất */}
+                <div className="earnings-metrics-grid">
+                  <div className="earnings-metric-tile">
+                    <span className="earnings-metric-label">Tỷ lệ hoàn thành</span>
+                    <span className="earnings-metric-value" style={{ color: 'var(--accent-emerald)' }}>
+                      <CheckCircle2 size={16} />
+                      {stats.completionRate}%
+                    </span>
+                  </div>
+
+                  <div className="earnings-metric-tile">
+                    <span className="earnings-metric-label">Giao đúng hạn</span>
+                    <span className="earnings-metric-value" style={{ color: 'var(--secondary)' }}>
+                      <Clock size={16} />
+                      {stats.onTimeRate}%
+                    </span>
+                  </div>
+
+                  <div className="earnings-metric-tile">
+                    <span className="earnings-metric-label">Đánh giá TB</span>
+                    <span className="earnings-metric-value" style={{ color: 'var(--accent-amber)' }}>
+                      <Star size={16} />
+                      {stats.ratingAvg} / 5.0
+                    </span>
+                  </div>
+
+                  <div className="earnings-metric-tile">
+                    <span className="earnings-metric-label">Tỷ lệ khiếu nại</span>
+                    <span className="earnings-metric-value" style={{ color: stats.complaintRate > 0 ? 'var(--accent-rose)' : 'var(--text-primary)' }}>
+                      <ShieldCheck size={16} />
+                      {stats.complaintRate}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </SectionCard>
           )}
 
           {/* Biểu đồ thu nhập theo thời gian */}
           {earnings && earnings.chartPoints.length > 0 && (
-            <div style={{ marginBottom: '24px' }}>
-              <SectionCard
-                title="Biểu đồ biến động thu nhập theo ngày"
-                description="Cột xanh lá thể hiện thu nhập thực nhận (ròng), phần cam thể hiện phí hoa hồng nền tảng."
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-end',
-                    gap: '10px',
-                    height: '190px',
-                    padding: '16px 8px 8px 8px',
-                    overflowX: 'auto',
-                    borderBottom: '1px solid var(--border-subtle, #e2e8f0)',
-                  }}
-                >
-                  {earnings.chartPoints.map((pt) => {
-                    const heightPct = Math.max(4, Math.round((pt.grossAmount / maxChartGross) * 140));
-                    const netPct = pt.grossAmount > 0 ? Math.round((pt.netAmount / pt.grossAmount) * 100) : 100;
-                    return (
+            <SectionCard
+              title="Biểu đồ biến động thu nhập theo ngày"
+              description="Di chuột vào từng cột để xem chi tiết số đơn, doanh thu gộp và thu nhập ròng trong ngày."
+              actions={
+                <div className="earnings-chart-legend">
+                  <span className="earnings-legend-item">
+                    <span className="earnings-legend-dot" style={{ background: '#10b981' }} />
+                    Thu nhập ròng
+                  </span>
+                  <span className="earnings-legend-item">
+                    <span className="earnings-legend-dot" style={{ background: '#f59e0b' }} />
+                    Hoa hồng nền tảng
+                  </span>
+                </div>
+              }
+            >
+              <div className="earnings-chart-box">
+                {earnings.chartPoints.map((pt) => {
+                  const hasValue = pt.grossAmount > 0;
+                  const barHeight = hasValue ? Math.max(18, Math.round((pt.grossAmount / maxChartGross) * 145)) : 4;
+                  const netPct = hasValue ? Math.round((pt.netAmount / pt.grossAmount) * 100) : 0;
+
+                  return (
+                    <div
+                      key={pt.date}
+                      className="earnings-chart-col"
+                      title={`${pt.date}: ${pt.orderCount} đơn · Gộp: ${formatVND(pt.grossAmount)} · Hoa hồng: -${formatVND(pt.commissionAmount)} · Ròng: ${formatVND(pt.netAmount)}`}
+                    >
+                      {hasValue && (
+                        <div className="earnings-chart-top">
+                          {formatCompactVND(pt.netAmount)}
+                        </div>
+                      )}
                       <div
-                        key={pt.date}
-                        title={`${pt.date}: ${pt.orderCount} đơn • Gộp: ${formatVND(pt.grossAmount)} • Ròng: ${formatVND(pt.netAmount)}`}
+                        className="earnings-chart-bar"
                         style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          minWidth: '38px',
-                          flex: 1,
+                          height: `${barHeight}px`,
+                          background: hasValue ? '#f59e0b' : 'rgba(255, 255, 255, 0.08)',
                         }}
                       >
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                          {pt.orderCount > 0 ? `${pt.orderCount}đ` : ''}
-                        </div>
-                        <div
-                          style={{
-                            width: '22px',
-                            height: `${heightPct}px`,
-                            borderRadius: '6px 6px 0 0',
-                            background: pt.grossAmount > 0 ? '#f59e0b' : '#e2e8f0',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'flex-end',
-                            overflow: 'hidden',
-                          }}
-                        >
-                          {pt.grossAmount > 0 && (
-                            <div
-                              style={{
-                                width: '100%',
-                                height: `${netPct}%`,
-                                background: '#16a34a',
-                              }}
-                            />
-                          )}
-                        </div>
-                        <div style={{ fontSize: '0.72rem', marginTop: '6px', color: 'var(--text-secondary)' }}>
-                          {pt.label}
-                        </div>
+                        {hasValue && (
+                          <div
+                            style={{
+                              width: '100%',
+                              height: `${netPct}%`,
+                              background: '#10b981',
+                            }}
+                          />
+                        )}
                       </div>
-                    );
-                  })}
-                </div>
-              </SectionCard>
-            </div>
+                      <div className="earnings-chart-label">{pt.label}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </SectionCard>
           )}
 
           {/* Bảng Phiếu thu nhập từng đơn (BR-F-074) */}
           {earnings && (
             <SectionCard
               title={`Phiếu thu nhập chi tiết theo đơn (${earnings.receipts.length})`}
-              description="Chi tiết tiền cước gộp, mức hoa hồng áp dụng và số tiền thực nhận vào ví sau mỗi đơn hoàn thành."
+              description="Chi tiết tiền cước gộp, tỷ lệ hoa hồng áp dụng theo hạng và thu nhập ròng được cộng vào ví."
             >
               {earnings.receipts.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '36px 16px' }}>
-                  <BarChart3 size={40} style={{ color: 'var(--text-muted)', marginBottom: '10px' }} />
-                  <h3 style={{ margin: '0 0 8px 0' }}>Chưa có đơn hoàn thành trong kỳ này</h3>
-                  <p style={{ color: 'var(--text-muted)', marginBottom: '16px' }}>
-                    Hãy nhận đơn trên Sàn đơn hoặc ghép chuyến đi để bắt đầu tích lũy thu nhập và nâng hạng người giao.
-                  </p>
-                  <Link to="/courier/market" className="ui-button ui-button-primary">
-                    <Package size={16} /> Khám phá Sàn đơn ngay
-                  </Link>
-                </div>
+                <EmptyState
+                  icon={<BarChart3 size={32} />}
+                  title="Chưa có đơn hoàn thành trong kỳ này"
+                  description="Hãy nhận đơn trên Sàn đơn hoặc ghép chuyến đi để bắt đầu tích lũy thu nhập và nâng hạng người giao."
+                  action={
+                    <Link to="/courier/market" className="ui-button ui-button-primary">
+                      <Package size={16} /> Khám phá Sàn đơn ngay
+                    </Link>
+                  }
+                />
               ) : (
-                <div className="table-responsive">
-                  <table className="wallet-table">
+                <div className="tx-table-container">
+                  <table className="tx-table">
                     <thead>
                       <tr>
                         <th>Mã đơn</th>
                         <th>Hàng hóa</th>
-                        <th>Thời gian hoàn thành</th>
+                        <th>Thời gian tất toán</th>
                         <th>Doanh thu gộp</th>
                         <th>Hoa hồng nền tảng</th>
                         <th>Thu nhập ròng</th>
@@ -515,18 +464,30 @@ const CourierEarningsPage: React.FC = () => {
                     <tbody>
                       {earnings.receipts.map((item) => (
                         <tr key={item.orderId}>
-                          <td style={{ fontWeight: 700 }}>{item.orderCode}</td>
-                          <td>{item.productName}</td>
-                          <td>{new Date(item.completedAt).toLocaleString('vi-VN')}</td>
-                          <td>{formatVND(item.grossAmount)}</td>
-                          <td style={{ color: '#d97706' }}>
-                            -{formatVND(item.commissionAmount)} ({formatPercent(item.commissionRate)})
+                          <td>
+                            <span className="tx-code">{item.orderCode}</span>
                           </td>
-                          <td className="amount-positive" style={{ fontWeight: 700 }}>
-                            +{formatVND(item.netAmount)}
+                          <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                            {item.productName}
                           </td>
                           <td>
-                            <Badge tone="success">Đã quyết toán</Badge>
+                            <span className="tx-date">
+                              {new Date(item.completedAt).toLocaleString('vi-VN')}
+                            </span>
+                          </td>
+                          <td style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                            {formatVND(item.grossAmount)}
+                          </td>
+                          <td style={{ color: 'var(--accent-amber)', fontWeight: 600 }}>
+                            -{formatVND(item.commissionAmount)} ({formatPercent(item.commissionRate)})
+                          </td>
+                          <td>
+                            <span className="tx-amount inflow">+{formatVND(item.netAmount)}</span>
+                          </td>
+                          <td>
+                            <Badge tone="success" dot>
+                              Đã quyết toán
+                            </Badge>
                           </td>
                         </tr>
                       ))}
