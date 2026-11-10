@@ -339,5 +339,97 @@ public class LedgerService {
 
         return ledgerTransactionRepository.save(txn);
     }
+
+    /**
+     * Hạch toán hoàn tiền ký quỹ đơn hàng về ví người gửi (UC-37, BR-F-075).
+     */
+    @Transactional
+    public LedgerTransaction recordEscrowRefund(Long orderId, Long senderId, Long amount, String escrowRef) {
+        String idemKey = "ESCROW_REFUND_" + orderId + "_" + escrowRef;
+        if (ledgerTransactionRepository.existsByIdempotencyKey(idemKey)) {
+            return ledgerTransactionRepository.findByIdempotencyKey(idemKey).orElse(null);
+        }
+
+        String txnCode = "LTX-ESCROW-RFD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        LedgerTransaction txn = LedgerTransaction.builder()
+                .transactionCode(txnCode)
+                .type(LedgerTransactionType.ESCROW_REFUND)
+                .status(LedgerTransactionStatus.COMPLETED)
+                .idempotencyKey(idemKey)
+                .orderId(orderId)
+                .refType("ESCROW")
+                .refId(escrowRef)
+                .amount(amount)
+                .createdBy(senderId)
+                .description("Hoàn tiền ký quỹ đơn hàng #" + orderId + " về ví người gửi ID " + senderId)
+                .build();
+
+        // Ghi Nợ (Debit): ESCROW_ORDER_{orderId} (Giảm khoản ký quỹ đang giữ)
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("ESCROW_ORDER_" + orderId)
+                .accountType("LIABILITY")
+                .debit(amount)
+                .credit(0L)
+                .build());
+
+        // Ghi Có (Credit): USER_WALLET_{senderId} (Tăng số dư khả dụng ví người gửi)
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("USER_WALLET_" + senderId)
+                .accountType("LIABILITY")
+                .debit(0L)
+                .credit(amount)
+                .build());
+
+        LedgerTransaction saved = ledgerTransactionRepository.save(txn);
+        log.info("Saved ledger transaction for escrow refund: txnCode={}, orderId={}, senderId={}, amount={}",
+                txnCode, orderId, senderId, amount);
+        return saved;
+    }
+
+    /**
+     * Hạch toán hoàn tiền từ ví người gửi về nguồn thanh toán VNPay gốc (UC-37, BR-F-076, API-091).
+     */
+    @Transactional
+    public LedgerTransaction recordVNPaySourceRefund(Long orderId, Long senderId, Long amount, String vnpayRefundRef) {
+        String idemKey = "VNPAY_SRC_REFUND_" + orderId + "_" + vnpayRefundRef;
+        if (ledgerTransactionRepository.existsByIdempotencyKey(idemKey)) {
+            return ledgerTransactionRepository.findByIdempotencyKey(idemKey).orElse(null);
+        }
+
+        String txnCode = "LTX-VNP-RFD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        LedgerTransaction txn = LedgerTransaction.builder()
+                .transactionCode(txnCode)
+                .type(LedgerTransactionType.ESCROW_REFUND)
+                .status(LedgerTransactionStatus.COMPLETED)
+                .idempotencyKey(idemKey)
+                .orderId(orderId)
+                .refType("VNPAY_REFUND")
+                .refId(vnpayRefundRef)
+                .amount(amount)
+                .createdBy(senderId)
+                .description("Hoàn tiền về nguồn VNPay cho đơn hàng #" + orderId + " (Mã hoàn: " + vnpayRefundRef + ")")
+                .build();
+
+        // Ghi Nợ (Debit): USER_WALLET_{senderId} (Chuyển tiền hoàn từ ví về nguồn VNPay)
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("USER_WALLET_" + senderId)
+                .accountType("LIABILITY")
+                .debit(amount)
+                .credit(0L)
+                .build());
+
+        // Ghi Có (Credit): VNPAY_CLEARING (Đối ứng cổng thanh toán VNPay hoàn tiền về thẻ/tài khoản)
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode("VNPAY_CLEARING")
+                .accountType("ASSET")
+                .debit(0L)
+                .credit(amount)
+                .build());
+
+        LedgerTransaction saved = ledgerTransactionRepository.save(txn);
+        log.info("Saved ledger transaction for VNPay source refund: txnCode={}, orderId={}, amount={}",
+                txnCode, orderId, amount);
+        return saved;
+    }
 }
 

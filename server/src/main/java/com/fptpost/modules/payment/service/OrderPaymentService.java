@@ -11,10 +11,13 @@ import com.fptpost.modules.payment.dto.EscrowReleaseResponse;
 import com.fptpost.modules.payment.dto.EscrowResponse;
 import com.fptpost.modules.payment.dto.OrderPaymentRequest;
 import com.fptpost.modules.payment.dto.OrderPaymentResponse;
+import com.fptpost.modules.payment.dto.RefundToSourceRequest;
+import com.fptpost.modules.payment.dto.RefundToSourceResponse;
 import com.fptpost.modules.payment.exception.PaymentErrorCode;
 import com.fptpost.modules.payment.model.*;
 import com.fptpost.modules.payment.repository.EscrowRepository;
 import com.fptpost.modules.payment.repository.PaymentTransactionRepository;
+import com.fptpost.modules.payment.repository.RefundRequestRepository;
 import com.fptpost.modules.payment.repository.WalletRepository;
 import com.fptpost.modules.payment.util.VNPayUtil;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,7 +33,11 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -39,11 +46,14 @@ public class OrderPaymentService {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
     private static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final double CANCEL_FEE_RATE = 0.10;
+    private static final long MIN_CANCEL_FEE = 5_000L;
 
     private final OrderRepository orderRepository;
     private final WalletRepository walletRepository;
     private final EscrowRepository escrowRepository;
     private final PaymentTransactionRepository paymentTransactionRepository;
+    private final RefundRequestRepository refundRequestRepository;
     private final LedgerService ledgerService;
     private final VNPayConfig vnPayConfig;
     private final UserRepository userRepository;
@@ -354,6 +364,278 @@ public class OrderPaymentService {
                 .message("Giải ngân tiền ký quỹ cho người giao hàng thành công")
                 .releasedAt(releasedAt)
                 .build();
+    }
+
+    /**
+     * Hoàn tiền ký quỹ đơn hàng vào ví người gửi khi đơn bị hủy/hết hạn (UC-37, BR-F-075, BR-R-022, BR-R-043).
+     * - Nếu chưa có người giao hoặc lỗi do người giao (courierFault = true): hoàn 100% về ví người gửi.
+     * - Nếu người gửi hủy sau khi đã có người giao nhưng trước lấy hàng: khấu trừ phí hủy 10% (tối thiểu 5.000đ)
+     *   trả cho người giao, phần còn lại hoàn vào ví người gửi.
+     */
+    @Transactional
+    public Optional<EscrowRefundResult> refundEscrowIfHeldOnCancel(Long orderId, boolean courierFault, String reason) {
+        Optional<Escrow> escrowOpt = escrowRepository.findByOrderId(orderId);
+        if (escrowOpt.isEmpty()) {
+            return Optional.empty();
+        }
+        Escrow escrow = escrowOpt.get();
+        if (escrow.getStatus() != EscrowStatus.HELD || escrow.isFrozen()) {
+            return Optional.empty();
+        }
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new AppException(OrderErrorCode.ORDER_NOT_FOUND));
+
+        long totalEscrow = escrow.getAmount() != null ? escrow.getAmount() : 0L;
+        Long senderId = escrow.getSenderId();
+        Long courierId = order.getCourierId();
+
+        long cancelFee = 0L;
+        if (!courierFault && courierId != null && totalEscrow > 0) {
+            long calculatedFee = Math.round(totalEscrow * CANCEL_FEE_RATE);
+            cancelFee = Math.min(totalEscrow, Math.max(MIN_CANCEL_FEE, calculatedFee));
+        }
+        long refundAmount = Math.max(0L, totalEscrow - cancelFee);
+
+        // 1. Cập nhật ví người gửi (giảm escrowHeld nếu ký quỹ từ WALLET, cộng available phần hoàn)
+        Wallet senderWallet = walletRepository.findByUserIdForUpdate(senderId).orElseGet(() ->
+                walletRepository.save(Wallet.builder()
+                        .userId(senderId)
+                        .available(0L)
+                        .escrowHeld(0L)
+                        .pendingWithdraw(0L)
+                        .build()));
+
+        if (escrow.getPaymentMethod() == EscrowPaymentMethod.WALLET) {
+            long held = senderWallet.getEscrowHeld() != null ? senderWallet.getEscrowHeld() : 0L;
+            senderWallet.setEscrowHeld(Math.max(0L, held - totalEscrow));
+        }
+        long senderAvail = senderWallet.getAvailable() != null ? senderWallet.getAvailable() : 0L;
+        senderWallet.setAvailable(senderAvail + refundAmount);
+        walletRepository.save(senderWallet);
+
+        // 2. Nếu có phí hủy đơn trả cho người giao (BR-R-022)
+        if (cancelFee > 0 && courierId != null) {
+            Wallet courierWallet = walletRepository.findByUserIdForUpdate(courierId).orElseGet(() ->
+                    walletRepository.save(Wallet.builder()
+                            .userId(courierId)
+                            .available(0L)
+                            .escrowHeld(0L)
+                            .pendingWithdraw(0L)
+                            .build()));
+            long courierAvail = courierWallet.getAvailable() != null ? courierWallet.getAvailable() : 0L;
+            courierWallet.setAvailable(courierAvail + cancelFee);
+            walletRepository.save(courierWallet);
+
+            ledgerService.recordEscrowRelease(orderId, senderId, courierId, cancelFee, "CANCEL_FEE_ORD_" + orderId);
+        }
+
+        // 3. Cập nhật trạng thái Escrow và ghi sổ cái hoàn tiền
+        escrow.setStatus(cancelFee > 0 ? EscrowStatus.PARTIALLY_REFUNDED : EscrowStatus.REFUNDED);
+        escrowRepository.save(escrow);
+
+        if (refundAmount > 0) {
+            ledgerService.recordEscrowRefund(orderId, senderId, refundAmount, "REFUND_ORD_" + orderId);
+        }
+
+        log.info("Refunded escrow for orderId={}: total={}, refundToSender={}, cancelFeeToCourier={}, status={}",
+                orderId, totalEscrow, refundAmount, cancelFee, escrow.getStatus());
+
+        return Optional.of(new EscrowRefundResult(orderId, senderId, refundAmount, cancelFee, escrow.getStatus()));
+    }
+
+    /**
+     * Yêu cầu hoàn tiền về nguồn thanh toán VNPay gốc (UC-37, API-091, BR-F-076).
+     */
+    @Transactional
+    public RefundToSourceResponse requestRefundToSource(
+            Long orderId,
+            Long currentUserId,
+            RefundToSourceRequest request) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new AppException(OrderErrorCode.ORDER_NOT_FOUND));
+
+        if (!order.getSenderId().equals(currentUserId)) {
+            throw new AppException(PaymentErrorCode.ORDER_PAYMENT_FORBIDDEN);
+        }
+
+        Escrow escrow = escrowRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new AppException(PaymentErrorCode.ESCROW_NOT_FOUND));
+
+        if (escrow.isFrozen()) {
+            throw new AppException(PaymentErrorCode.ESCROW_FROZEN);
+        }
+
+        // A2: Giao dịch gốc không phải VNPay -> chỉ hoàn ví, từ chối hoàn về nguồn VNPay
+        if (escrow.getPaymentMethod() != EscrowPaymentMethod.VNPAY) {
+            throw new AppException(PaymentErrorCode.REFUND_SOURCE_NOT_VNPAY);
+        }
+
+        // Nếu đơn đã hủy/hết hạn/từ chối mà Escrow vẫn đang HELD thì tự động hoàn ký quỹ vào ví trước
+        long cancelFee = 0L;
+        if (escrow.getStatus() == EscrowStatus.HELD) {
+            if (order.getStatus() == OrderStatus.CANCELLED
+                    || order.getStatus() == OrderStatus.EXPIRED
+                    || order.getStatus() == OrderStatus.REJECTED) {
+                boolean courierFault = order.getStatus() != OrderStatus.CANCELLED;
+                Optional<EscrowRefundResult> resultOpt = refundEscrowIfHeldOnCancel(
+                        orderId,
+                        courierFault,
+                        request != null ? request.getReason() : null
+                );
+                if (resultOpt.isPresent()) {
+                    cancelFee = resultOpt.get().cancellationFee();
+                }
+                escrow = escrowRepository.findByOrderId(orderId).orElse(escrow);
+            } else {
+                throw new AppException(PaymentErrorCode.REFUND_NOT_ELIGIBLE);
+            }
+        } else if (escrow.getStatus() != EscrowStatus.REFUNDED
+                && escrow.getStatus() != EscrowStatus.PARTIALLY_REFUNDED) {
+            throw new AppException(PaymentErrorCode.REFUND_NOT_ELIGIBLE);
+        }
+
+        if (refundRequestRepository != null
+                && refundRequestRepository.existsByOrderIdAndStatusIn(
+                orderId, Set.of(RefundStatus.SUCCESS, RefundStatus.PENDING))) {
+            throw new AppException(PaymentErrorCode.REFUND_ALREADY_REQUESTED);
+        }
+
+        long totalEscrow = escrow.getAmount() != null ? escrow.getAmount() : 0L;
+        if (escrow.getStatus() == EscrowStatus.PARTIALLY_REFUNDED && cancelFee == 0L && order.getCourierId() != null) {
+            cancelFee = Math.min(totalEscrow, Math.max(MIN_CANCEL_FEE, Math.round(totalEscrow * CANCEL_FEE_RATE)));
+        }
+        long refundAmount = Math.max(0L, totalEscrow - cancelFee);
+        RefundKind kind = cancelFee > 0 ? RefundKind.PARTIAL : RefundKind.FULL;
+
+        Long paymentTxnId = paymentTransactionRepository != null
+                ? paymentTransactionRepository.findByOrderId(orderId).map(PaymentTransaction::getId).orElse(null)
+                : null;
+
+        String reason = (request != null && request.getReason() != null && !request.getReason().isBlank())
+                ? request.getReason().trim()
+                : "Hoàn tiền đơn hàng " + order.getOrderCode() + " về nguồn VNPay";
+
+        // Kiểm tra số dư khả dụng trong ví người gửi (tiền hoàn đã nằm trong ví từ bước hoàn ký quỹ)
+        Wallet senderWallet = walletRepository.findByUserIdForUpdate(currentUserId)
+                .orElseThrow(() -> new AppException(PaymentErrorCode.WALLET_NOT_FOUND));
+        long currentAvail = senderWallet.getAvailable() != null ? senderWallet.getAvailable() : 0L;
+        if (currentAvail < refundAmount) {
+            throw new AppException(PaymentErrorCode.WALLET_INSUFFICIENT_BALANCE);
+        }
+
+        // A1: VNPay từ chối hoàn -> giữ tiền ở ví, lưu trạng thái FAILED và báo Admin
+        if (request != null && Boolean.TRUE.equals(request.getSimulateProviderRejection())) {
+            RefundRequest failedReq = RefundRequest.builder()
+                    .paymentTxnId(paymentTxnId)
+                    .orderId(orderId)
+                    .userId(currentUserId)
+                    .amount(refundAmount)
+                    .cancellationFee(cancelFee)
+                    .kind(kind)
+                    .status(RefundStatus.FAILED)
+                    .reason(reason)
+                    .build();
+            if (refundRequestRepository != null) {
+                failedReq = refundRequestRepository.save(failedReq);
+            }
+            log.warn("VNPay rejected refund-to-source for orderId={}; funds kept in sender wallet {}", orderId, currentUserId);
+            return RefundToSourceResponse.builder()
+                    .id(failedReq.getId())
+                    .orderId(orderId)
+                    .orderCode(order.getOrderCode())
+                    .paymentTxnId(paymentTxnId)
+                    .amount(refundAmount)
+                    .cancellationFee(cancelFee)
+                    .kind(kind)
+                    .status(RefundStatus.FAILED)
+                    .reason(reason)
+                    .message("Cổng VNPay từ chối hoàn về nguồn. Số tiền hoàn vẫn được giữ an toàn trong ví FPTPost và đã thông báo Admin.")
+                    .createdAt(failedReq.getCreatedAt() != null ? failedReq.getCreatedAt() : Instant.now())
+                    .build();
+        }
+
+        // Khấu trừ số dư ví người gửi để chuyển trả về nguồn VNPay
+        senderWallet.setAvailable(currentAvail - refundAmount);
+        walletRepository.save(senderWallet);
+
+        String vnpayRefundRef = "VNP-RFD-" + orderId + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        RefundRequest refundRequest = RefundRequest.builder()
+                .paymentTxnId(paymentTxnId)
+                .orderId(orderId)
+                .userId(currentUserId)
+                .amount(refundAmount)
+                .cancellationFee(cancelFee)
+                .kind(kind)
+                .status(RefundStatus.SUCCESS)
+                .vnpayRefundRef(vnpayRefundRef)
+                .reason(reason)
+                .build();
+        if (refundRequestRepository != null) {
+            refundRequest = refundRequestRepository.save(refundRequest);
+        }
+
+        ledgerService.recordVNPaySourceRefund(orderId, currentUserId, refundAmount, vnpayRefundRef);
+
+        log.info("Successfully refunded orderId={} to VNPay source: amount={}, ref={}", orderId, refundAmount, vnpayRefundRef);
+
+        return RefundToSourceResponse.builder()
+                .id(refundRequest.getId())
+                .orderId(orderId)
+                .orderCode(order.getOrderCode())
+                .paymentTxnId(paymentTxnId)
+                .amount(refundAmount)
+                .cancellationFee(cancelFee)
+                .kind(kind)
+                .status(RefundStatus.SUCCESS)
+                .vnpayRefundRef(vnpayRefundRef)
+                .reason(reason)
+                .message("Hoàn tiền về nguồn VNPay thành công")
+                .createdAt(refundRequest.getCreatedAt() != null ? refundRequest.getCreatedAt() : Instant.now())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<RefundToSourceResponse> getOrderRefundRequests(Long orderId, Long currentUserId, boolean isAdmin) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new AppException(OrderErrorCode.ORDER_NOT_FOUND));
+
+        if (!isAdmin && !order.getSenderId().equals(currentUserId)) {
+            throw new AppException(PaymentErrorCode.ESCROW_ACCESS_DENIED);
+        }
+
+        if (refundRequestRepository == null) {
+            return List.of();
+        }
+
+        return refundRequestRepository.findByOrderIdOrderByCreatedAtDesc(orderId)
+                .stream()
+                .map(r -> RefundToSourceResponse.builder()
+                        .id(r.getId())
+                        .orderId(r.getOrderId())
+                        .orderCode(order.getOrderCode())
+                        .paymentTxnId(r.getPaymentTxnId())
+                        .amount(r.getAmount())
+                        .cancellationFee(r.getCancellationFee())
+                        .kind(r.getKind())
+                        .status(r.getStatus())
+                        .vnpayRefundRef(r.getVnpayRefundRef())
+                        .reason(r.getReason())
+                        .message(r.getStatus() == RefundStatus.SUCCESS
+                                ? "Đã hoàn tiền về nguồn VNPay"
+                                : "Yêu cầu hoàn về nguồn VNPay không thành công (tiền giữ tại ví)")
+                        .createdAt(r.getCreatedAt())
+                        .build())
+                .toList();
+    }
+
+    public record EscrowRefundResult(
+            Long orderId,
+            Long senderId,
+            Long refundedAmount,
+            Long cancellationFee,
+            EscrowStatus escrowStatus
+    ) {
     }
 }
 
