@@ -47,5 +47,8 @@ public enum LedgerTransactionType {
     /**
      * Chi trả yêu cầu rút tiền về tài khoản ngân hàng (UC-41).
      */
-    WITHDRAWAL_PAYOUT
+    WITHDRAWAL_PAYOUT,
+
+    REFERRAL_REWARD,
+    ACHIEVEMENT_REWARD
 }

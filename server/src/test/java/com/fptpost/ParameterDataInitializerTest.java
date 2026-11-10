@@ -27,11 +27,11 @@ class ParameterDataInitializerTest {
         });
         var seeder = new ParameterDataInitializer(repository, new ParameterCatalog(new ObjectMapper()));
         seeder.run(); seeder.run();
-        assertThat(existing).hasSize(109);
+        assertThat(existing).hasSize(111);
         assertThat(existing.get("OTP_TTL").getValue()).isEqualTo("7");
         assertThat(existing.get("OTP_TTL").getVersion()).isEqualTo(4L);
         assertThat(existing.get("BASE_FARE").getPublicId()).isNotNull();
-        verify(repository, times(108)).saveAndFlush(any());
+        verify(repository, times(110)).saveAndFlush(any());
     }
 
     @Test void concurrentSeedMayWinAKeyButUnrelatedIntegrityFailureIsNotIgnored() {

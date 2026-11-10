@@ -44,7 +44,8 @@ export function useRegister() {
       const response = await authService.register({ fullName: values.fullName, email: values.email,
         phone: values.phone, password: values.password, adultConfirmed: values.adultConfirmed,
         termsAccepted: values.termsAccepted, privacyAccepted: values.privacyAccepted,
-        termsVersion: policies.terms.version, privacyVersion: policies.privacy.version });
+        termsVersion: policies.terms.version, privacyVersion: policies.privacy.version,
+        referralCode: values.referralCode || undefined });
       saveRegistrationChallenge(response.data);
       navigate('/verify', { replace: true, state: { challenge: response.data } });
       return true;

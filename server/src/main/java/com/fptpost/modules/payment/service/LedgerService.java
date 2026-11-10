@@ -2,6 +2,7 @@ package com.fptpost.modules.payment.service;
 
 import com.fptpost.modules.payment.model.*;
 import com.fptpost.modules.payment.repository.LedgerTransactionRepository;
+import com.fptpost.modules.payment.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,35 @@ import java.util.UUID;
 public class LedgerService {
 
     private final LedgerTransactionRepository ledgerTransactionRepository;
+    private final WalletRepository walletRepository;
+
+    @Transactional
+    public void creditReward(Long userId, long amount, LedgerTransactionType type, String refId, String description) {
+        if (amount <= 0) return;
+
+        Wallet wallet = walletRepository.findByUserIdForUpdate(userId).orElseGet(() -> walletRepository.save(
+                Wallet.builder().userId(userId).available(0L).escrowHeld(0L).pendingWithdraw(0L).build()));
+        String key = type.name() + "_" + refId + "_" + userId;
+        if (ledgerTransactionRepository.existsByIdempotencyKey(key)) return;
+
+        LedgerTransaction transaction = LedgerTransaction.builder()
+                .transactionCode("LTX-REWARD-" + UUID.randomUUID())
+                .type(type)
+                .status(LedgerTransactionStatus.COMPLETED)
+                .idempotencyKey(key)
+                .refType(type.name())
+                .refId(refId)
+                .amount(amount)
+                .createdBy(userId)
+                .description(description)
+                .build();
+        transaction.addEntry(LedgerEntry.builder().accountCode("PROMO_EXPENSE").accountType("EXPENSE")
+                .debit(amount).credit(0L).build());
+        transaction.addEntry(LedgerEntry.builder().accountCode("USER_WALLET_" + userId).accountType("LIABILITY")
+                .debit(0L).credit(amount).build());
+        ledgerTransactionRepository.save(transaction);
+        wallet.setAvailable(Math.addExact(wallet.getAvailable(), amount));
+    }
 
     @Transactional
     public LedgerTransaction recordWalletTopup(Long userId, Long amount, String txnRef) {

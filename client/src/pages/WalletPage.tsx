@@ -98,6 +98,8 @@ const TX_TYPE_LABELS: Record<LedgerTransactionType, { label: string; tone: 'succ
   WITHDRAWAL_CANCEL: { label: 'Hoàn trả rút tiền', tone: 'info' },
   WITHDRAWAL_REFUND: { label: 'Hoàn tiền rút không thành công', tone: 'info' },
   WITHDRAWAL_PAYOUT: { label: 'Chi trả rút tiền', tone: 'neutral' },
+  REFERRAL_REWARD: { label: 'Thưởng giới thiệu bạn bè', tone: 'success' },
+  ACHIEVEMENT_REWARD: { label: 'Thưởng thành tích', tone: 'success' },
 };
 
 const WDR_STATUS_CONFIG: Record<WithdrawalStatus, { label: string; tone: 'warning' | 'success' | 'danger' | 'neutral' }> = {
@@ -889,6 +891,8 @@ export default function WalletPage() {
               <option value="ESCROW_REFUND">Hoàn tiền ký quỹ</option>
               <option value="WITHDRAWAL_REQUEST">Yêu cầu rút tiền</option>
               <option value="WITHDRAWAL_CANCEL">Hoàn trả rút tiền</option>
+                <option value="REFERRAL_REWARD">Thưởng giới thiệu bạn bè</option>
+                <option value="ACHIEVEMENT_REWARD">Thưởng thành tích</option>
             </select>
           </div>
 
