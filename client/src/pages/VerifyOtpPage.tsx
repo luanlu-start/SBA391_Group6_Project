@@ -85,9 +85,10 @@ export default function VerifyOtpPage() {
     setNotice('');
     try {
       const response = await authService.resendOtp(challenge.challengeId);
-      saveRegistrationChallenge(response.data);
-      navigate(location.pathname, { replace: true, state: { challenge: response.data } });
-      setChallenge(response.data);
+      const nextChallenge = { ...response.data, referralCode: challenge.referralCode };
+      saveRegistrationChallenge(nextChallenge);
+      navigate(location.pathname, { replace: true, state: { challenge: nextChallenge } });
+      setChallenge(nextChallenge);
       setOtp('');
       setMustResend(false);
       setRetryAt(0);
@@ -103,7 +104,9 @@ export default function VerifyOtpPage() {
         <CheckCircle2 size={44} aria-hidden="true" />
         <h1>Xác thực thành công</h1>
         <p>Email đã được xác thực. Tài khoản của bạn đã được kích hoạt.</p>
-        <Link className="ui-button ui-button-primary ui-button-full" to="/login">Đăng nhập</Link>
+        {challenge?.referralCode && <p>Đã ghi nhận mã giới thiệu của bạn. Đăng nhập để xem người giới thiệu và trạng thái thưởng.</p>}
+        <Link className="ui-button ui-button-primary ui-button-full" to="/login"
+          state={challenge?.referralCode ? { returnTo: '/me/rewards' } : undefined}>Đăng nhập</Link>
       </div>
     </section>
   );
@@ -125,6 +128,9 @@ export default function VerifyOtpPage() {
         <p>Mã xác thực đã được gửi đến email:</p>
         <div className="registration-email"><Mail size={22} aria-hidden="true" /><strong>{challenge.maskedTarget}</strong></div>
         <p className="registration-hint">Kiểm tra hộp thư đến và thư rác. Không chia sẻ mã với người khác.</p>
+        {challenge.referralCode && <p className="registration-otp-notice" role="status">
+          Mã giới thiệu <strong>{challenge.referralCode}</strong> đã được ghi nhận cho tài khoản của bạn.
+        </p>}
         {error && <ApiErrorNotice error={error} />}
         {notice && <p className="registration-otp-notice" role="status">{notice}</p>}
         <form onSubmit={verify} noValidate>

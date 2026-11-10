@@ -12,6 +12,7 @@ export function createRegisterSchema(passwordMinLength: number) {
     adultConfirmed: z.boolean().refine(Boolean, 'Bạn cần xác nhận đủ 18 tuổi.'),
     termsAccepted: z.boolean().refine(Boolean, 'Bạn cần đồng ý điều khoản sử dụng.'),
     privacyAccepted: z.boolean().refine(Boolean, 'Bạn cần đồng ý chính sách dữ liệu cá nhân.'),
+    referralCode: z.string().trim().regex(/^(?:[a-fA-F0-9]{32})?$/, 'Mã giới thiệu phải có 32 ký tự từ 0–9 hoặc A–F.'),
   }).superRefine((values, context) => {
     if (values.password !== values.confirmPassword) {
       context.addIssue({ code: 'custom', path: ['confirmPassword'], message: 'Mật khẩu xác nhận chưa khớp.' });

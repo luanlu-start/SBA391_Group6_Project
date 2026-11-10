@@ -82,7 +82,7 @@ class OrderPaymentServiceTest {
 
     @BeforeEach
     void setUp() {
-        realLedgerService = new LedgerService(ledgerTransactionRepository);
+        realLedgerService = new LedgerService(ledgerTransactionRepository, walletRepository);
     }
 
     @Nested

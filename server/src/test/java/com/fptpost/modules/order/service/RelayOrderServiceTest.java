@@ -7,7 +7,6 @@ import com.fptpost.modules.order.dto.request.RelayOrderRequest;
 import com.fptpost.modules.order.dto.request.RelayPricingEstimateRequest;
 import com.fptpost.modules.order.dto.response.RelayOrderResponse;
 import com.fptpost.modules.order.dto.response.RelayPricingEstimateResponse;
-import com.fptpost.modules.order.mapper.OrderMapper;
 import com.fptpost.modules.order.model.DeliveryUrgency;
 import com.fptpost.modules.order.model.Order;
 import com.fptpost.modules.order.model.OrderLeg;
@@ -17,8 +16,6 @@ import com.fptpost.modules.order.repository.OrderRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mapstruct.factory.Mappers;
-
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -33,7 +30,6 @@ class RelayOrderServiceTest {
     private OrderLegRepository orderLegRepository;
     private PricingCalculatorService pricingCalculatorService;
     private OrderSubmissionScreening orderSubmissionScreening;
-    private OrderMapper orderMapper;
 
     private RelayOrderService relayOrderService;
 
@@ -43,14 +39,12 @@ class RelayOrderServiceTest {
         orderLegRepository = mock(OrderLegRepository.class);
         pricingCalculatorService = new PricingCalculatorService(new ObjectMapper());
         orderSubmissionScreening = mock(OrderSubmissionScreening.class);
-        orderMapper = Mappers.getMapper(OrderMapper.class);
 
         relayOrderService = new RelayOrderService(
                 orderRepository,
                 orderLegRepository,
                 pricingCalculatorService,
-                orderSubmissionScreening,
-                orderMapper
+                orderSubmissionScreening
         );
     }
 

@@ -1,4 +1,5 @@
-import { useEffect, useState, useMemo, type FormEvent } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import type { FormEvent } from 'react';
 import {
   Boxes,
   Plus,
@@ -13,6 +14,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { categoryApi } from '../api/categoryApi';
+import { getApiError } from '../api/ApiError';
 import type { ItemCategory, CategoryRequest } from '../types/category';
 import PageHeader from '../components/ui/PageHeader';
 import SectionCard from '../components/ui/SectionCard';
@@ -151,8 +153,7 @@ export default function AdminCategoriesPage() {
       await fetchCategories();
     } catch (err: unknown) {
       console.error('Lỗi lưu danh mục:', err);
-      const errObj = err as { response?: { data?: { message?: string } }; message?: string };
-      const msg = errObj.response?.data?.message || errObj.message || 'Không thể lưu loại hàng hóa.';
+      const msg = getApiError(err).message;
       setFormError(msg);
     } finally {
       setSaving(false);
@@ -192,8 +193,7 @@ export default function AdminCategoriesPage() {
       await fetchCategories();
     } catch (err: unknown) {
       console.error('Lỗi khi xóa loại hàng:', err);
-      const errObj = err as { response?: { data?: { message?: string } }; message?: string };
-      const msg = errObj.response?.data?.message || errObj.message || 'Không thể xóa loại hàng.';
+      const msg = getApiError(err).message;
       setFeedback({
         type: 'error',
         message: msg,

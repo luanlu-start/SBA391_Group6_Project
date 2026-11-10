@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail, Phone, UserRound } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, Gift, LockKeyhole, Mail, Phone, UserRound } from 'lucide-react';
 import ApiErrorNotice from '../../../components/ApiErrorNotice';
 import Input from '../../../components/ui/Input';
 import Checkbox from '../../../components/ui/Checkbox';
@@ -14,16 +14,18 @@ import type { RegisterFormValues } from '../schemas/registerSchema';
 import PolicyDialog from './PolicyDialog';
 
 const DEFAULT_VALUES: RegisterFormValues = { fullName: '', email: '', phone: '', password: '',
-  confirmPassword: '', adultConfirmed: false, termsAccepted: false, privacyAccepted: false };
+  confirmPassword: '', adultConfirmed: false, termsAccepted: false, privacyAccepted: false, referralCode: '' };
 const FIELDS = Object.keys(DEFAULT_VALUES) as (keyof RegisterFormValues)[];
 
 export default function RegisterForm() {
+  const [searchParams] = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [policy, setPolicy] = useState<RegistrationPolicy | null>(null);
   const { registerAccount, policies, loadingPolicies, policyError, reloadPolicies, isPending, error, clearError } = useRegister();
   const { register, handleSubmit, setError, setValue, reset, formState: { errors } } = useForm<RegisterFormValues>({
-    resolver: zodResolver(createRegisterSchema(policies?.passwordMinLength ?? 8)), defaultValues: DEFAULT_VALUES,
+    resolver: zodResolver(createRegisterSchema(policies?.passwordMinLength ?? 8)),
+    defaultValues: { ...DEFAULT_VALUES, referralCode: searchParams.get('ref')?.trim() ?? '' },
   });
 
   useEffect(() => {
@@ -33,7 +35,8 @@ export default function RegisterForm() {
     }
     const field = error?.code === 'AUTH_EMAIL_ALREADY_EXISTS' ? 'email'
       : error?.code === 'AUTH_PHONE_ALREADY_EXISTS' ? 'phone'
-      : error?.code === 'AUTH_PASSWORD_INVALID' ? 'password' : null;
+      : error?.code === 'AUTH_PASSWORD_INVALID' ? 'password'
+      : error?.code === 'AUTH_REFERRAL_CODE_INVALID' ? 'referralCode' : null;
     if (field && error) setError(field, { type: 'server', message: error.message }, { shouldFocus: true });
     if (error?.code === 'AUTH_POLICY_CHANGED') {
       setValue('termsAccepted', false); setValue('privacyAccepted', false); setPolicy(null);
@@ -70,6 +73,10 @@ export default function RegisterForm() {
             endAdornment={<Button variant="ghost" size="sm" aria-label={showConfirmation ? 'Ẩn mật khẩu xác nhận' : 'Hiện mật khẩu xác nhận'}
               aria-pressed={showConfirmation} onClick={() => setShowConfirmation(value => !value)} icon={showConfirmation ? <EyeOff size={18} /> : <Eye size={18} />} />} />
           <p id="password-hint" className="ui-field-hint ui-span-full">Ít nhất {policies?.passwordMinLength ?? 8} ký tự, có chữ hoa, chữ thường và chữ số.</p>
+          <Input id="referralCode" label="Mã giới thiệu (không bắt buộc)" autoComplete="off" maxLength={32}
+            placeholder="Nhập mã của người mời" {...register('referralCode')} fieldClassName="ui-span-full"
+            icon={<Gift size={18} />} error={errors.referralCode?.message}
+            hint="Mỗi tài khoản dùng một mã. Bạn có thể nhập bổ sung trước khi hoàn tất đơn đầu tiên." />
         </div>
         {loadingPolicies && <p className="ui-field-hint" role="status">Đang tải điều khoản và chính sách…</p>}
         <div className="register-consents">
