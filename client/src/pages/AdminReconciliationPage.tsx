@@ -106,6 +106,7 @@ export default function AdminReconciliationPage() {
 
   useEffect(() => {
     loadData(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleRunReconciliation = async (e: FormEvent) => {

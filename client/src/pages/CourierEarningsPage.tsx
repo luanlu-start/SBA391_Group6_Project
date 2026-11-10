@@ -21,7 +21,7 @@ import SectionCard from '../components/ui/SectionCard';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Alert from '../components/ui/Alert';
-import '../styles/wallet.css';
+import '../styles/payment.css';
 
 const CourierEarningsPage: React.FC = () => {
   const [period, setPeriod] = useState<'DAY' | 'WEEK' | 'MONTH'>('MONTH');
@@ -46,8 +46,9 @@ const CourierEarningsPage: React.FC = () => {
       ]);
       setEarnings(earningsRes.data);
       setStats(statsRes.data);
-    } catch (err: any) {
-      setError(err.message || 'Không thể tải dữ liệu thu nhập và thống kê.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Không thể tải dữ liệu thu nhập và thống kê.';
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -55,6 +56,7 @@ const CourierEarningsPage: React.FC = () => {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handlePeriodChange = (nextPeriod: 'DAY' | 'WEEK' | 'MONTH') => {
