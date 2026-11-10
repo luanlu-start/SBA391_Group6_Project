@@ -22,8 +22,10 @@ public class CourierStatsResponse {
     private int cancelledOrders;
     private int inDeliveryOrders;
     private double completionRate;
-    private double onTimeRate;
-    private double ratingAvg;
+    /** Null khi chưa có dữ liệu xác nhận giao hàng. */
+    private Double onTimeRate;
+    /** Null khi chưa có đánh giá. */
+    private Double ratingAvg;
     private double complaintRate;
     private String nextTier;
     private String nextTierDisplayName;

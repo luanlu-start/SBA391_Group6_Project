@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Gift, MessageSquare, Package, Pencil, Wallet } from 'lucide-react';
+import { ArrowRight, Gauge, Gift, MessageSquare, Package, Pencil, Wallet } from 'lucide-react';
 import { useAuthentication } from '../auth/useAuthentication';
 import { useAccountMode } from '../auth/useAccountMode';
 import PageHeader from '../components/ui/PageHeader';
@@ -23,6 +23,9 @@ export default function AccountPage() {
       to: isCourier ? '/courier/market' : '/sender/orders',
       title: isCourier ? 'Tìm đơn giao hàng' : 'Đơn hàng của tôi',
       description: isCourier ? 'Tìm đơn phù hợp với chuyến đi của bạn.' : 'Theo dõi và quản lý các đơn đã gửi.', icon: Package,
+    }] : []),
+    ...(isCourier ? [{
+      to: '/courier/trust', title: 'Uy tín và hạng', description: 'Điểm uy tín, quyền lợi và tiến độ lên hạng.', icon: Gauge,
     }] : []),
     { to: '/wallet', title: 'Ví và giao dịch', description: 'Nạp, rút tiền và xem lịch sử giao dịch.', icon: Wallet },
     { to: '/me/rewards', title: 'Huy hiệu và giới thiệu', description: 'Xem thành tích và mời bạn bè nhận thưởng.', icon: Gift },

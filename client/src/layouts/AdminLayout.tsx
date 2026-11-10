@@ -11,6 +11,7 @@ import { Timer } from 'lucide-react';
 import WorkspaceLayout from './WorkspaceLayout';
 import { PackageSearch } from 'lucide-react';
 
+import { Gauge } from 'lucide-react';
 import { Scale } from 'lucide-react';
 import { Landmark } from 'lucide-react';
 
@@ -27,6 +28,7 @@ export default function AdminLayout() {
     navigation={[
       { label: 'Người dùng', to: '/admin/users', icon: <Users size={17} /> },
       { label: 'Nhân sự và phân quyền', to: '/admin/staff', icon: <UserCog size={17} /> },
+      { label: 'Uy tín người giao', to: '/admin/trust', icon: <Gauge size={17} /> },
       { label: 'Tham số và biểu phí', to: '/admin/params', icon: <Settings2 size={17} /> },
       { label: 'Tổng quan', to: '/admin/dashboard', icon: <LayoutDashboard size={17} /> },
       { label: 'Báo cáo', to: '/admin/reports', icon: <FileSpreadsheet size={17} /> },
