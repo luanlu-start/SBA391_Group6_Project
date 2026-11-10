@@ -317,8 +317,10 @@ export interface CourierStatsResponse {
   cancelledOrders: number;
   inDeliveryOrders: number;
   completionRate: number;
-  onTimeRate: number;
-  ratingAvg: number;
+  /** Không có khi chưa có dữ liệu xác nhận giao hàng. */
+  onTimeRate?: number | null;
+  /** Không có khi chưa có đánh giá. */
+  ratingAvg?: number | null;
   complaintRate: number;
   nextTier: string;
   nextTierDisplayName: string;
