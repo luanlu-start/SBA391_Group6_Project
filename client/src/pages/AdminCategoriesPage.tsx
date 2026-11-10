@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, type FormEvent } from 'react';
 import {
   Boxes,
   Plus,
@@ -119,7 +119,7 @@ export default function AdminCategoriesPage() {
   };
 
   // Save (Create or Update)
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = async (e: FormEvent) => {
     e.preventDefault();
     setFormError(null);
 
@@ -149,9 +149,10 @@ export default function AdminCategoriesPage() {
       }
       setIsModalOpen(false);
       await fetchCategories();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Lỗi lưu danh mục:', err);
-      const msg = err.response?.data?.message || err.message || 'Không thể lưu loại hàng hóa.';
+      const errObj = err as { response?: { data?: { message?: string } }; message?: string };
+      const msg = errObj.response?.data?.message || errObj.message || 'Không thể lưu loại hàng hóa.';
       setFormError(msg);
     } finally {
       setSaving(false);
@@ -189,9 +190,10 @@ export default function AdminCategoriesPage() {
       });
       setCategoryToDelete(null);
       await fetchCategories();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Lỗi khi xóa loại hàng:', err);
-      const msg = err.response?.data?.message || err.message || 'Không thể xóa loại hàng.';
+      const errObj = err as { response?: { data?: { message?: string } }; message?: string };
+      const msg = errObj.response?.data?.message || errObj.message || 'Không thể xóa loại hàng.';
       setFeedback({
         type: 'error',
         message: msg,

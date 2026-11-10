@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Navigation,
@@ -120,7 +120,7 @@ export default function CreateTripPage() {
   };
 
   // Submit Handler
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
     setSuccessMessage(null);
