@@ -20,6 +20,7 @@ export interface RegisterRequest {
   privacyAccepted: boolean;
   termsVersion: string;
   privacyVersion: string;
+  referralCode?: string;
 }
 
 export interface RegisterResponse {
@@ -30,6 +31,7 @@ export interface RegisterResponse {
   maskedTarget: string;
   expiresAt: string;
   resendAvailableAt: string;
+  referralCode?: string | null;
 }
 
 export interface OtpChallenge {
@@ -38,6 +40,7 @@ export interface OtpChallenge {
   maskedTarget: string;
   expiresAt: string;
   resendAvailableAt: string;
+  referralCode?: string | null;
 }
 
 export interface OtpVerificationResponse {

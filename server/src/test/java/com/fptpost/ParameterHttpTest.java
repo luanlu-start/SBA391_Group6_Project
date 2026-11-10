@@ -46,7 +46,7 @@ class ParameterHttpTest {
     @Test void exposesCatalogUpdateHistoryAndConflictUsingTheStableApiContract() throws Exception {
         mvc.perform(get("/api/v1/admin/params").header("Authorization", "Bearer admin-token"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(1000))
-                .andExpect(jsonPath("$.data.length()").value(109))
+                .andExpect(jsonPath("$.data.length()").value(111))
                 .andExpect(jsonPath("$.data[0].prmId").value("PRM-001"));
         String request = "{\"value\":\"12000\",\"expectedVersion\":" + version + "}";
         mvc.perform(put("/api/v1/admin/params/BASE_FARE").header("Authorization", "Bearer admin-token")

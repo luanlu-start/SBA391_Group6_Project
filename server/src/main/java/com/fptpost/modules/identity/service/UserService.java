@@ -16,6 +16,7 @@ import com.fptpost.modules.identity.repository.RoleRepository;
 import com.fptpost.modules.identity.repository.UserProfileRepository;
 import com.fptpost.modules.identity.repository.UserRepository;
 import com.fptpost.modules.identity.util.ContactUtils;
+import com.fptpost.modules.rewards.service.RewardsService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -43,6 +44,7 @@ public class UserService {
     RegistrationProperties registrationProperties;
     Clock identityClock;
     PasswordPolicy passwordPolicy;
+    RewardsService rewardsService;
 
     @Transactional
     public RegisterResponse createUser(UserCreationRequest request, String remoteAddress) {
@@ -64,12 +66,15 @@ public class UserService {
 
         // Flush unique constraints before sending anything to an external mail server.
         User savedUser = userRepository.saveAndFlush(user);
+        String referralCode = rewardsService.attachReferral(request.getReferralCode(), savedUser, now);
         saveProfile(savedUser, request.getFullName(), now);
         saveConsent(savedUser, "TERMS", request.getTermsVersion(), now, remoteAddress);
         saveConsent(savedUser, "PRIVACY", request.getPrivacyVersion(), now, remoteAddress);
 
         var otp = otpService.generateAndSendOtp(savedUser, request.getFullName());
-        return userMapper.toRegisterResponse(savedUser, otp, registrationProperties);
+        RegisterResponse response = userMapper.toRegisterResponse(savedUser, otp, registrationProperties);
+        response.setReferralCode(referralCode);
+        return response;
     }
 
     private void validatePolicyVersions(UserCreationRequest request) {
