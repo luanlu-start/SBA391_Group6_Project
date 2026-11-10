@@ -24,7 +24,7 @@ export default function CourierPage() {
     {courier.loading ? <p role="status">Đang tải hồ sơ người giao…</p> : courier.error ? <><ApiErrorNotice error={courier.error} /><Button onClick={courier.reload}>Thử lại</Button></> : courier.status?.profile && <>
       <SectionCard title="Hồ sơ người giao"><CourierProfileCard profile={courier.status.profile} /></SectionCard>
       {!courier.status.eligible && <Alert tone="warning">Vui lòng kiểm tra lại hồ sơ xác minh trước khi nhận đơn.</Alert>}
-      <div className="ui-form-actions"><Link className="ui-button ui-button-secondary" to="/me/kyc">Hồ sơ xác minh</Link><Link className="ui-button ui-button-secondary" to="/wallet">Ví tiền</Link><Link className="ui-button ui-button-secondary" to="/me/security">Bảo mật tài khoản</Link></div>
+      <div className="ui-form-actions"><Link className="ui-button ui-button-primary" to="/courier/earnings">Thu nhập &amp; Thống kê</Link><Link className="ui-button ui-button-secondary" to="/me/kyc">Hồ sơ xác minh</Link><Link className="ui-button ui-button-secondary" to="/wallet">Ví tiền</Link><Link className="ui-button ui-button-secondary" to="/me/security">Bảo mật tài khoản</Link></div>
     </>}
   </div>;
 }

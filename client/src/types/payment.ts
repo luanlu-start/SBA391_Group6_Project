@@ -268,3 +268,65 @@ export interface WithdrawalResponse {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface CourierEarningPoint {
+  label: string;
+  date: string;
+  orderCount: number;
+  grossAmount: number;
+  commissionAmount: number;
+  netAmount: number;
+}
+
+export interface CourierEarningReceipt {
+  orderId: number;
+  orderCode: string;
+  productName: string;
+  grossAmount: number;
+  commissionRate: number;
+  commissionAmount: number;
+  netAmount: number;
+  status: string;
+  completedAt: string;
+}
+
+export interface CourierEarningsResponse {
+  period: 'DAY' | 'WEEK' | 'MONTH';
+  fromDate: string;
+  toDate: string;
+  completedOrdersCount: number;
+  grossEarnings: number;
+  commissionRate: number;
+  commissionAmount: number;
+  deductionAmount: number;
+  netEarnings: number;
+  todayNetEarnings: number;
+  pendingEscrowAmount: number;
+  chartPoints: CourierEarningPoint[];
+  receipts: CourierEarningReceipt[];
+}
+
+export interface CourierStatsResponse {
+  userId: number;
+  currentTier: string;
+  currentTierDisplayName: string;
+  commissionRate: number;
+  trustScore: number;
+  totalAssignedOrders: number;
+  completedOrders: number;
+  cancelledOrders: number;
+  inDeliveryOrders: number;
+  completionRate: number;
+  onTimeRate: number;
+  ratingAvg: number;
+  complaintRate: number;
+  nextTier: string;
+  nextTierDisplayName: string;
+  nextTierCommissionRate: number;
+  nextTierMinOrders: number;
+  nextTierMinScore: number;
+  ordersNeededForNextTier: number;
+  scoreNeededForNextTier: number;
+  ordersProgressPercent: number;
+  scoreProgressPercent: number;
+}
