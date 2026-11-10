@@ -142,9 +142,31 @@ export type WithdrawalStatus =
 
 export interface WithdrawalCreationRequest {
   amount: number;
+  bankAccountId?: number;
   bankName: string;
   accountNumber: string;
   accountHolderName: string;
+}
+
+export interface BankAccountCreationRequest {
+  bankCode: string;
+  bankName?: string;
+  accountNumber: string;
+  holderName: string;
+}
+
+export interface BankAccountResponse {
+  id: number;
+  userId: number;
+  bankCode: string;
+  bankName: string;
+  maskedAccountNumber: string;
+  accountLast4: string;
+  holderName: string;
+  verifiedAt?: string;
+  cooldownUntil: string;
+  readyForWithdrawal: boolean;
+  createdAt: string;
 }
 
 export interface WithdrawalResponse {

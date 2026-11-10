@@ -1,8 +1,9 @@
 package com.fptpost.modules.payment.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -11,7 +12,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Request tạo yêu cầu rút tiền về ngân hàng (UC-40, API-097).
+ * Request tạo yêu cầu rút tiền về ngân hàng (UC-40, API-097, tích hợp UC-39).
  */
 @Data
 @Builder
@@ -25,18 +26,29 @@ public class WithdrawalCreationRequest {
     @Schema(description = "Số tiền cần rút (VND, tối thiểu 50,000)", example = "100000")
     private Long amount;
 
-    @NotBlank(message = "Tên ngân hàng không được để trống")
+    @Schema(description = "ID tài khoản ngân hàng đã liên kết (UC-39, tùy chọn)", example = "1")
+    private Long bankAccountId;
+
     @Size(max = 100, message = "Tên ngân hàng không được vượt quá 100 ký tự")
     @Schema(description = "Tên ngân hàng thụ hưởng", example = "Vietcombank")
     private String bankName;
 
-    @NotBlank(message = "Số tài khoản không được để trống")
     @Size(max = 50, message = "Số tài khoản không được vượt quá 50 ký tự")
     @Schema(description = "Số tài khoản ngân hàng thụ hưởng", example = "0123456789")
     private String accountNumber;
 
-    @NotBlank(message = "Tên chủ tài khoản không được để trống")
     @Size(max = 100, message = "Tên chủ tài khoản không được vượt quá 100 ký tự")
     @Schema(description = "Họ và tên chủ tài khoản thụ hưởng", example = "NGUYEN VAN A")
     private String accountHolderName;
+
+    @JsonIgnore
+    @AssertTrue(message = "Vui lòng chọn tài khoản ngân hàng đã liên kết hoặc nhập đầy đủ thông tin ngân hàng thụ hưởng")
+    public boolean isValidBankDestination() {
+        if (bankAccountId != null && bankAccountId > 0) {
+            return true;
+        }
+        return bankName != null && !bankName.trim().isEmpty()
+                && accountNumber != null && !accountNumber.trim().isEmpty()
+                && accountHolderName != null && !accountHolderName.trim().isEmpty();
+    }
 }

@@ -36,6 +36,7 @@ public class WithdrawalService {
     private final WithdrawalRequestRepository withdrawalRequestRepository;
     private final WalletRepository walletRepository;
     private final LedgerService ledgerService;
+    private final BankAccountService bankAccountService;
 
     /**
      * Khởi tạo yêu cầu rút tiền từ ví (UC-40, API-097).
@@ -47,6 +48,26 @@ public class WithdrawalService {
         if (amount < MIN_WITHDRAWAL) {
             log.warn("Withdrawal rejected: amount {} < min {}", amount, MIN_WITHDRAWAL);
             throw new AppException(PaymentErrorCode.WITHDRAWAL_AMOUNT_INVALID);
+        }
+
+        String targetBankName;
+        String targetAccountNumber;
+        String targetHolderName;
+
+        if (request.getBankAccountId() != null) {
+            if (bankAccountService == null) {
+                throw new AppException(PaymentErrorCode.BANK_ACCOUNT_NOT_FOUND);
+            }
+            BankAccountService.ResolvedBankDetails resolved = bankAccountService.resolveAndValidateForWithdrawal(
+                    userId, request.getBankAccountId()
+            );
+            targetBankName = resolved.bankName();
+            targetAccountNumber = resolved.accountNumber();
+            targetHolderName = resolved.holderName();
+        } else {
+            targetBankName = request.getBankName() != null ? request.getBankName().trim() : "";
+            targetAccountNumber = request.getAccountNumber() != null ? request.getAccountNumber().trim() : "";
+            targetHolderName = request.getAccountHolderName() != null ? request.getAccountHolderName().trim().toUpperCase() : "";
         }
 
         // Khóa bi quan (Pessimistic Write Lock) ngăn chặn race condition rút tiền đồng thời
@@ -78,9 +99,9 @@ public class WithdrawalService {
                 .userId(userId)
                 .amount(amount)
                 .feeAmount(WITHDRAWAL_FEE)
-                .bankName(request.getBankName().trim())
-                .accountNumber(request.getAccountNumber().trim())
-                .accountHolderName(request.getAccountHolderName().trim().toUpperCase())
+                .bankName(targetBankName)
+                .accountNumber(targetAccountNumber)
+                .accountHolderName(targetHolderName)
                 .status(WithdrawalStatus.PENDING_REVIEW)
                 .build();
 
