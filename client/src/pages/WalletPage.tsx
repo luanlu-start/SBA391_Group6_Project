@@ -99,6 +99,7 @@ const TX_TYPE_LABELS: Record<LedgerTransactionType, { label: string; tone: 'succ
   WITHDRAWAL_CANCEL: { label: 'Hoàn trả rút tiền', tone: 'info' },
   WITHDRAWAL_REFUND: { label: 'Hoàn tiền rút không thành công', tone: 'info' },
   WITHDRAWAL_PAYOUT: { label: 'Chi trả rút tiền', tone: 'neutral' },
+  RECONCILIATION_ADJUSTMENT: { label: 'Bút toán điều chỉnh đối soát', tone: 'info' },
   REFERRAL_REWARD: { label: 'Thưởng giới thiệu bạn bè', tone: 'success' },
   ACHIEVEMENT_REWARD: { label: 'Thưởng thành tích', tone: 'success' },
 };

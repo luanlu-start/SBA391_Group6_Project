@@ -52,5 +52,7 @@ public interface LedgerTransactionRepository extends JpaRepository<LedgerTransac
             @Param("fromDate") Instant fromDate,
             @Param("toDate") Instant toDate
     );
+
+    List<LedgerTransaction> findByCreatedAtBetweenOrderByCreatedAtAsc(Instant start, Instant end);
 }
 

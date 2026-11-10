@@ -114,6 +114,7 @@ export type LedgerTransactionType =
   | 'WITHDRAWAL_CANCEL'
   | 'WITHDRAWAL_REFUND'
   | 'WITHDRAWAL_PAYOUT'
+  | 'RECONCILIATION_ADJUSTMENT'
   | 'REFERRAL_REWARD'
   | 'ACHIEVEMENT_REWARD';
 
@@ -189,6 +190,65 @@ export interface BankAccountResponse {
   cooldownUntil: string;
   readyForWithdrawal: boolean;
   createdAt: string;
+}
+
+export type ReconciliationReportStatus = 'MATCHED' | 'MISMATCH_FOUND' | 'RESOLVED';
+export type ReconciliationItemStatus = 'MATCHED' | 'MISMATCH' | 'ADJUSTED';
+export type ReconciliationDiscrepancyType =
+  | 'NONE'
+  | 'MISSING_LEDGER'
+  | 'MISSING_PAYMENT'
+  | 'AMOUNT_MISMATCH'
+  | 'STALE_PENDING';
+
+export interface ReconciliationItemResponse {
+  id: number;
+  reportId: number;
+  txnRef: string;
+  kind: string;
+  internalAmount: number;
+  vnpayAmount: number;
+  differenceAmount: number;
+  status: ReconciliationItemStatus;
+  discrepancyType: ReconciliationDiscrepancyType;
+  note?: string;
+  adjustmentTxnCode?: string;
+  adjustedBy?: number;
+  adjustedAt?: string;
+  createdAt: string;
+}
+
+export interface ReconciliationReportResponse {
+  id: number;
+  reportDate: string;
+  totalCount: number;
+  matchedCount: number;
+  mismatchCount: number;
+  status: ReconciliationReportStatus;
+  createdBy?: number;
+  createdAt: string;
+  updatedAt: string;
+  items: ReconciliationItemResponse[];
+}
+
+export interface ReconciliationAdjustRequest {
+  debitAccount: string;
+  creditAccount: string;
+  amount: number;
+  note: string;
+}
+
+export interface LedgerIntegrityResponse {
+  balanced: boolean;
+  totalTransactions: number;
+  totalEntries: number;
+  totalDebit: number;
+  totalCredit: number;
+  discrepancyAmount: number;
+  unbalancedTransactionCount: number;
+  unbalancedTransactionCodes: string[];
+  checkedAt: string;
+  message: string;
 }
 
 export interface WithdrawalResponse {
