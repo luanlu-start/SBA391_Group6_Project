@@ -1,7 +1,7 @@
 # Bàn giao: khiếu nại, đánh giá và xác nhận giao hàng
 
 Người viết: Trần Công Thuận. Người nhận: Huỳnh Phi Long (UC-28, UC-47, UC-50).
-Cập nhật: 11/11/2026, theo `develop` sau PR #92.
+Cập nhật: 11/11/2026, theo `develop` sau PR #94 (đã gồm #93 hoàn tác #92).
 
 Tài liệu này ghi những gì UC-49, UC-51 và UC-52 đã làm sẵn, và những điểm UC-28, UC-47, UC-50 cần nối vào để luồng
 giao hàng, khiếu nại, đánh giá và điểm uy tín chạy trọn vẹn. Chi tiết endpoint nằm trong [API.md](API.md).
@@ -19,9 +19,14 @@ giao hàng, khiếu nại, đánh giá và điểm uy tín chạy trọn vẹn. 
 
 ## 2. Việc quan trọng nhất: chưa có luồng nào chuyển đơn sang hoàn tất
 
-Từ #92, `OrderPaymentService.releaseEscrow` chỉ giải ngân khi đơn ở `COMPLETED`. Hiện ngoài dữ liệu demo
-(`EscrowReleaseDemoSeeder`), không chỗ nào trong code chuyển đơn sang `COMPLETED`, và `OrderStatus` chưa có `DELIVERED`.
-Vì vậy UC-28 đang chặn cả giải ngân, khiếu nại, đánh giá và điểm uy tín. Trạng thái đơn hiện có:
+Hiện không chỗ nào trong code chuyển đơn sang `COMPLETED`, và `OrderStatus` chưa có `DELIVERED`. Đánh giá (UC-47),
+khiếu nại (UC-50) và điểm uy tín (UC-49) đều dựa vào hai trạng thái này, nên UC-28 đang chặn cả ba.
+
+Giải ngân: `OrderPaymentService.releaseEscrow` hiện chỉ kiểm tra đơn đã có người giao và ký quỹ không bị đóng băng, chưa
+kiểm tra đơn đã giao xong. #92 từng thêm điều kiện "đơn phải `COMPLETED`" nhưng đã bị hoàn tác ở #93. Khi làm UC-28 nên
+đưa điều kiện đó trở lại cùng luồng dưới đây, để không giải ngân cho đơn chưa giao.
+
+Trạng thái đơn hiện có:
 
 `PENDING, PENDING_ESCROW, ESCROWED, FINDING_SHIPPER, EXPIRED, AWAITING_PAYMENT, SHIPPER_ASSIGNED, IN_DELIVERY, DISPUTED,
 COMPLETED, CANCELLED, REJECTED`
