@@ -16,9 +16,12 @@ import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
 import EmptyState from '../components/ui/EmptyState';
 import ApiErrorNotice from '../components/ApiErrorNotice';
+import { useAuthentication } from '../auth/useAuthentication';
 
 export default function OrdersPage() {
   const navigate = useNavigate();
+  const { user } = useAuthentication();
+  const isAdminOnly = Boolean(user?.roles.includes('ADMIN') && !user?.roles.includes('SENDER'));
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
@@ -31,7 +34,7 @@ export default function OrdersPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await orderApi.getMyOrders();
+      const response = isAdminOnly ? await orderApi.getAll() : await orderApi.getMyOrders();
       setOrders(response.data || []);
     } catch (cause) {
       setError(getApiError(cause));

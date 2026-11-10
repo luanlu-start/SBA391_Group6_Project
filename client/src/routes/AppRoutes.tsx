@@ -126,12 +126,12 @@ export default function AppRoutes() {
         <Route path="payment/vnpay-return" element={<VNPayReturnPage />} />
         <Route path="vnpay-return" element={<VNPayReturnPage />} />
         <Route element={<RequireRole allowedRoles={['SENDER']} />}>
-          <Route path="sender/orders" element={<OrdersPage />} />
           <Route path="sender/orders/new" element={<CreateOrderPage />} />
           <Route path="sender/orders/:id/edit" element={<EditOrderPage />} />
           <Route path="sender/orders/:id/offers" element={<OrderOffersPage />} />
         </Route>
         <Route element={<RequireRole allowedRoles={['SENDER', 'ADMIN']} />}>
+          <Route path="sender/orders" element={<OrdersPage />} />
           <Route path="sender/orders/:id" element={<OrderDetailPage />} />
         </Route>
         <Route path="orders/:id/offers" element={<OrderOffersPage />} />

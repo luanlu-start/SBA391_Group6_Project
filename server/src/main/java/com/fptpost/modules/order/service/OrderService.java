@@ -193,6 +193,12 @@ public class OrderService {
         return orderMapper.toResponse(order);
     }
 
+    public OrderResponse getOrderByCode(String orderCode) {
+        Order order = orderRepository.findByOrderCode(orderCode == null ? "" : orderCode.trim())
+                .orElseThrow(() -> new AppException(OrderErrorCode.ORDER_NOT_FOUND));
+        return orderMapper.toResponse(order);
+    }
+
     public OrderDetailResponse getOrderDetail(Long id) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new AppException(OrderErrorCode.ORDER_NOT_FOUND));

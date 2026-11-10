@@ -87,10 +87,10 @@ export default function OrderDetailPage() {
       .then(res => {
         if (mounted) {
           setOrder(res.data);
-          fetchEscrow(id);
+          fetchEscrow(res.data.id);
           if (res.data.isRelay) {
             setLoadingLegs(true);
-            orderApi.getOrderLegs(id)
+            orderApi.getOrderLegs(res.data.id)
               .then(legsRes => { if (mounted) setLegs(legsRes.data); })
               .catch(e => console.error("Lỗi tải chặng tiếp sức:", e))
               .finally(() => { if (mounted) setLoadingLegs(false); });
@@ -110,15 +110,15 @@ export default function OrderDetailPage() {
   }, [id]);
 
   const handleReleaseEscrow = async () => {
-    if (!id) return;
+    if (!order) return;
     setReleasing(true);
     setReleaseSuccess(null);
     setReleaseError(null);
     try {
-      const res = await orderApi.releaseEscrow(id);
+      const res = await orderApi.releaseEscrow(order.id);
       setReleaseSuccess(res.data.message || 'Giải ngân tiền ký quỹ thành công!');
       setIsReleaseModalOpen(false);
-      fetchEscrow(id);
+      fetchEscrow(order.id);
     } catch (err) {
       const apiErr = getApiError(err);
       setReleaseError(apiErr.message);
@@ -146,17 +146,17 @@ export default function OrderDetailPage() {
   }
 
   async function handleRefundToSource() {
-    if (!order || !id) return;
+    if (!order) return;
     setRefundingSource(true);
     setReleaseSuccess(null);
     setReleaseError(null);
     try {
-      const res = await orderApi.refundToSource(id, {
+      const res = await orderApi.refundToSource(order.id, {
         reason: `Người gửi yêu cầu hoàn tiền đơn ${order.orderCode} về nguồn VNPay`,
       });
       setReleaseSuccess(res.data.message || 'Hoàn tiền về nguồn VNPay thành công!');
       setIsRefundSourceModalOpen(false);
-      fetchEscrow(id);
+      fetchEscrow(order.id);
     } catch (err) {
       const apiErr = getApiError(err);
       setReleaseError(apiErr.message);
