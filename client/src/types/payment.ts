@@ -91,7 +91,9 @@ export type LedgerTransactionType =
   | 'WITHDRAWAL_REQUEST'
   | 'WITHDRAWAL_CANCEL'
   | 'WITHDRAWAL_REFUND'
-  | 'WITHDRAWAL_PAYOUT';
+  | 'WITHDRAWAL_PAYOUT'
+  | 'REFERRAL_REWARD'
+  | 'ACHIEVEMENT_REWARD';
 
 export type LedgerTransactionStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'REVERSED';
 

@@ -25,7 +25,7 @@ public class ParameterController {
     private final ParameterService parameterService;
 
     @GetMapping
-    @Operation(summary = "List the current 109 system parameters (ADMIN only)")
+    @Operation(summary = "List the current system parameters (ADMIN only)")
     public ResponseEntity<ApiResponse<List<ParameterResponse>>> list() {
         return ResponseEntity.ok(ApiResponse.success(parameterService.list()));
     }

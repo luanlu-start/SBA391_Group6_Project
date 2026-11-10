@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Navigation,
@@ -184,7 +185,7 @@ export default function CourierTripsPage() {
     setQuickBidError(null);
   };
 
-  const handleConfirmQuickBid = async (e: React.FormEvent) => {
+  const handleConfirmQuickBid = async (e: FormEvent) => {
     e.preventDefault();
     if (!selectedTrip || !quickBidOrder) return;
 
@@ -335,7 +336,7 @@ export default function CourierTripsPage() {
   };
 
   // Submit Edit
-  const handleSaveEdit = async (e: React.FormEvent) => {
+  const handleSaveEdit = async (e: FormEvent) => {
     e.preventDefault();
     if (!editingTrip) return;
 

@@ -34,6 +34,7 @@ public interface UserMapper {
     UserResponse toUserResponse(User user, UserProfile profile);
 
     @Mapping(target = "userId", source = "user.publicId")
+    @Mapping(target = "referralCode", ignore = true)
     @Mapping(target = "status", source = "user.status")
     @Mapping(target = "challengeId", source = "otp.publicId")
     @Mapping(target = "expiresAt", source = "otp.expiresAt")

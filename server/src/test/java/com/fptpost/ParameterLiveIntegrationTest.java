@@ -100,7 +100,7 @@ class ParameterLiveIntegrationTest {
 
     @Test @Order(1)
     void sqlServerCommitsUnicodeHistoryOutboxAndMongoDeliveryTogether() {
-        assertThat(rows.count()).isEqualTo(109);
+        assertThat(rows.count()).isEqualTo(111);
         var previous = parameters.getSnapshot();
         var initial = rows.findByKey("BASE_FARE").orElseThrow();
         parameters.update("BASE_FARE", new ParameterUpdateRequest("12000", initial.getVersion()));
@@ -170,7 +170,7 @@ class ParameterLiveIntegrationTest {
                 .andExpect(status().isOk()).andReturn();
         String token = json.readTree(login.getResponse().getContentAsByteArray()).path("data").path("accessToken").asText();
         mvc.perform(get("/api/v1/admin/params").header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data.length()").value(109));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.length()").value(111));
         mvc.perform(post("/api/v1/admin/params/simulate").header("Authorization", "Bearer " + token)
                 .contentType("application/json").content("{\"quote\":{\"distanceKm\":8,\"weightKg\":3,\"longestSideCm\":40,\"declaredValue\":500000},\"overrides\":{\"BASE_FARE\":\"14000\"}}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.mode").value("REFERENCE"))

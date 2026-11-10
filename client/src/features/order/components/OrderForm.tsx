@@ -667,7 +667,7 @@ export default function OrderForm({ initialData, onSuccess, onCancel }: OrderFor
             {selectedCategory?.isProhibited && (
               <div className="ui-span-full">
                 <Alert tone="danger">
-                  <strong>Cảnh báo:</strong> "{selectedCategory.name}" thuộc danh mục hàng cấm vận chuyển. Bưu tá có quyền từ chối tiếp nhận kiện hàng này.
+                  <strong>Cảnh báo:</strong> &quot;{selectedCategory.name}&quot; thuộc danh mục hàng cấm vận chuyển. Bưu tá có quyền từ chối tiếp nhận kiện hàng này.
                 </Alert>
               </div>
             )}
