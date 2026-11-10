@@ -21,8 +21,10 @@ Kịch bản đi qua 15 UC của Thuận theo thứ tự dễ trình bày. UC-49
      để demo lại được;
    - một khiếu nại **đã đóng** trên đơn `DEMO-BT-01` có đề nghị bồi thường 400.000 ₫ cho Quỹ bảo đảm.
    Tắt seeder bằng `app.demo.complaints-enabled=false`. Log khởi động có dòng `Created demo complaint on order DEMO-KN-…`.
-4. Nên demo trên database mới, hoặc tạo lại dữ liệu ngay trước buổi demo: tác vụ định kỳ (UC-63) chuyển các đơn đang tìm
-   người giao quá 24 giờ sang "Hết hạn".
+4. Sau mỗi lần diễn tập, chạy `scripts/demo/reset-complaint-demo.sql` trên database dev (SSMS, Azure Data Studio hoặc
+   `sqlcmd`) rồi khởi động lại server. Script xóa các đơn `DEMO-*` cùng khiếu nại, bồi thường, đặt Quỹ bảo đảm về 0, hoàn
+   tác số tiền đã cộng vào ví demo và đưa người giao demo về hồ sơ ban đầu; seeder tạo lại dữ liệu khi khởi động. Nên làm
+   ngay trước buổi demo, vì tác vụ định kỳ (UC-63) chuyển các đơn đang tìm người giao quá 24 giờ sang "Hết hạn".
 5. Database tạo trước UC-32 thiếu cột `orders.is_relay`; `OrderRelayColumn` tự thêm cột này khi khởi động. Nếu log vẫn báo
    `Invalid column name 'is_relay'` thì nhánh đang chạy chưa có bản sửa đó.
 
@@ -46,10 +48,11 @@ Kịch bản đi qua 15 UC của Thuận theo thứ tự dễ trình bày. UC-49
    - **Xét duyệt** khoản 400.000 ₫ → **Duyệt chi** → chuyển "Chờ quỹ", trang báo quỹ còn thiếu 400.000 ₫.
    - Trích vào quỹ 500.000 ₫ → khoản 400.000 ₫ được chi ngay theo thứ tự phán quyết, số dư còn 100.000 ₫, phần biến động
      hiện cả hai giao dịch. Nhật ký `/admin/audit` có `COMPENSATION_APPROVED` và `GUARANTEE_FUND_CONTRIBUTED`.
-7. **Quản trị viên** mở `/admin/trust`, chọn "Tất cả người giao": người giao demo đã tụt từ Bạc xuống Đồng vì thua hai
-   khiếu nại. Bấm **Tính lại ngay** để tính lại toàn bộ.
+7. **Quản trị viên** mở `/admin/trust`, chọn "Tất cả người giao" để thấy người giao demo (số đơn, khiếu nại thua, lần
+   hủy). Bấm **Tính lại ngay** để tính lại toàn bộ.
 8. **Người giao** mở `/courier/trust` (hoặc lối tắt "Uy tín và hạng" ở trang tài khoản khi đang ở chế độ người giao):
-   điểm, hạng, quyền lợi, tiến độ lên hạng, thành phần điểm và lịch sử thay đổi theo từng khiếu nại.
+   điểm, hạng, quyền lợi, tiến độ lên hạng, thành phần điểm và lịch sử. Lịch sử cho thấy điểm được tính lần đầu khi
+   khiếu nại `DEMO-BT-01` đóng (80 → khoảng 60, Bạc → Đồng) và giảm thêm sau hồ sơ vừa xử lý ở mục 5.
 9. Trang thu nhập `/courier/earnings` hiện cùng điểm và điều kiện lên hạng; đúng hạn và đánh giá hiện "Chưa có dữ liệu" cho tới
    khi UC-28 và UC-47 có dữ liệu thật.
 
