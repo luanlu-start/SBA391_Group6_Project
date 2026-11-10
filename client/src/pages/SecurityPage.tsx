@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Navigate } from 'react-router-dom';
+import { RefreshCw, ShieldCheck } from 'lucide-react';
 import { useAuthentication } from '../auth/useAuthentication';
 import { useSessions } from '../features/auth/hooks/useSessions';
 import SessionList from '../features/auth/components/SessionList';
@@ -36,8 +36,7 @@ export default function SecurityPage() {
 
   return <div className="ui-stack security-page">
     <PageHeader eyebrow="Tài khoản" title="Bảo mật và thiết bị"
-      description="Đổi mật khẩu và quản lý các phiên đăng nhập của bạn."
-      actions={<Link to="/account" className="ui-button ui-button-secondary"><ArrowLeft size={17} aria-hidden="true" />Tài khoản</Link>} />
+      description="Đổi mật khẩu và quản lý các phiên đăng nhập của bạn." />
     {notice && <Alert tone="success">{notice}</Alert>}
     <SectionCard title="Đổi mật khẩu" description="Nhập mật khẩu hiện tại để xác nhận đây là tài khoản của bạn.">
       <ChangePasswordForm />

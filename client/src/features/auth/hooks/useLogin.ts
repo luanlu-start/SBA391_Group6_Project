@@ -34,8 +34,8 @@ export function useLogin() {
     setIsPending(true);
     setError(undefined);
     try {
-      await authService.login(values.identifier, values.password, values.rememberMe);
-      navigate(getLoginDestination(location.state), { replace: true });
+      const result = await authService.login(values.identifier, values.password, values.rememberMe);
+      navigate(getLoginDestination(location.state, result.user.roles), { replace: true });
       return true;
     } catch (cause) {
       const failure = getApiError(cause);

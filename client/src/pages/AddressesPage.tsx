@@ -8,7 +8,6 @@ import { getApiError } from '../api/ApiError';
 import type { ApiError } from '../api/ApiError';
 import { useProfileAction } from '../features/profile/hooks/useProfileAction';
 import AddressForm from '../features/profile/components/AddressForm';
-import AccountNavigation from '../features/profile/components/AccountNavigation';
 import PageHeader from '../components/ui/PageHeader';
 import SectionCard from '../components/ui/SectionCard';
 import EmptyState from '../components/ui/EmptyState';
@@ -36,7 +35,7 @@ export default function AddressesPage() {
   if (initializing) return <p role="status">Đang kiểm tra phiên đăng nhập…</p>;
   if (!user) return <Navigate to="/login" replace />;
   return <div className="ui-stack account-page"><PageHeader eyebrow="Tài khoản" title="Sổ địa chỉ" description="Lưu các địa chỉ thường dùng để chọn nhanh khi tạo đơn."
-    actions={<Button icon={<Plus size={17} />} disabled={busy} onClick={() => edit()}>Thêm địa chỉ</Button>} /><AccountNavigation />
+    actions={<Button icon={<Plus size={17} />} disabled={busy} onClick={() => edit()}>Thêm địa chỉ</Button>} />
     {notice && <Alert tone="success">{notice}</Alert>}{error && !open && !deleting && <ApiErrorNotice error={error} />}
     {loading ? <p role="status">Đang tải địa chỉ…</p> : loadError ? <><ApiErrorNotice error={loadError} /><Button onClick={() => void reload()}>Thử lại</Button></> : items.length === 0
       ? <EmptyState title="Chưa có địa chỉ đã lưu" description="Thêm địa chỉ nhà, ký túc xá hoặc công ty để dùng cho những lần gửi hàng sau." icon={<MapPin size={28} />} />

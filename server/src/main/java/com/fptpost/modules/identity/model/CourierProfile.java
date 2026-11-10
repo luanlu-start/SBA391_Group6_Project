@@ -49,6 +49,6 @@ public class CourierProfile {
     private String commitmentVersion;
     @Column(name = "registered_at", nullable = true, columnDefinition = "datetime2(6)")
     private Instant registeredAt;
-//    @Version
-//    private long version;
+    @Version
+    private long version;
 }
