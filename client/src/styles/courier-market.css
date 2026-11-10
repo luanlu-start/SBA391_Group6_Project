@@ -3,20 +3,35 @@
     max-width: 1240px;
     margin: 0 auto;
     padding: 32px 24px 80px;
-    color: var(--text-primary);
+    color: #f1f5f9;
 }
 
 /* Header */
 .market-header {
-    margin-bottom: 24px;
+    margin-bottom: 28px;
+}
+
+.receive-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f37021; /* hoặc var(--primary) */
+    color: #0f172a !important; /* Đổi màu chữ và icon sang màu đen/đen than */
+    font-weight: 700; /* Tăng độ đậm để chữ màu đen nổi rõ trên nền cam */
+    border: none;
+    border-radius: 7px;
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
 .home-eyebrow {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    color: var(--text-accent);
-    font-size: 0.78rem;
+    color: #f37021;
+    font-size: 0.85rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -24,43 +39,47 @@
 }
 
 .home-eyebrow span {
-    width: 7px;
-    height: 7px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
-    background: var(--primary);
+    background: #f37021;
+    box-shadow: 0 0 8px rgba(249, 115, 22, 0.8);
 }
 
 .market-title {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    letter-spacing: -0.02em;
-    margin: 0 0 8px;
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: #ffffff; /* Sửa chữ không bị chìm */
+    letter-spacing: -0.025em;
+    margin: 0 0 10px;
 }
 
 .market-title span {
-    color: var(--primary);
+    color: #f37021;
+    background: linear-gradient(135deg, #fb923c, #ea580c);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .market-description {
-    color: var(--text-secondary);
-    font-size: 0.95rem;
-    max-width: 640px;
+    color: #94a3b8;
+    font-size: 1rem;
+    max-width: 620px;
     line-height: 1.6;
     margin: 0;
 }
 
-/* Thanh Filter Bar */
+/* Thanh Filter Bar dạng Dark Card */
 .market-filter-bar {
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
-    background: var(--bg-secondary);
+    background: #1e293b;
     padding: 12px 16px;
-    border-radius: var(--radius-lg);
+    border-radius: 12px;
     align-items: center;
-    border: 1px solid var(--border-subtle);
-    box-shadow: var(--shadow-sm);
+    border: 1px solid #334155;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
     margin-bottom: 16px;
 }
 
@@ -74,41 +93,40 @@
 .search-box .search-icon {
     position: absolute;
     left: 14px;
-    color: var(--text-muted);
+    color: #64748b;
 }
 
 .search-box input {
     width: 100%;
-    height: 40px;
-    background: var(--input-bg);
-    border: 1px solid var(--input-border);
-    border-radius: var(--radius-md);
-    padding: 0 14px 0 40px;
-    color: var(--text-primary);
+    height: 44px; /* Tăng chiều cao input */
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 0 110px 0 40px; /* Chừa khoảng trống bên phải cho nút */
+    color: #f8fafc;
     outline: none;
     box-sizing: border-box;
-    font-size: 0.875rem;
 }
 
 .search-box input:focus {
-    border-color: var(--primary);
-    box-shadow: var(--shadow-glow);
+    border-color: #f97316;
+    box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2);
 }
 
 .search-box input::placeholder {
-    color: var(--text-muted);
+    color: #64748b;
 }
 
 .search-box .search-btn {
-    position: static;
-    height: 40px;
-    padding: 0 18px;
+    position: static; /* Bỏ absolute */
+    height: 36px;
+    padding: 0 16px;
     margin-left: 10px;
-    background: var(--primary);
-    color: #ffffff;
+    background: #f37021;
+    color: #0b0a0a;
     border: none;
-    border-radius: var(--radius-md);
-    font-size: 0.85rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
     font-weight: 600;
     cursor: pointer;
     flex-shrink: 0;
@@ -116,34 +134,34 @@
     align-items: center;
     justify-content: center;
     white-space: nowrap;
-    transition: background var(--transition-fast);
 }
 
 .search-box .search-btn:hover {
-    background: var(--primary-hover);
+    background: #ed8a37;
 }
 
 .filter-actions {
     display: flex;
     align-items: center;
-    height: 40px;
+    height: 44px;
+    margin-bottom: 7px;
 }
 
 .filter-select-wrapper select {
-    height: 40px;
-    background: var(--input-bg);
-    color: var(--text-primary);
-    border: 1px solid var(--input-border);
-    border-radius: var(--radius-md);
+    height: 44px;
+    background: #0f172a;
+    color: #e2e8f0;
+    border: 1px solid #334155;
+    border-radius: 8px;
     padding: 0 12px;
     font-size: 0.875rem;
     outline: none;
     cursor: pointer;
+
 }
 
 .filter-select-wrapper select:focus {
-    border-color: var(--primary);
-    box-shadow: var(--shadow-glow);
+    border-color: #f37021;
 }
 
 /* Thanh thông báo ẩn thông tin nhạy cảm */
@@ -151,17 +169,16 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background: var(--brand-soft);
-    border: 1px solid var(--brand-border);
-    color: var(--text-accent);
+    background: rgba(249, 115, 22, 0.1);
+    border: 1px solid rgba(249, 115, 22, 0.25);
+    color: #f37021;
     font-size: 0.825rem;
-    font-weight: 500;
     padding: 6px 14px;
     border-radius: 9999px;
     margin-bottom: 24px;
 }
 
-/* Lưới thẻ đơn hàng */
+/* Lưới thẻ đơn hàng (Dark theme Card) */
 .market-order-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
@@ -170,20 +187,19 @@
 }
 
 .order-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-lg);
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 14px;
     padding: 18px;
     display: flex;
     flex-direction: column;
-    box-shadow: var(--shadow-sm);
-    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
 
 .order-card:hover {
     transform: translateY(-2px);
-    border-color: var(--text-muted);
-    box-shadow: var(--shadow-md);
+    border-color: #475569;
+    box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.5);
 }
 
 .order-card-top {
@@ -194,19 +210,19 @@
 }
 
 .order-badge {
-    background: var(--bg-tertiary);
-    color: var(--text-primary);
-    font-family: var(--font-mono);
-    font-weight: 600;
-    font-size: 0.78rem;
+    background: rgba(148, 163, 184, 0.1);
+    color: #cbd5e1;
+    font-family: monospace;
+    font-weight: 700;
+    font-size: 0.8rem;
     padding: 3px 8px;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border-subtle);
+    border-radius: 5px;
+    border: 1px solid #334155;
 }
 
 .order-time {
     font-size: 0.775rem;
-    color: var(--text-muted);
+    color: #94a3b8;
     display: flex;
     align-items: center;
     gap: 5px;
@@ -224,7 +240,7 @@
 
 .route-point dt {
     font-size: 0.7rem;
-    color: var(--text-muted);
+    color: #64748b;
     text-transform: uppercase;
     font-weight: 700;
     letter-spacing: 0.05em;
@@ -232,7 +248,7 @@
 
 .route-point dd {
     font-size: 0.9rem;
-    color: var(--text-primary);
+    color: #f1f5f9;
     font-weight: 500;
     margin: 2px 0 0;
     line-height: 1.4;
@@ -247,17 +263,19 @@
 }
 
 .route-bullet.pickup {
-    background: var(--secondary);
+    background: #38bdf8;
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
 }
 
 .route-bullet.dropoff {
-    background: var(--primary);
+    background: #f37021;
+    box-shadow: 0 0 8px rgba(249, 115, 22, 0.6);
 }
 
 .route-divider {
     width: 1px;
     height: 18px;
-    background: var(--border-subtle);
+    background: #334155;
     margin: 2px 0 2px 4px;
 }
 
@@ -273,19 +291,19 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: var(--bg-primary);
-    border: 1px solid var(--border-subtle);
-    color: var(--text-secondary);
+    background: #0f172a;
+    border: 1px solid #334155;
+    color: #94a3b8;
     font-size: 0.775rem;
     padding: 4px 9px;
-    border-radius: var(--radius-sm);
+    border-radius: 6px;
 }
 
 /* Footer Card & Nút Nhận Đơn */
 .order-card-footer {
     margin-top: auto;
     padding-top: 14px;
-    border-top: 1px dashed var(--border-subtle);
+    border-top: 1px dashed #334155;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -298,19 +316,19 @@
 
 .order-value-label {
     font-size: 0.7rem;
-    color: var(--text-muted);
+    color: #64748b;
     text-transform: uppercase;
 }
 
 .order-value-amount {
     font-size: 1.15rem;
-    font-weight: 700;
-    color: var(--text-primary);
+    font-weight: 800;
+    color: #f8fafc;
 }
 
 .order-value-amount small {
     font-size: 0.75rem;
-    color: var(--text-muted);
+    color: #94a3b8;
     margin-left: 2px;
 }
 
@@ -318,19 +336,20 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: var(--primary);
+    background: #f37021;
     color: #ffffff;
     border: none;
-    border-radius: var(--radius-md);
+    border-radius: 7px;
     padding: 8px 14px;
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.15s, transform 0.15s;
+    transition: all 0.2s;
 }
 
 .receive-btn:hover {
-    background: var(--primary-hover);
+    background: #ea580c;
+    transform: translateX(2px);
 }
 
 /* Phân trang Pagination */
@@ -338,17 +357,17 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-top: 1px solid var(--border-subtle);
+    border-top: 1px solid #334155;
     padding-top: 20px;
 }
 
 .pagination-info {
     font-size: 0.85rem;
-    color: var(--text-muted);
+    color: #64748b;
 }
 
 .pagination-info strong {
-    color: var(--text-primary);
+    color: #e2e8f0;
 }
 
 .pagination-controls {
@@ -358,40 +377,39 @@
 }
 
 .pagination-btn {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm);
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 6px;
     width: 34px;
     height: 34px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    color: var(--text-secondary);
-    transition: all 0.15s;
+    color: #cbd5e1;
+    transition: all 0.2s;
 }
 
 .pagination-btn:hover:not(:disabled) {
-    background: var(--bg-tertiary);
-    color: var(--text-primary);
-    border-color: var(--text-muted);
+    background: #334155;
+    color: #ffffff;
 }
 
 .pagination-btn:disabled {
-    opacity: 0.45;
+    opacity: 0.4;
     cursor: not-allowed;
 }
 
 .pagination-current {
     font-size: 0.85rem;
     font-weight: 600;
-    color: var(--text-secondary);
+    color: #94a3b8;
 }
 
 .market-alert-banner {
     padding: 14px 18px;
     margin-bottom: 16px;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-md, 8px);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -402,10 +420,10 @@
 .market-alert-banner-courier {
     padding: 10px 16px;
     margin-bottom: 16px;
-    background-color: var(--success-bg);
-    border: 1px solid var(--success-border);
-    border-radius: var(--radius-md);
-    color: var(--success-text);
+    background-color: var(--emerald-50, #ecfdf5);
+    border: 1px solid var(--emerald-200, #a7f3d0);
+    border-radius: var(--radius-md, 8px);
+    color: var(--emerald-900, #064e3b);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -413,22 +431,21 @@
 }
 
 .market-alert-banner.info {
-    background-color: var(--info-bg);
-    border: 1px solid var(--info-border);
-    color: var(--info-text);
+    background-color: rgba(2, 132, 199, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: #e0f2fe;
 }
 
 .market-alert-banner.warning {
-    background-color: var(--warning-bg);
-    border: 1px solid var(--warning-border);
-    color: var(--warning-text);
+    background-color: rgba(217, 119, 6, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    color: #fef3c7;
 }
 
 .market-alert-code {
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--info-border);
+    background-color: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(56, 189, 248, 0.25);
     padding: 2px 6px;
     border-radius: 4px;
-    color: var(--info-text);
-    font-family: var(--font-mono);
+    color: #7dd3fc;
 }
