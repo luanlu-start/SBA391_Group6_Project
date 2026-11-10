@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
 import MainLayout from '../layouts/MainLayout';
+import AccountLayout from '../layouts/AccountLayout';
 import AdminLayout from '../layouts/AdminLayout';
 import ModeratorLayout from '../layouts/ModeratorLayout';
 import KycReviewPage from '../pages/KycReviewPage';
@@ -112,7 +113,6 @@ export default function AppRoutes() {
         <Route path="courier/market/:id" element={<CourierOrderDetailPage />} />
 
         <Route element={<RequireRole allowedRoles={['COURIER']} />}>
-          <Route path="courier" element={<CourierPage />} />
           <Route path="courier/orders" element={<CourierAssignedOrdersPage />} />
           <Route path="courier/batch" element={<CourierBatchPage />} />
           <Route path="courier/earnings" element={<CourierEarningsPage />} />
@@ -127,33 +127,41 @@ export default function AppRoutes() {
           <Route path="orders/:id/offers" element={<OrderOffersPage />} />
           <Route path="orders/payment" element={<OrderPaymentPage />} />
           <Route path="orders/:id/payment" element={<OrderPaymentPage />} />
-          <Route path="me/courier-register" element={<CourierRegisterPage />} />
         </Route>
 
         <Route element={<RequireRole allowedRoles={['SENDER', 'ADMIN']} />}>
           <Route path="sender/orders" element={<OrdersPage />} />
           <Route path="sender/orders/:id" element={<OrderDetailPage />} />
         </Route>
-
         <Route element={<RequireRole allowedRoles={['SENDER', 'COURIER']} />}>
           <Route path="wallet" element={<WalletPage />} />
           <Route path="wallet/banks" element={<BankAccountsPage />} />
           <Route path="payment/vnpay-return" element={<VNPayReturnPage />} />
           <Route path="vnpay-return" element={<VNPayReturnPage />} />
-          <Route path="me/rewards" element={<RewardsPage />} />
-          <Route path="me/addresses" element={<AddressesPage />} />
-          <Route path="me/kyc" element={<KycPage />} />
-          <Route path="me/complaints" element={<MyComplaintsPage />} />
           <Route path="orders/:orderId/chat" element={<ChatPage />} />
         </Route>
 
         <Route element={<RequireRole allowedRoles={['SENDER', 'COURIER', 'ADMIN', 'MODERATOR']} />}>
-          <Route path="account" element={<AccountPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="me/notification-settings" element={<NotificationSettingsPage />} />
-          <Route path="me/security" element={<SecurityPage />} />
-          <Route path="me/profile" element={<ProfilePage />} />
-          <Route path="complaints/:id" element={<ComplaintDetailPage />} />
+          <Route element={<AccountLayout />}>
+            <Route path="account" element={<AccountPage />} />
+            <Route path="me/security" element={<SecurityPage />} />
+            <Route path="me/profile" element={<ProfilePage />} />
+            <Route path="complaints/:id" element={<ComplaintDetailPage />} />
+            <Route element={<RequireRole allowedRoles={['SENDER', 'COURIER']} />}>
+              <Route path="me/rewards" element={<RewardsPage />} />
+              <Route path="me/addresses" element={<AddressesPage />} />
+              <Route path="me/kyc" element={<KycPage />} />
+              <Route path="me/complaints" element={<MyComplaintsPage />} />
+            </Route>
+            <Route element={<RequireRole allowedRoles={['SENDER']} />}>
+              <Route path="me/courier-register" element={<CourierRegisterPage />} />
+            </Route>
+            <Route element={<RequireRole allowedRoles={['COURIER']} />}>
+              <Route path="courier" element={<CourierPage />} />
+            </Route>
+          </Route>
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />

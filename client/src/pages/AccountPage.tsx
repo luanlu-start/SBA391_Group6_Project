@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Award,
   Banknote,
@@ -11,12 +10,12 @@ import {
   Layers,
   LayoutDashboard,
   Lock,
-  LogOut,
   MapPin,
   Navigation,
   Package,
   PackagePlus,
   PackageSearch,
+  Pencil,
   Scale,
   ShieldCheck,
   TrendingUp,
@@ -27,14 +26,10 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useAuthentication } from '../auth/useAuthentication';
-import { authService } from '../services/authService';
-import { getApiError } from '../api/ApiError';
-import type { ApiError } from '../api/ApiError';
-import ApiErrorNotice from '../components/ApiErrorNotice';
-import Button from '../components/ui/Button';
 import PageHeader from '../components/ui/PageHeader';
 import SectionCard from '../components/ui/SectionCard';
 import Badge from '../components/ui/Badge';
+import UserAvatar from '../components/common/UserAvatar';
 import '../styles/registration.css';
 
 interface AccountLinkItem {
@@ -51,28 +46,8 @@ interface AccountSectionGroup {
 }
 
 export default function AccountPage() {
-  const { user, initializing } = useAuthentication();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<ApiError>();
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-
-  async function logout() {
-    setBusy(true);
-    setError(undefined);
-    try {
-      await authService.logout();
-    } catch (cause) {
-      setError(getApiError(cause));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  if (initializing) return <section className="registration-page" role="status">Đang kiểm tra phiên đăng nhập…</section>;
-  if (!user) return <Navigate to="/login" replace />;
+  const { user } = useAuthentication();
+  if (!user) return null;
 
   const isAdmin = user.roles.includes('ADMIN');
   const isModerator = user.roles.includes('MODERATOR');
@@ -143,7 +118,7 @@ export default function AccountPage() {
         description: 'Thống kê doanh thu, hạng và không gian người giao',
         items: [
           { label: 'Thu nhập & Thống kê', description: 'Doanh thu ròng, hoa hồng và biểu đồ', to: '/courier/earnings', icon: <TrendingUp size={17} /> },
-          { label: 'Không gian người giao', description: 'Xem hạng thành viên và điều kiện nhận đơn', to: '/courier', icon: <Award size={17} /> },
+          { label: 'Hồ sơ người giao', description: 'Xem hạng thành viên và điều kiện nhận đơn', to: '/courier', icon: <Award size={17} /> },
         ],
       }
     );
@@ -191,40 +166,29 @@ export default function AccountPage() {
     ],
   });
 
-  const initials = (user.fullName || user.email || 'FP')
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(-2)
-    .map(part => part[0]?.toUpperCase() ?? '')
-    .join('');
-
   return (
-    <div className="ui-stack">
+    <div className="ui-stack account-overview">
       <PageHeader
+        eyebrow="Không gian cá nhân"
         title="Tài khoản của tôi"
         description="Quản lý thông tin cá nhân, bảo mật và truy cập nhanh các chức năng theo vai trò."
         actions={
-          <Button
-            variant="danger"
-            icon={<LogOut size={16} />}
-            onClick={logout}
-            loading={busy}
-            loadingText="Đang đăng xuất…"
-          >
-            Đăng xuất
-          </Button>
+          <Link className="ui-button ui-button-secondary ui-button-sm" to="/me/profile">
+            <Pencil size={15} aria-hidden="true" />Chỉnh sửa hồ sơ
+          </Link>
         }
       />
 
-      {error && <ApiErrorNotice error={error} />}
-
       <SectionCard>
         <div className="account-profile-banner">
-          <div className="account-avatar" aria-hidden="true">{initials}</div>
+          <UserAvatar size="lg" />
           <div className="account-profile-main">
             <div className="account-profile-name-row">
               <h2>{user.fullName || user.email}</h2>
-              <Badge tone="success" dot>Đã xác thực</Badge>
+              <Badge tone={user.emailVerifiedAt ? 'success' : 'warning'} dot>
+                {user.emailVerifiedAt ? 'Đã xác thực email' : 'Chưa xác thực email'}
+              </Badge>
+              {user.fptBadge && <Badge tone="success">Cộng đồng FPT</Badge>}
               {roleLabels.map(label => (
                 <Badge key={label} tone="info">{label}</Badge>
               ))}

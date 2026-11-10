@@ -1,4 +1,4 @@
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import {
   CreditCard,
@@ -11,20 +11,22 @@ import {
   Settings2,
   ShieldCheck,
   TrendingUp,
-  UserRound,
   Wallet,
   X,
 } from 'lucide-react';
 import NotificationBell from '../../features/notifications/NotificationBell';
 import ThemeToggleButton from './ThemeToggleButton';
+import UserAvatar from './UserAvatar';
 import { useAuthentication } from '../../auth/useAuthentication';
 import { useAccountMode } from '../../auth/useAccountMode';
 import Button from '../ui/Button';
 import copy from '../../i18n/home.vi.json';
+import '../../styles/navigation.css';
 
 export default function Navbar() {
   const { user } = useAuthentication();
   const { mode, canSwitch, selectMode } = useAccountMode();
+  const { pathname } = useLocation();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = () => setMenuOpen(false);
@@ -37,9 +39,11 @@ export default function Navbar() {
   const isStaff = isAdmin || isModerator;
   const isCourierActive = !isStaff && isCourierRole && (!isSenderRole || mode === 'COURIER');
   const isSenderActive = !isStaff && isSenderRole && !isCourierActive;
+  const inAccountArea = pathname === '/account' || pathname.startsWith('/me/')
+    || pathname === '/notifications' || pathname === '/courier' || pathname.startsWith('/complaints/');
 
   return (
-    <header className="navbar-container">
+    <header className="navbar-container" onKeyDown={event => { if (event.key === 'Escape') closeMenu(); }}>
       <div className="navbar-content">
         <Link to="/" className="navbar-brand" aria-label={`FPost — ${copy.navigation.home}`} onClick={closeMenu}>
           <span className="brand-logo"><Package size={21} aria-hidden="true" /></span>
@@ -123,32 +127,42 @@ export default function Navbar() {
               <Settings2 size={17} aria-hidden="true" /> Bảng quản trị
             </NavLink>
           )}
+
+          {canSwitch && !isStaff && (
+            <label className="navbar-mode">
+              <span className="sr-only">Chế độ sử dụng</span>
+              <select
+                className="ui-control ui-select account-mode-select"
+                aria-label="Chế độ sử dụng"
+                value={mode}
+                onChange={event => {
+                  const next = event.target.value === 'COURIER' ? 'COURIER' : 'SENDER';
+                  selectMode(next);
+                  closeMenu();
+                  navigate(next === 'COURIER' ? '/courier' : '/sender/orders');
+                }}
+              >
+                <option value="SENDER">Người gửi</option>
+                <option value="COURIER">Người giao</option>
+              </select>
+            </label>
+          )}
         </nav>
 
-        <div className="navbar-actions ui-row">
+        <div className="navbar-actions">
           <ThemeToggleButton />
           {user && <NotificationBell />}
-          {canSwitch && !isStaff && (
-            <select
-              className="ui-control ui-select account-mode-select"
-              aria-label="Chế độ sử dụng"
-              value={mode}
-              onChange={event => {
-                const next = event.target.value === 'COURIER' ? 'COURIER' : 'SENDER';
-                selectMode(next);
-                closeMenu();
-                navigate(next === 'COURIER' ? '/courier' : '/sender/orders');
-              }}
-            >
-              <option value="SENDER">Người gửi</option>
-              <option value="COURIER">Người giao</option>
-            </select>
-          )}
           {user ? (
-            <NavLink to="/account" className="nav-link" aria-label={copy.navigation.account} onClick={closeMenu}>
-              <UserRound size={17} aria-hidden="true" />
+            <Link
+              to="/account"
+              className={`nav-link navbar-account${inAccountArea ? ' active' : ''}`}
+              aria-current={inAccountArea ? 'location' : undefined}
+              aria-label={copy.navigation.account}
+              onClick={closeMenu}
+            >
+              <UserAvatar size="sm" />
               <span className="navbar-account-label">{copy.navigation.account}</span>
-            </NavLink>
+            </Link>
           ) : (
             <Link to="/login" className="ui-button ui-button-primary ui-button-sm" onClick={closeMenu}>
               {copy.navigation.login}

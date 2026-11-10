@@ -15,7 +15,7 @@ export const profileService = {
     const response = await axiosClient.post<unknown, ApiResponse<UserResponse>>('/me/avatar', body, { headers: { 'Content-Type': undefined } });
     updateAuthenticatedUser(response.data); return response;
   },
-  avatar: () => axiosClient.get<unknown, Blob>('/me/avatar', { responseType: 'blob' }),
+  avatar: (signal?: AbortSignal) => axiosClient.get<unknown, Blob>('/me/avatar', { responseType: 'blob', signal }),
   addresses: () => axiosClient.get<unknown, ApiResponse<SavedAddress[]>>('/me/addresses'),
   saveAddress: (input: AddressInput, id?: string) => id
     ? axiosClient.put<unknown, ApiResponse<SavedAddress>>(`/me/addresses/${encodeURIComponent(id)}`, input)

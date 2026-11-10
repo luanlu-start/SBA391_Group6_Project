@@ -1,0 +1,6 @@
+.user-avatar { display: inline-grid; place-items: center; flex-shrink: 0; overflow: hidden; vertical-align: middle; border: 1px solid var(--brand-border); border-radius: 50%; background: var(--brand-soft); color: var(--text-accent); }
+.user-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.user-avatar-sm { width: 28px; height: 28px; }
+.user-avatar-md { width: 42px; height: 42px; }
+.user-avatar-lg { width: 60px; height: 60px; }
+.user-avatar-xl { width: 96px; height: 96px; }

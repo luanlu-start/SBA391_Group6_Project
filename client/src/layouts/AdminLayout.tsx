@@ -1,17 +1,10 @@
 import { Link, Navigate, Outlet, useLocation } from 'react-router-dom';
-import { Banknote, Bell, Boxes, History, Settings2, ShieldCheck, TicketPercent } from 'lucide-react';
+import { Banknote, Bell, Boxes, ClipboardList, FileSpreadsheet, Flag, History, LayoutDashboard, PackageSearch, Scale, Settings2, ShieldCheck, TicketPercent, Timer, UserCog, Users } from 'lucide-react';
 import NotificationBell from '../features/notifications/NotificationBell';
-import { UserCog, Users } from 'lucide-react';
 import { useAuthentication } from '../auth/useAuthentication';
-import { FileSpreadsheet, LayoutDashboard } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { Flag } from 'lucide-react';
 import EmptyState from '../components/ui/EmptyState';
-import { Timer } from 'lucide-react';
 import WorkspaceLayout from './WorkspaceLayout';
-import { PackageSearch, ClipboardList } from 'lucide-react';
-
-import { Scale } from 'lucide-react';
 
 export default function AdminLayout() {
   const { user, initializing } = useAuthentication();
