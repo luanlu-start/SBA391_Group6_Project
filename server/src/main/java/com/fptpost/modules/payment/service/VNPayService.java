@@ -125,7 +125,7 @@ public class VNPayService{
                 .build();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public VNPayReturnResponse processReturn(Map<String, String> queryParams) {
         log.info("Processing VNPay synchronous return callback for txnRef={}", queryParams.get("vnp_TxnRef"));
 
@@ -133,6 +133,11 @@ public class VNPayService{
         boolean isValidSignature = VNPayUtil.verifySignature(queryParams, vnPayConfig.getVnp_HashSecret(), secureHash);
 
         String txnRef = queryParams.get("vnp_TxnRef");
+        if (isValidSignature && txnRef != null) {
+            paymentTransactionRepository.findByTxnRef(txnRef)
+                    .filter(tx -> tx.getStatus() == PaymentStatus.PENDING)
+                    .ifPresent(tx -> processIpn(queryParams));
+        }
         String responseCode = queryParams.get("vnp_ResponseCode");
         String transactionStatus = queryParams.get("vnp_TransactionStatus");
         String transactionNo = queryParams.get("vnp_TransactionNo");
