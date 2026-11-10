@@ -52,7 +52,10 @@ export default function OrderDetailPage() {
   const [loadingLegs, setLoadingLegs] = useState(false);
 
   const currentUser = getSessionState().user;
-  const isAdmin = currentUser?.roles?.includes('ADMIN') ?? false;
+  const userRoles = currentUser?.roles ?? [];
+  const isAdmin = userRoles.includes('ADMIN');
+  const isSenderRole = userRoles.includes('SENDER');
+  const isOrderOwner = isSenderRole && (!order || Number(currentUser?.id) === order.senderId);
 
   const fetchEscrow = (orderId: string | number) => {
     orderApi
@@ -241,7 +244,7 @@ export default function OrderDetailPage() {
                 TIẾP SỨC
               </Badge>
             )}
-            {canPayEscrow && !isAdmin && (
+            {canPayEscrow && isOrderOwner && (
               <Button
                 variant="primary"
                 size="md"
@@ -251,7 +254,7 @@ export default function OrderDetailPage() {
                 Thanh toán &amp; Ký quỹ
               </Button>
             )}
-            {canEdit && (
+            {canEdit && isOrderOwner && (
               <Button
                 variant="secondary"
                 size="md"
@@ -261,11 +264,11 @@ export default function OrderDetailPage() {
                 Chỉnh sửa đơn
               </Button>
             )}
-            {canCancel && (
+            {canCancel && isOrderOwner && (
               <Button
                 variant="secondary"
                 size="md"
-                icon={<XCircle size={15} style={{ color: 'var(--accent-rose, #ffa6b3)' }} />}
+                icon={<XCircle size={15} style={{ color: 'var(--accent-rose)' }} />}
                 onClick={() => {
                   setCancelError(null);
                   setCancelReason('');
@@ -275,7 +278,7 @@ export default function OrderDetailPage() {
                 Hủy đơn hàng
               </Button>
             )}
-            {order.courierId && (
+            {order.courierId && isOrderOwner && (
               <ReportViolationButton targetType="ORDER" targetId={String(order.id)}
                 targetName={`Đơn ${order.orderCode}: báo cáo hành vi của người giao`} />
             )}
@@ -454,7 +457,7 @@ export default function OrderDetailPage() {
           )}
 
           {/* Gợi ý tài xế có chuyến đi tiện đường */}
-          {order.status === 'FINDING_SHIPPER' && (
+          {isOrderOwner && order.status === 'FINDING_SHIPPER' && (
             <SuggestedCouriersCard
               orderId={order.id}
               isOrderOpen={true}
@@ -560,7 +563,7 @@ export default function OrderDetailPage() {
         {/* Right Column: Order Summary & Meta */}
         <div className="ui-stack" style={{ gap: '20px' }}>
           {/* Card Quản lý chào giá */}
-          {(order.status === 'PENDING' || order.status === 'FINDING_SHIPPER') && (
+          {isOrderOwner && (order.status === 'PENDING' || order.status === 'FINDING_SHIPPER') && (
             <SectionCard title="Chào giá từ bưu tá">
               <div className="ui-stack" style={{ gap: '12px' }}>
                 <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
@@ -808,7 +811,8 @@ export default function OrderDetailPage() {
                   </div>
                 )}
 
-                {escrow.paymentMethod === 'VNPAY' &&
+                {isOrderOwner &&
+                  escrow.paymentMethod === 'VNPAY' &&
                   (escrow.status === 'REFUNDED' ||
                     escrow.status === 'PARTIALLY_REFUNDED' ||
                     order.status === 'CANCELLED' ||
@@ -833,16 +837,20 @@ export default function OrderDetailPage() {
                       variant="primary"
                       icon={<ShieldCheck size={16} />}
                       onClick={() => setIsReleaseModalOpen(true)}
-                      disabled={releasing || !order.courierId}
+                      disabled={releasing || !order.courierId || order.status !== 'COMPLETED'}
                       style={{ width: '100%' }}
                     >
                       {releasing ? 'Đang giải ngân…' : 'Giải ngân cho người giao'}
                     </Button>
-                    {!order.courierId && (
+                    {!order.courierId ? (
                       <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', textAlign: 'center' }}>
                         * Cần chỉ định người giao trước khi thực hiện giải ngân
                       </p>
-                    )}
+                    ) : order.status !== 'COMPLETED' ? (
+                      <p style={{ fontSize: '0.75rem', color: 'var(--accent-amber)', marginTop: '6px', textAlign: 'center' }}>
+                        * Chỉ giải ngân được sau khi đơn hàng đã hoàn tất giao hàng (COMPLETED) theo quy định BR-R-054.
+                      </p>
+                    ) : null}
                   </div>
                 )}
               </div>
@@ -885,7 +893,7 @@ export default function OrderDetailPage() {
             </Button>
             <Button
               variant="primary"
-              style={{ background: 'var(--accent-rose, #ffa6b3)', color: '#251207', borderColor: 'transparent' }}
+              style={{ background: 'var(--accent-rose, #dc2626)', color: '#ffffff', borderColor: 'transparent' }}
               onClick={() => void handleConfirmCancel()}
               loading={cancelling}
               loadingText="Đang xử lý hủy đơn…"

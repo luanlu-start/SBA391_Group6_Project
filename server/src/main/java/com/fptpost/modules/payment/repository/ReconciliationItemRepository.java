@@ -5,6 +5,7 @@ import com.fptpost.modules.payment.model.ReconciliationItemStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Repository
@@ -13,4 +14,6 @@ public interface ReconciliationItemRepository extends JpaRepository<Reconciliati
     List<ReconciliationItem> findByReportIdOrderByIdAsc(Long reportId);
 
     long countByReportIdAndStatus(Long reportId, ReconciliationItemStatus status);
+
+    List<ReconciliationItem> findByReportReportDateAndStatus(LocalDate reportDate, ReconciliationItemStatus status);
 }

@@ -302,6 +302,41 @@ class OrderPaymentServiceTest {
                     .isInstanceOf(AppException.class)
                     .hasFieldOrPropertyWithValue("errorCode", PaymentErrorCode.ESCROW_NOT_FOUND);
         }
+
+        @Test
+        @DisplayName("Lỗi: Đơn mới nhận (SHIPPER_ASSIGNED) hoặc đang giao (IN_DELIVERY), chưa COMPLETED -> từ chối giải ngân (ORDER_NOT_COMPLETED_FOR_RELEASE)")
+        void releaseEscrow_Failed_WhenOrderNotCompleted() {
+            Order assignedOrder = Order.builder()
+                    .id(ORDER_ID)
+                    .orderCode(ORDER_CODE)
+                    .senderId(SENDER_ID)
+                    .courierId(COURIER_ID)
+                    .status(OrderStatus.SHIPPER_ASSIGNED)
+                    .build();
+            Escrow escrow = Escrow.builder()
+                    .id(1L)
+                    .orderId(ORDER_ID)
+                    .senderId(SENDER_ID)
+                    .amount(ESCROW_AMOUNT)
+                    .status(EscrowStatus.HELD)
+                    .frozen(false)
+                    .build();
+
+            when(orderRepository.findById(ORDER_ID)).thenReturn(Optional.of(assignedOrder));
+            when(escrowRepository.findByOrderId(ORDER_ID)).thenReturn(Optional.of(escrow));
+
+            assertThatThrownBy(() -> orderPaymentService.releaseEscrow(ORDER_ID, ADMIN_ID, true))
+                    .isInstanceOf(AppException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", PaymentErrorCode.ORDER_NOT_COMPLETED_FOR_RELEASE);
+
+            assignedOrder.setStatus(OrderStatus.IN_DELIVERY);
+            assertThatThrownBy(() -> orderPaymentService.releaseEscrow(ORDER_ID, ADMIN_ID, true))
+                    .isInstanceOf(AppException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", PaymentErrorCode.ORDER_NOT_COMPLETED_FOR_RELEASE);
+
+            verify(walletRepository, never()).save(any());
+            verify(ledgerService, never()).recordEscrowRelease(any(), any(), any(), any(), any());
+        }
     }
 
     @Nested
