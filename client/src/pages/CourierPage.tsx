@@ -12,13 +12,13 @@ import '../styles/profile.css';
 import '../styles/courier.css';
 
 export default function CourierPage() {
-  const { user, initializing } = useAuthentication(); const { mode, selectMode } = useAccountMode();
+  const { user, initializing } = useAuthentication(); const { mode, canSwitch, selectMode } = useAccountMode();
   const courier = useCourier(user?.id); const location = useLocation(); const navigate = useNavigate();
   if (initializing) return <p role="status">Đang kiểm tra phiên đăng nhập…</p>;
   if (!user) return <Navigate to="/login" replace />;
   if (!courier.loading && !courier.error && !courier.status?.profile) return <Navigate to="/me/courier-register" replace />;
   return <div className="ui-stack account-page"><PageHeader eyebrow="Người giao" title="Không gian người giao" description="Thông tin hoạt động và hồ sơ người giao của bạn."
-    actions={<Button variant="secondary" onClick={() => { selectMode('SENDER'); navigate('/sender/orders'); }}>Chuyển sang người gửi</Button>} />
+    actions={canSwitch ? <Button variant="secondary" onClick={() => { selectMode('SENDER'); navigate('/sender/orders'); }}>Chuyển sang người gửi</Button> : undefined} />
     {location.state?.registered && <Alert tone="success">Đăng ký người giao thành công. Bạn đã có thể chuyển giữa hai chế độ mà không cần đăng nhập lại.</Alert>}
     {mode !== 'COURIER' && <Alert tone="info"><Button variant="secondary" onClick={() => selectMode('COURIER')}>Dùng chế độ người giao</Button></Alert>}
     {courier.loading ? <p role="status">Đang tải hồ sơ người giao…</p> : courier.error ? <><ApiErrorNotice error={courier.error} /><Button onClick={courier.reload}>Thử lại</Button></> : courier.status?.profile && <>

@@ -672,7 +672,7 @@ export default function AdminReconciliationPage() {
                 style={{
                   padding: '12px 14px',
                   borderRadius: 'var(--radius-md)',
-                  background: 'rgba(255, 255, 255, 0.03)',
+                  background: 'var(--bg-primary)',
                   border: '1px solid var(--border-subtle)',
                   display: 'flex',
                   flexDirection: 'column',
@@ -736,8 +736,8 @@ export default function AdminReconciliationPage() {
                           ? '1px solid var(--primary)'
                           : '1px solid var(--border-subtle)',
                         background: selected
-                          ? 'rgba(249, 115, 22, 0.08)'
-                          : 'rgba(255, 255, 255, 0.02)',
+                          ? 'var(--brand-soft)'
+                          : 'var(--bg-primary)',
                         cursor: 'pointer',
                       }}
                     >
@@ -797,7 +797,7 @@ export default function AdminReconciliationPage() {
                   border: '1px solid var(--border-subtle)',
                   borderRadius: 'var(--radius-md)',
                   padding: '8px 12px',
-                  background: 'rgba(255, 255, 255, 0.02)',
+                  background: 'var(--bg-primary)',
                 }}
               >
                 <summary style={{ cursor: 'pointer', fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600 }}>

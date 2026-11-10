@@ -35,13 +35,18 @@ export default function AccountPage() {
   if (initializing) return <section className="registration-page" role="status">Đang kiểm tra phiên đăng nhập…</section>;
   if (!user) return <Navigate to="/login" replace />;
 
+  const isAdmin = user.roles.includes('ADMIN');
+  const isModerator = user.roles.includes('MODERATOR');
   const isCourier = user.roles.includes('COURIER');
+  const isSender = user.roles.includes('SENDER');
+  const isStaff = isAdmin || isModerator;
+  const isCustomer = isSender || isCourier || !isStaff;
 
   return (
     <div className="ui-stack">
       <PageHeader
         title={`Xin chào, ${user.fullName || user.email}`}
-        description="Thông tin tài khoản và phiên đăng nhập hiện tại."
+        description="Thông tin tài khoản, vai trò và lối tắt thao tác theo phân quyền hiện tại."
       />
       {error && <ApiErrorNotice error={error} />}
       <SectionCard title="Thông tin tài khoản" actions={<Badge tone="success" dot>Đã xác thực</Badge>}>
@@ -64,7 +69,47 @@ export default function AccountPage() {
             </dd>
           </dl>
 
-          <div className="ui-form-actions" style={{ flexWrap: 'wrap', gap: '10px' }}>
+          <div className="ui-form-actions" style={{ justifyContent: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
+            {isAdmin && (
+              <>
+                <Link className="ui-button ui-button-primary" to="/admin/dashboard">
+                  Bảng điều khiển quản trị
+                </Link>
+                <Link className="ui-button ui-button-secondary" to="/sender/orders">
+                  Quản lý đơn hàng &amp; Giải ngân
+                </Link>
+                <Link className="ui-button ui-button-secondary" to="/admin/withdrawals">
+                  Duyệt rút tiền
+                </Link>
+                <Link className="ui-button ui-button-secondary" to="/admin/reconcile">
+                  Đối soát giao dịch
+                </Link>
+                <Link className="ui-button ui-button-secondary" to="/admin/users">
+                  Quản lý người dùng
+                </Link>
+                <Link className="ui-button ui-button-secondary" to="/mod/complaints">
+                  Khiếu nại &amp; Kháng nghị
+                </Link>
+              </>
+            )}
+
+            {isModerator && !isAdmin && (
+              <>
+                <Link className="ui-button ui-button-primary" to="/mod/kyc">
+                  Duyệt hồ sơ KYC
+                </Link>
+                <Link className="ui-button ui-button-secondary" to="/mod/orders">
+                  Kiểm duyệt đơn hàng
+                </Link>
+                <Link className="ui-button ui-button-secondary" to="/mod/reports">
+                  Báo cáo vi phạm
+                </Link>
+                <Link className="ui-button ui-button-secondary" to="/mod/complaints">
+                  Giải quyết khiếu nại
+                </Link>
+              </>
+            )}
+
             {isCourier && (
               <>
                 <Link className="ui-button ui-button-primary" to="/courier/market">
@@ -76,40 +121,65 @@ export default function AccountPage() {
                 <Link className="ui-button ui-button-secondary" to="/courier/trips">
                   Chuyến đi của tôi
                 </Link>
+                <Link className="ui-button ui-button-secondary" to="/courier/orders">
+                  Đơn đang nhận
+                </Link>
+                <Link className="ui-button ui-button-secondary" to="/courier/earnings">
+                  Thu nhập &amp; Thống kê
+                </Link>
+                <Link className="ui-button ui-button-secondary" to="/courier">
+                  Không gian người giao
+                </Link>
               </>
             )}
-            <Link className="ui-button ui-button-secondary" to="/orders/payment">
-              Thanh toán & Ký quỹ đơn hàng
-            </Link>
-            <Link className="ui-button ui-button-secondary" to="/wallet">
-              Ví FPTPost (Nạp tiền)
-            </Link>
-            <Link className="ui-button ui-button-secondary" to="/me/rewards">
-              Huy hiệu và giới thiệu
-            </Link>
-            <Link className="ui-button ui-button-secondary" to="/me/complaints">
-              Khiếu nại của tôi
-            </Link>
-            {isCourier ? (
-              <Link className="ui-button ui-button-secondary" to="/courier">
-                Không gian người giao
-              </Link>
-            ) : (
-              <Link className="ui-button ui-button-secondary" to="/me/courier-register">
-                Đăng ký Người giao
-              </Link>
+
+            {isSender && (
+              <>
+                <Link className="ui-button ui-button-primary" to="/sender/orders">
+                  Đơn hàng của tôi
+                </Link>
+                <Link className="ui-button ui-button-secondary" to="/sender/orders/new">
+                  Tạo đơn hàng mới
+                </Link>
+                <Link className="ui-button ui-button-secondary" to="/orders/payment">
+                  Thanh toán &amp; Ký quỹ đơn hàng
+                </Link>
+                <Link className="ui-button ui-button-secondary" to="/me/addresses">
+                  Sổ địa chỉ
+                </Link>
+                {!isCourier && !isStaff && (
+                  <Link className="ui-button ui-button-secondary" to="/me/courier-register">
+                    Đăng ký Người giao
+                  </Link>
+                )}
+              </>
             )}
-            <Link className="ui-button ui-button-secondary" to="/me/security">
-              Bảo mật và thiết bị
-            </Link>
+
+            {isCustomer && (
+              <>
+                <Link className="ui-button ui-button-secondary" to="/wallet">
+                  Ví FPTPost
+                </Link>
+                <Link className="ui-button ui-button-secondary" to="/me/complaints">
+                  Khiếu nại của tôi
+                </Link>
+                <Link className="ui-button ui-button-secondary" to="/me/rewards">
+                  Huy hiệu và giới thiệu
+                </Link>
+                <Link className="ui-button ui-button-secondary" to="/me/kyc">
+                  Xác minh danh tính
+                </Link>
+              </>
+            )}
+
             <Link className="ui-button ui-button-secondary" to="/me/profile">
               Hồ sơ cá nhân
             </Link>
-            <Link className="ui-button ui-button-secondary" to="/me/addresses">
-              Sổ địa chỉ
+            <Link className="ui-button ui-button-secondary" to="/me/security">
+              Bảo mật và thiết bị
             </Link>
-            <Link className="ui-button ui-button-secondary" to="/me/kyc">
-              Xác minh danh tính
+            <Link className="ui-button ui-button-secondary" to="/notifications">
+              Thông báo
             </Link>
             <Link className="ui-button ui-button-secondary" to="/">
               Về trang chủ

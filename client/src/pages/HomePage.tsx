@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowDown, ArrowRight, Check, CircleCheck, Handshake, MapPin, Package,
   Route, ShieldCheck, Truck, Wallet } from 'lucide-react';
 import { useAuthentication } from '../auth/useAuthentication';
+import { useAccountMode } from '../auth/useAccountMode';
 import Select from '../components/ui/Select';
 import JourneyIllustration from '../features/home/components/JourneyIllustration';
 import copy from '../i18n/home.vi.json';
@@ -14,9 +15,28 @@ const numberFormat = new Intl.NumberFormat('vi-VN');
 
 export default function HomePage() {
   const { user } = useAuthentication();
+  const { mode } = useAccountMode();
   const [exampleId, setExampleId] = useState(copy.pricing.examples[0].id);
   const example = copy.pricing.examples.find(item => item.id === exampleId) ?? copy.pricing.examples[0];
-  const accountPath = user ? '/account' : '/register';
+
+  const roles = user?.roles ?? [];
+  const isAdmin = roles.includes('ADMIN');
+  const isModerator = roles.includes('MODERATOR');
+  const isCourierRole = roles.includes('COURIER');
+  const isSenderRole = roles.includes('SENDER');
+  const isStaffOnly = (isAdmin || isModerator) && !isSenderRole && !isCourierRole;
+  const isCourierActive = isCourierRole && (!isSenderRole || mode === 'COURIER');
+  const canBecomeCourier = !user || (isSenderRole && !isCourierRole && !isAdmin && !isModerator);
+
+  const primaryAction = !user
+    ? { to: '/register', label: copy.hero.primary }
+    : isAdmin
+      ? { to: '/admin/dashboard', label: 'Vào bảng điều khiển quản trị' }
+      : isModerator
+        ? { to: '/mod/kyc', label: 'Vào khu vực kiểm duyệt' }
+        : isCourierActive
+          ? { to: '/courier/market', label: 'Khám phá sàn đơn hàng' }
+          : { to: '/sender/orders', label: 'Quản lý đơn hàng của tôi' };
 
   return <div className="fpost-home" id="home-top">
     <section className="home-hero" aria-labelledby="home-title">
@@ -25,7 +45,7 @@ export default function HomePage() {
         <h1 id="home-title">{copy.hero.title}<span>{copy.hero.accent}</span></h1>
         <p className="home-hero-description">{copy.hero.description}</p>
         <div className="home-hero-actions">
-          <Link to={accountPath} className="ui-button ui-button-primary">{user ? copy.hero.account : copy.hero.primary}<ArrowRight size={18} aria-hidden="true" /></Link>
+          <Link to={primaryAction.to} className="ui-button ui-button-primary">{primaryAction.label}<ArrowRight size={18} aria-hidden="true" /></Link>
           <a href="#how-it-works" className="home-text-action">{copy.hero.secondary}<ArrowDown size={16} aria-hidden="true" /></a>
         </div>
         <p className="home-hero-note"><Check size={15} aria-hidden="true" />{copy.hero.note}</p>
@@ -73,17 +93,19 @@ export default function HomePage() {
       </div>
     </section>
 
-    <section className="home-courier" id="become-courier" aria-labelledby="home-courier-title">
-      <div><p className="home-eyebrow">{copy.courier.eyebrow}</p><h2 id="home-courier-title">{copy.courier.title}</h2>
-        <p className="home-courier-description">{copy.courier.description}</p>
-        <Link to={user ? '/me/courier-register' : '/login'} className="ui-button ui-button-primary">{copy.courier.action}<ArrowRight size={18} aria-hidden="true" /></Link>
-      </div>
-      <div className="home-courier-side"><span className="home-courier-symbol"><Truck size={55} strokeWidth={1.4} aria-hidden="true" /></span>
-        <ul>{copy.courier.points.map((point, index) => {
-          const Icon = [MapPin, Handshake, Wallet][index];
-          return <li key={point}><Icon size={20} aria-hidden="true" />{point}</li>;
-        })}</ul>
-      </div>
-    </section>
+    {canBecomeCourier && !isStaffOnly && (
+      <section className="home-courier" id="become-courier" aria-labelledby="home-courier-title">
+        <div><p className="home-eyebrow">{copy.courier.eyebrow}</p><h2 id="home-courier-title">{copy.courier.title}</h2>
+          <p className="home-courier-description">{copy.courier.description}</p>
+          <Link to={user ? '/me/courier-register' : '/login'} className="ui-button ui-button-primary">{copy.courier.action}<ArrowRight size={18} aria-hidden="true" /></Link>
+        </div>
+        <div className="home-courier-side"><span className="home-courier-symbol"><Truck size={55} strokeWidth={1.4} aria-hidden="true" /></span>
+          <ul>{copy.courier.points.map((point, index) => {
+            const Icon = [MapPin, Handshake, Wallet][index];
+            return <li key={point}><Icon size={20} aria-hidden="true" />{point}</li>;
+          })}</ul>
+        </div>
+      </section>
+    )}
   </div>;
 }
