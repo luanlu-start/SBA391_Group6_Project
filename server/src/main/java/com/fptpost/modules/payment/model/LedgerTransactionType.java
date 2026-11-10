@@ -47,5 +47,10 @@ public enum LedgerTransactionType {
     /**
      * Chi trả yêu cầu rút tiền về tài khoản ngân hàng (UC-41).
      */
-    WITHDRAWAL_PAYOUT
+    WITHDRAWAL_PAYOUT,
+
+    /**
+     * Bút toán điều chỉnh dòng lệch khi đối soát giao dịch hằng ngày (UC-43, BR-F-083).
+     */
+    RECONCILIATION_ADJUSTMENT
 }

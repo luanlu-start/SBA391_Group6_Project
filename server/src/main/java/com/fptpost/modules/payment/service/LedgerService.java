@@ -431,5 +431,57 @@ public class LedgerService {
                 txnCode, orderId, amount);
         return saved;
     }
+
+    /**
+     * Hạch toán bút toán điều chỉnh dòng lệch đối soát giao dịch hằng ngày (UC-43, API-108, BR-F-083, BR-N-039).
+     */
+    @Transactional
+    public LedgerTransaction recordReconciliationAdjustment(
+            Long itemId,
+            String txnRef,
+            String debitAccount,
+            String creditAccount,
+            Long amount,
+            String note,
+            Long adminUserId) {
+        String idemKey = "RECONCILE_ADJ_ITEM_" + itemId;
+        if (ledgerTransactionRepository.existsByIdempotencyKey(idemKey)) {
+            return ledgerTransactionRepository.findByIdempotencyKey(idemKey).orElse(null);
+        }
+
+        String txnCode = "LTX-RECON-ADJ-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        LedgerTransaction txn = LedgerTransaction.builder()
+                .transactionCode(txnCode)
+                .type(LedgerTransactionType.RECONCILIATION_ADJUSTMENT)
+                .status(LedgerTransactionStatus.COMPLETED)
+                .idempotencyKey(idemKey)
+                .refType("RECONCILIATION_ITEM")
+                .refId(txnRef != null ? txnRef : String.valueOf(itemId))
+                .amount(amount)
+                .createdBy(adminUserId)
+                .description("Bút toán điều chỉnh đối soát #" + itemId + " (" + txnRef + "): " + note)
+                .build();
+
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode(debitAccount)
+                .accountType(debitAccount.startsWith("USER_WALLET_") || debitAccount.startsWith("ESCROW_")
+                        || debitAccount.startsWith("CLEARING_") ? "LIABILITY" : "ASSET")
+                .debit(amount)
+                .credit(0L)
+                .build());
+
+        txn.addEntry(LedgerEntry.builder()
+                .accountCode(creditAccount)
+                .accountType(creditAccount.startsWith("USER_WALLET_") || creditAccount.startsWith("ESCROW_")
+                        || creditAccount.startsWith("CLEARING_") ? "LIABILITY" : "ASSET")
+                .debit(0L)
+                .credit(amount)
+                .build());
+
+        LedgerTransaction saved = ledgerTransactionRepository.save(txn);
+        log.info("Saved ledger reconciliation adjustment: txnCode={}, itemId={}, amount={}, debit={}, credit={}",
+                txnCode, itemId, amount, debitAccount, creditAccount);
+        return saved;
+    }
 }
 
