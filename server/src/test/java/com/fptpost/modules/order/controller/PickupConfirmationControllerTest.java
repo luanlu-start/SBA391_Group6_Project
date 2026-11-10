@@ -48,7 +48,7 @@ class PickupConfirmationControllerTest {
         @Bean UserRepository users() { return mock(UserRepository.class); }
         @Bean OrderController controller(PickupConfirmationService pickup, UserRepository users) {
             return new OrderController(mock(OrderService.class), mock(OrderPaymentService.class),
-                    mock(PricingCalculatorService.class), users, pickup);
+                    mock(PricingCalculatorService.class), users, mock(RelayOrderService.class), pickup);
         }
     }
 
