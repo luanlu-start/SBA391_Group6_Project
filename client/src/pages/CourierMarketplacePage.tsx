@@ -391,7 +391,7 @@ export default function CourierMarketplacePage(): React.ReactElement {
 
                         <div className="filter-actions">
                             <div className="filter-select-wrapper">
-                                <Select label="Sắp xếp đơn hàng" value={sort} onChange={handleSortChange}>
+                                <Select label="" value={sort} onChange={handleSortChange}>
                                     <option value="createdAt,desc">Mới nhất trước</option>
                                     <option value="weightKg,asc">Khối lượng: Nhẹ đến nặng</option>
                                     <option value="weightKg,desc">Khối lượng: Nặng đến nhẹ</option>

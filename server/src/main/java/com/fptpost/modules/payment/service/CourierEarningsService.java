@@ -5,6 +5,7 @@ import com.fptpost.modules.identity.enums.CourierTier;
 import com.fptpost.modules.identity.model.CourierProfile;
 import com.fptpost.modules.identity.repository.CourierProfileRepository;
 import com.fptpost.modules.order.model.Order;
+import com.fptpost.modules.order.model.OrderLeg;
 import com.fptpost.modules.order.model.OrderStatus;
 import com.fptpost.modules.order.repository.OrderRepository;
 import com.fptpost.modules.payment.dto.CourierEarningPointDto;
@@ -28,10 +29,12 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -74,7 +77,7 @@ public class CourierEarningsService {
         CourierTier tier = profile != null && profile.getTier() != null ? profile.getTier() : CourierTier.NEW;
         BigDecimal commissionRate = tier.getCommissionRate();
 
-        List<Order> courierOrders = orderRepository.findByCourierIdOrderByCreatedAtDesc(userId);
+        List<Order> courierOrders = orderRepository.findByCourierIdOrLegCourierIdOrderByCreatedAtDesc(userId);
 
         long grossEarnings = 0L;
         long totalCommission = 0L;
@@ -101,10 +104,45 @@ public class CourierEarningsService {
 
         for (Order order : courierOrders) {
             Optional<Escrow> escrowOpt = escrowRepository.findByOrderId(order.getId());
-            long gross = resolveOrderGrossAmount(order, escrowOpt.orElse(null));
 
-            boolean isCompleted = order.getStatus() == OrderStatus.COMPLETED
-                    || (escrowOpt.isPresent() && escrowOpt.get().getStatus() == EscrowStatus.RELEASED);
+            boolean isRelay = Boolean.TRUE.equals(order.getIsRelay()) || (order.getLegs() != null && !order.getLegs().isEmpty());
+            List<OrderLeg> myLegs = (isRelay && order.getLegs() != null)
+                    ? order.getLegs().stream().filter(l -> Objects.equals(l.getCourierId(), userId)).toList()
+                    : List.of();
+
+            long gross;
+            boolean isCompleted;
+            Instant completedInstant = null;
+            String receiptProductName = order.getProductName();
+
+            if (isRelay && !myLegs.isEmpty()) {
+                // Với đơn tiếp sức: tính thu nhập theo từng chặng mà tài xế này đảm nhận (BR-R-047, BR-R-048)
+                gross = myLegs.stream()
+                        .map(l -> l.getLegFee() != null ? l.getLegFee().longValue() : 0L)
+                        .reduce(0L, Long::sum);
+
+                // Nếu tất cả các chặng của tài xế này đã COMPLETED thì coi như hoàn tất phần việc của tài xế
+                isCompleted = myLegs.stream().allMatch(l -> l.getStatus() == OrderStatus.COMPLETED);
+                if (isCompleted) {
+                    completedInstant = myLegs.stream()
+                            .map(OrderLeg::getHandoverAt)
+                            .filter(Objects::nonNull)
+                            .max(Comparator.naturalOrder())
+                            .orElse(order.getEndedAt() != null ? order.getEndedAt() : order.getCreatedAt());
+                }
+                String legStr = myLegs.stream().map(l -> "Chặng " + l.getLegNo()).reduce((a, b) -> a + ", " + b).orElse("");
+                receiptProductName = (order.getProductName() != null ? order.getProductName() : "Đơn hàng tiếp sức")
+                        + (legStr.isEmpty() ? "" : " (" + legStr + ")");
+            } else {
+                gross = resolveOrderGrossAmount(order, escrowOpt.orElse(null));
+                isCompleted = order.getStatus() == OrderStatus.COMPLETED
+                        || (escrowOpt.isPresent() && escrowOpt.get().getStatus() == EscrowStatus.RELEASED);
+                if (isCompleted) {
+                    completedInstant = order.getEndedAt() != null
+                            ? order.getEndedAt()
+                            : (order.getCreatedAt() != null ? order.getCreatedAt() : Instant.now());
+                }
+            }
 
             boolean isPendingDelivery = !isCompleted && order.getStatus() != OrderStatus.CANCELLED;
 
@@ -116,9 +154,9 @@ public class CourierEarningsService {
                 continue;
             }
 
-            Instant completedInstant = order.getEndedAt() != null
-                    ? order.getEndedAt()
-                    : (order.getCreatedAt() != null ? order.getCreatedAt() : Instant.now());
+            if (completedInstant == null) {
+                completedInstant = Instant.now();
+            }
             LocalDate completedDate = completedInstant.atZone(VN_ZONE).toLocalDate();
 
             long commission = BigDecimal.valueOf(gross)
@@ -139,7 +177,7 @@ public class CourierEarningsService {
                 receipts.add(CourierEarningReceiptDto.builder()
                         .orderId(order.getId())
                         .orderCode(order.getOrderCode())
-                        .productName(order.getProductName())
+                        .productName(receiptProductName)
                         .grossAmount(gross)
                         .commissionRate(commissionRate)
                         .commissionAmount(commission)
@@ -185,10 +223,15 @@ public class CourierEarningsService {
                 ? profile.getTrustScore()
                 : BigDecimal.valueOf(60.0);
 
-        List<Order> courierOrders = orderRepository.findByCourierIdOrderByCreatedAtDesc(userId);
+        List<Order> courierOrders = orderRepository.findByCourierIdOrLegCourierIdOrderByCreatedAtDesc(userId);
         int totalAssigned = courierOrders.size();
         int completedFromOrders = (int) courierOrders.stream()
-                .filter(o -> o.getStatus() == OrderStatus.COMPLETED)
+                .filter(o -> {
+                    if (o.getLegs() != null && !o.getLegs().isEmpty()) {
+                        return o.getLegs().stream().anyMatch(l -> Objects.equals(l.getCourierId(), userId) && l.getStatus() == OrderStatus.COMPLETED);
+                    }
+                    return o.getStatus() == OrderStatus.COMPLETED;
+                })
                 .count();
         int cancelledOrders = (int) courierOrders.stream()
                 .filter(o -> o.getStatus() == OrderStatus.CANCELLED)

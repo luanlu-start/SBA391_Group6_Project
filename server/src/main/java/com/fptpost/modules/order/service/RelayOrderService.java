@@ -308,7 +308,7 @@ public class RelayOrderService {
         return res;
     }
 
-    private OrderLegResponse toLegResponse(OrderLeg leg) {
+    public OrderLegResponse toLegResponse(OrderLeg leg) {
         return OrderLegResponse.builder()
                 .id(leg.getId())
                 .legNo(leg.getLegNo())
@@ -322,6 +322,12 @@ public class RelayOrderService {
                 .legFee(leg.getLegFee())
                 .courierId(leg.getCourierId())
                 .status(leg.getStatus())
+                .handoverPhotoUrl(leg.getHandoverPhotoUrl())
+                .handoverNote(leg.getHandoverNote())
+                .handoverAt(leg.getHandoverAt())
+                .handoverMeetingPoint(leg.getHandoverMeetingPoint())
+                .handoverLatitude(leg.getHandoverLatitude())
+                .handoverLongitude(leg.getHandoverLongitude())
                 .createdAt(leg.getCreatedAt())
                 .build();
     }

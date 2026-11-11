@@ -46,4 +46,5 @@ public class OrderResponse {
     private Instant endedAt;
     private List<String> imageUrls;
     private Boolean isRelay;
+    private List<com.fptpost.modules.order.dto.response.OrderLegResponse> legs;
 }

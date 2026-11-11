@@ -19,6 +19,7 @@ import java.util.List;
 public interface OrderMapper {
 
     @Mapping(target = "imageUrls", source = "images", qualifiedByName = "mapImagesToUrls")
+    @Mapping(target = "legs", ignore = true)
     OrderResponse toResponse(Order order);
 
     List<OrderResponse> toResponses(List<Order> orders);

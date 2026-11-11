@@ -11,8 +11,8 @@ import Alert from '../ui/Alert';
 import ApiErrorNotice from '../ApiErrorNotice';
 
 /** Lazy-loaded incident timeline shared by Courier, Sender and staff. Backend enforces order access. */
-export default function DeliveryIncidentPanel({ orderId, canReport = false, initialOpen = false }:
-  { orderId: number; canReport?: boolean; initialOpen?: boolean }) {
+export default function DeliveryIncidentPanel({ orderId, canReport = false, initialOpen = false, size = 'sm' }:
+  { orderId: number; canReport?: boolean; initialOpen?: boolean; size?: 'sm' | 'md' }) {
   const [open, setOpen] = useState(initialOpen);
   const [type, setType] = useState<IncidentType | ''>('');
   const [description, setDescription] = useState('');
@@ -81,8 +81,8 @@ export default function DeliveryIncidentPanel({ orderId, canReport = false, init
     finally { setEvidenceLoading(false); }
   }
 
-  return <div>
-    <Button variant="secondary" icon={canReport ? <AlertTriangle size={16} /> : <History size={16} />}
+  return <div style={{ display: 'inline-flex' }}>
+    <Button variant="secondary" size={size} icon={canReport ? <AlertTriangle size={15} /> : <History size={15} />}
       onClick={() => { setPage(0); setSuccess(false); setError(null); setOpen(true); }}>
       {canReport ? 'Báo cáo sự cố' : 'Lịch sử sự cố'}
     </Button>

@@ -56,6 +56,9 @@ public class OrderService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.fptpost.modules.payment.service.OrderPaymentService orderPaymentService;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private RelayOrderService relayOrderService;
+
     @Transactional
     public OrderResponse createOrder(Long senderId, OrderRequest request) {
         String orderCode = generateUniqueOrderCode();
@@ -219,10 +222,16 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public List<OrderResponse> getOrdersByCourierId(Long courierId) {
-        return orderRepository.findByCourierIdOrderByCreatedAtDesc(courierId)
-                .stream()
-                .map(orderMapper::toResponse)
-                .toList();
+        List<Order> orders = orderRepository.findByCourierIdOrLegCourierIdOrderByCreatedAtDesc(courierId);
+        List<OrderResponse> responses = new ArrayList<>();
+        for (Order o : orders) {
+            OrderResponse resp = orderMapper.toResponse(o);
+            if (Boolean.TRUE.equals(o.getIsRelay()) && o.getLegs() != null && !o.getLegs().isEmpty() && relayOrderService != null) {
+                resp.setLegs(o.getLegs().stream().map(relayOrderService::toLegResponse).toList());
+            }
+            responses.add(resp);
+        }
+        return responses;
     }
 
 

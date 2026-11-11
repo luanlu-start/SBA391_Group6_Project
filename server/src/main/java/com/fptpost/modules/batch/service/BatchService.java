@@ -265,7 +265,13 @@ public class BatchService implements IBatchService {
         if (courier == null) {
             throw new AppException(GlobalErrorCode.UNAUTHORIZED);
         }
-        Page<DeliveryBatch> batches = batchRepository.findByCourierIdOrderByCreatedAtDesc(courier.getId(), pageable);
+        Pageable effectivePageable = (pageable == null || pageable.getSort().isUnsorted())
+                ? org.springframework.data.domain.PageRequest.of(
+                        pageable != null ? pageable.getPageNumber() : 0,
+                        pageable != null ? pageable.getPageSize() : 10,
+                        org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"))
+                : pageable;
+        Page<DeliveryBatch> batches = batchRepository.findByCourierIdOrderByCreatedAtDesc(courier.getId(), effectivePageable);
         return batches.map(this::mapToDeliveryBatchResponse);
     }
 

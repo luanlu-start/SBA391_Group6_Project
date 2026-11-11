@@ -1,6 +1,6 @@
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { CreditCard, Layers, Menu, Navigation, Package, Settings2, ShieldCheck, TrendingUp, Wallet, X } from 'lucide-react';
+import { ArrowRightLeft, CreditCard, Layers, Menu, Navigation, Package, Settings2, ShieldCheck, TrendingUp, Wallet, X } from 'lucide-react';
 import NotificationBell from '../../features/notifications/NotificationBell';
 import { useAuthentication } from '../../auth/useAuthentication';
 import { useAccountMode } from '../../auth/useAccountMode';
@@ -21,6 +21,13 @@ export default function Navbar() {
   const inAccountArea = pathname === '/account' || pathname.startsWith('/me/')
     || pathname === '/notifications' || pathname === '/courier' || pathname.startsWith('/complaints/');
 
+  const handleModeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const next = event.target.value === 'COURIER' ? 'COURIER' : 'SENDER';
+    selectMode(next);
+    closeMenu();
+    navigate(next === 'COURIER' ? '/courier' : canViewOrders ? '/sender/orders' : '/account');
+  };
+
   return <header className="navbar-container" onKeyDown={event => { if (event.key === 'Escape') closeMenu(); }}>
     <div className="navbar-content">
       <Link to="/" className="navbar-brand" aria-label={`FPost — ${copy.navigation.home}`} onClick={closeMenu}>
@@ -34,6 +41,7 @@ export default function Navbar() {
             <NavLink to="/courier/market" className="nav-link" onClick={closeMenu}><Package size={16} aria-hidden="true" />Sàn đơn</NavLink>
             <NavLink to="/courier/trips" className="nav-link" onClick={closeMenu}><Navigation size={16} aria-hidden="true" />Chuyến đi</NavLink>
             <NavLink to="/courier/orders" className="nav-link" onClick={closeMenu}><Package size={16} aria-hidden="true" />Đơn nhận</NavLink>
+            <NavLink to="/courier/relay" className="nav-link" onClick={closeMenu}><ArrowRightLeft size={16} aria-hidden="true" />Tiếp sức</NavLink>
             <NavLink to="/courier/batch" className="nav-link" onClick={closeMenu}><Layers size={16} aria-hidden="true" />Gộp đơn</NavLink>
             <NavLink to="/courier/earnings" className="nav-link" onClick={closeMenu}><TrendingUp size={16} aria-hidden="true" />Thu nhập</NavLink>
           </> : canViewOrders && <>
@@ -46,18 +54,15 @@ export default function Navbar() {
           </NavLink> : user.roles.includes('MODERATOR') && <NavLink to="/mod" className="nav-link" onClick={closeMenu}>
             <ShieldCheck size={16} aria-hidden="true" />Kiểm duyệt
           </NavLink>}
-          {canSwitch && <label className="navbar-mode">
-            <span className="sr-only">Chế độ sử dụng</span>
-            <select className="ui-control ui-select" value={mode} onChange={event => {
-              const next = event.target.value === 'COURIER' ? 'COURIER' : 'SENDER';
-              selectMode(next);
-              closeMenu();
-              navigate(next === 'COURIER' ? '/courier' : canViewOrders ? '/sender/orders' : '/account');
-            }}>
-              <option value="SENDER">Người gửi</option>
-              <option value="COURIER">Người giao</option>
-            </select>
-          </label>}
+          {canSwitch && <div className="navbar-mode-mobile">
+            <label className="navbar-mode">
+              <span className="sr-only">Chế độ sử dụng</span>
+              <select className="ui-control ui-select navbar-mode-select" value={mode} onChange={handleModeChange}>
+                <option value="SENDER">Người gửi</option>
+                <option value="COURIER">Người giao</option>
+              </select>
+            </label>
+          </div>}
         </> : <>
           <Link to="/#how-it-works" className="nav-link" onClick={closeMenu}>{copy.navigation.how}</Link>
           <Link to="/#shipping-prices" className="nav-link" onClick={closeMenu}>{copy.navigation.pricing}</Link>
@@ -65,6 +70,13 @@ export default function Navbar() {
         </>}
       </nav>
       <div className="navbar-actions">
+        {user && canSwitch && <label className="navbar-mode navbar-mode-desktop">
+          <span className="sr-only">Chế độ sử dụng</span>
+          <select className="ui-control ui-select navbar-mode-select" value={mode} onChange={handleModeChange}>
+            <option value="SENDER">Người gửi</option>
+            <option value="COURIER">Người giao</option>
+          </select>
+        </label>}
         {user && <NotificationBell />}
         {user ? <Link to="/account" className={`nav-link navbar-account${inAccountArea ? ' active' : ''}`}
           aria-current={inAccountArea ? 'location' : undefined} aria-label={copy.navigation.account} onClick={closeMenu}>
