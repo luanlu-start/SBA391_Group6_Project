@@ -346,7 +346,7 @@ const CourierEarningsPage: React.FC = () => {
                     <span className="earnings-metric-label">Giao đúng hạn</span>
                     <span className="earnings-metric-value" style={{ color: 'var(--secondary)' }}>
                       <Clock size={16} />
-                      {stats.onTimeRate}%
+                      {stats.onTimeRate == null ? 'Chưa có dữ liệu' : `${stats.onTimeRate}%`}
                     </span>
                   </div>
 
@@ -354,7 +354,7 @@ const CourierEarningsPage: React.FC = () => {
                     <span className="earnings-metric-label">Đánh giá TB</span>
                     <span className="earnings-metric-value" style={{ color: 'var(--accent-amber)' }}>
                       <Star size={16} />
-                      {stats.ratingAvg} / 5.0
+                      {stats.ratingAvg == null ? 'Chưa có đánh giá' : `${stats.ratingAvg} / 5.0`}
                     </span>
                   </div>
 

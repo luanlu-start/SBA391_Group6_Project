@@ -30,6 +30,16 @@ public enum LedgerTransactionType {
     COMPLAINT_CLAWBACK,
 
     /**
+     * Trích doanh thu nền tảng vào Quỹ bảo đảm (UC-52, BR-R-064).
+     */
+    GUARANTEE_FUND_CONTRIBUTION,
+
+    /**
+     * Chi bồi thường từ Quỹ bảo đảm vào ví người nhận theo phán quyết (UC-52).
+     */
+    GUARANTEE_FUND_PAYOUT,
+
+    /**
      * Yêu cầu rút tiền từ ví về ngân hàng (UC-40).
      */
     WITHDRAWAL_REQUEST,

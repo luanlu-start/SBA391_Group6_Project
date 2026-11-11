@@ -426,6 +426,28 @@ Google login và KYC chưa triển khai.
 Cấu hình SMTP/template nằm trong [README](../README.md), schema trong [DATABASE](DATABASE.md),
 mã lỗi và field validation theo [contract lỗi](API-ERRORS.md).
 
+## UC-49 đã triển khai — Điểm uy tín và hạng người giao
+
+| Method | Đường dẫn | Quyền | Chức năng |
+|---|---|---|---|
+| GET | `/api/v1/me/trust` | Người có hồ sơ người giao | API-121: điểm, hạng, quyền lợi, tiến độ lên hạng, thành phần điểm và 20 thay đổi gần nhất |
+| GET | `/api/v1/admin/trust?filter=` | ADMIN | Người giao theo điểm tăng dần; `REVIEW` (mặc định, dưới `TRUST_REVIEW`), `RESTRICTED`, `ALL` |
+| POST | `/api/v1/admin/trust/{courierPublicId}/restrict` | ADMIN | Tạm khóa nhận đơn `{days: 1–30, reason}` (BR-R-074) |
+| POST | `/api/v1/admin/trust/recalculate` | ADMIN | Tính lại toàn bộ người giao ngay |
+
+- Điểm 0–100 = 100 × (`W_ONTIME`·đúng hạn + `W_RATING`·đánh giá + `W_COMPLETE`·hoàn thành + `W_COMPLAINT`·không thua
+  khiếu nại) − `CANCEL_PENALTY` × số lần hủy sau khi nhận trong 90 ngày. Mỗi tỷ lệ được làm mượt về `TRUST_INIT`/100 với
+  5 mẫu ảo, nên người giao mới bắt đầu đúng `TRUST_INIT`. Khiếu nại thua là khiếu nại đã đóng với `SENDER_FAVOR` hoặc `SPLIT`.
+- Hạng theo `TIER_BRONZE..TIER_DIAMOND` (điểm và số đơn hoàn tất), tự xuống hạng khi không còn đủ điều kiện; hạng,
+  điểm và số đơn được ghi vào `courier_profiles` để chào giá, lời mời và hạn mức theo hạng dùng ngay.
+- Dưới `TRUST_RESTRICT`: báo người giao chỉ nhận đơn giá trị thấp. Dưới `TRUST_REVIEW`: báo Admin xem xét khóa. Hủy quá
+  `CANCEL_LIMIT` lần trong 30 ngày: `restrictedUntil` = lần hủy gần nhất + `CANCEL_BAN` ngày.
+- Tính lại sau mỗi khiếu nại đóng (sau commit), khi gọi `TrustScoreService.recalculate` hoặc
+  `recordCourierCancellation`, và hằng đêm 03:30 giờ Việt Nam. Lịch sử chỉ ghi khi điểm hoặc hạng thay đổi.
+- Đúng hạn và đánh giá đọc qua `DeliveryPunctualitySource` (UC-28) và `CourierRatingSource` (UC-47); khi chưa có bean
+  triển khai, hai thành phần này dùng giá trị khởi tạo.
+- Giao diện: `/courier/trust` cho người giao, `/admin/trust` cho Admin.
+
 ## UC-51 đã triển khai — Khiếu nại và phán quyết
 
 | Method | Đường dẫn | Quyền | Chức năng |
@@ -457,6 +479,27 @@ mã lỗi và field validation theo [contract lỗi](API-ERRORS.md).
   Khi hồ sơ đóng, `ComplaintClosedEvent` được phát cho UC-52 và UC-49.
 - Giao diện: `/mod/complaints`, `/mod/complaints/:id` cho kiểm duyệt viên và Admin; `/me/complaints`,
   `/complaints/:id` cho các bên.
+
+## UC-52 đã triển khai — Quỹ bảo đảm và bồi thường (ADMIN)
+
+| Method | Đường dẫn | Chức năng |
+|---|---|---|
+| GET | `/api/v1/admin/guarantee-fund` | API-129: số dư, tổng chờ duyệt, tổng xếp hàng, tổng đã chi và 20 biến động gần nhất |
+| GET | `/api/v1/admin/guarantee-fund/compensations?status=` | Khoản bồi thường theo thứ tự phán quyết; `status` = `PENDING_REVIEW`, `QUEUED`, `PAID`, `REJECTED`, `ALL` |
+| POST | `/api/v1/admin/complaints/{id}/compensation` | API-128: `{decision: APPROVE, amount?, note?}` hoặc `{decision: REJECT, note}` |
+| POST | `/api/v1/admin/guarantee-fund/contributions` | Ghi nhận khoản trích vào quỹ `{amount, note}`, sau đó chi hàng đợi |
+
+- Khoản bồi thường `PENDING_REVIEW` được tạo trong cùng giao dịch khi khiếu nại đóng với `compensationAmount > 0`
+  (`ComplaintClosedEvent`); job 10 phút bổ sung cho hồ sơ đóng trước khi phân hệ chạy. Người nhận là người gửi của đơn.
+- Duyệt: số tiền 1 ₫ đến mức đề nghị; người nhận không được tự duyệt. Chi ngay nếu quỹ đủ và không có khoản nào đang
+  xếp hàng, ngược lại chuyển `QUEUED` (A1). Hàng đợi chi theo thời điểm phán quyết và dừng ở khoản đầu tiên chưa đủ quỹ
+  (BR-R-079); job 10 phút và mỗi lần trích quỹ đều xử lý hàng đợi.
+- Sổ cái: trích quỹ `GUARANTEE_FUND_CONTRIBUTION` (Nợ `PLATFORM_REVENUE`, Có `GUARANTEE_FUND`); chi bồi thường
+  `GUARANTEE_FUND_PAYOUT` (Nợ `GUARANTEE_FUND`, Có `USER_WALLET_{id}`) và cộng số dư khả dụng ví người nhận. Bảng
+  `guarantee_fund_accounts` giữ số dư và được khóa dòng khi chi để không chi vượt quỹ.
+- Luồng thanh toán hiện chưa tách hoa hồng khỏi tiền giải ngân, nên quỹ chưa tự nhận `FUND_SHARE` và phí bảo hiểm;
+  Admin ghi nhận khoản trích định kỳ cho tới khi luồng thanh toán bổ sung bút toán này.
+- Giao diện: `/admin/guarantee`.
 
 ## Contract đang chạy
 

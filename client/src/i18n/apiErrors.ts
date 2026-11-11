@@ -14,6 +14,10 @@ export const apiErrorMessages: Record<string, string> = {
   ACCOUNT_REQUEST_ALREADY_PROCESSED: 'Yêu cầu đã được xử lý. Vui lòng tải lại danh sách.',
   ACCOUNT_DELETION_BLOCKED: 'Tài khoản còn số dư, tiền ký quỹ/chờ rút hoặc đơn hàng đang xử lý nên chưa thể xóa.',
   ACCOUNT_EXPORT_NOT_READY: 'Bản sao dữ liệu chỉ tải được sau khi được duyệt và trong 7 ngày.',
+  ACCOUNT_ALREADY_LOCKED: 'Tài khoản đang bị khóa. Hãy mở khóa trước khi khóa lại.',
+  ACCOUNT_NOT_LOCKED: 'Tài khoản đang không bị khóa.',
+  BLACKLIST_VALUE_INVALID: 'Số điện thoại phải đúng định dạng Việt Nam; CCCD gồm đúng 12 chữ số.',
+  BLACKLIST_DUPLICATED: 'Giá trị này đã có trong danh sách đen.',
   KYC_REVIEW_ALREADY_DECIDED: 'Hồ sơ này đã có quyết định. Vui lòng tải lại thông tin mới nhất.',
   KYC_REVIEW_SELF_FORBIDDEN: 'Bạn không được duyệt, từ chối hoặc đánh dấu hồ sơ của chính mình.',
   KYC_REVIEW_ADMIN_REQUIRED: 'Hồ sơ có dấu hiệu cần kiểm tra thêm và phải do quản trị viên quyết định.',
@@ -85,6 +89,9 @@ export const apiErrorMessages: Record<string, string> = {
     KYC_ENCRYPTION_UNAVAILABLE: "Chưa thể lưu hoặc đọc hồ sơ xác minh an toàn. Vui lòng thử lại sau.",
     KYC_FILE_LINK_INVALID: "Vui lòng mở lại ảnh từ hồ sơ để nhận liên kết mới.",
 
+  TRUST_COURIER_PROFILE_MISSING: 'Tài khoản chưa đăng ký làm người giao nên chưa có điểm uy tín.',
+  TRUST_FILTER_INVALID: 'Bộ lọc người giao không hợp lệ.',
+
   COMPLAINT_NOT_FOUND: 'Khiếu nại không tồn tại hoặc bạn không phải là một bên của đơn.',
   COMPLAINT_FORBIDDEN: 'Chỉ người gửi hoặc người giao của đơn mới thực hiện được thao tác này.',
   COMPLAINT_PARTY_CONFLICT: 'Bạn là một bên của đơn nên không được xử lý khiếu nại này.',
@@ -98,6 +105,12 @@ export const apiErrorMessages: Record<string, string> = {
   COMPLAINT_FILTER_INVALID: 'Bộ lọc hàng đợi khiếu nại không hợp lệ.',
   COMPLAINT_ORDER_INVALID: 'Đơn chưa đủ điều kiện khiếu nại.',
   COMPLAINT_ALREADY_OPEN: 'Bạn đã có một khiếu nại chưa kết thúc cho đơn này.',
+  COMPENSATION_NOT_FOUND: 'Khiếu nại này không có đề nghị bồi thường.',
+  COMPENSATION_STATE_INVALID: 'Đề nghị bồi thường đã được xử lý. Vui lòng tải lại danh sách.',
+  COMPENSATION_AMOUNT_INVALID: 'Số tiền duyệt phải từ 1 ₫ đến mức đề nghị trong phán quyết.',
+  COMPENSATION_SELF_FORBIDDEN: 'Bạn không được duyệt khoản bồi thường cho chính mình.',
+  COMPENSATION_NOTE_REQUIRED: 'Nhập lý do khi từ chối bồi thường.',
+  COMPENSATION_FILTER_INVALID: 'Bộ lọc trạng thái bồi thường không hợp lệ.',
 
   PROFILE_AGE_INVALID: 'Người dùng phải đủ 18 tuổi.',
   PROFILE_CONTACT_INVALID: 'Vui lòng nhập email hoặc số di động Việt Nam hợp lệ.',

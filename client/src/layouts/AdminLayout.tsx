@@ -11,7 +11,9 @@ import { Timer } from 'lucide-react';
 import WorkspaceLayout from './WorkspaceLayout';
 import { PackageSearch } from 'lucide-react';
 
+import { Gauge } from 'lucide-react';
 import { Scale } from 'lucide-react';
+import { Landmark } from 'lucide-react';
 
 export default function AdminLayout() {
   const { user, initializing } = useAuthentication();
@@ -26,6 +28,7 @@ export default function AdminLayout() {
     navigation={[
       { label: 'Người dùng', to: '/admin/users', icon: <Users size={17} /> },
       { label: 'Nhân sự và phân quyền', to: '/admin/staff', icon: <UserCog size={17} /> },
+      { label: 'Uy tín người giao', to: '/admin/trust', icon: <Gauge size={17} /> },
       { label: 'Tham số và biểu phí', to: '/admin/params', icon: <Settings2 size={17} /> },
       { label: 'Tổng quan', to: '/admin/dashboard', icon: <LayoutDashboard size={17} /> },
       { label: 'Báo cáo', to: '/admin/reports', icon: <FileSpreadsheet size={17} /> },
@@ -36,6 +39,7 @@ export default function AdminLayout() {
       { label: 'Loại hàng hóa', to: '/admin/categories', icon: <Boxes size={17} /> },
       { label: 'Duyệt rút tiền', to: '/admin/withdrawals', icon: <Banknote size={17} /> },
       { label: 'Đối soát giao dịch', to: '/admin/reconcile', icon: <Scale size={17} /> },
+      { label: 'Quỹ bảo đảm', to: '/admin/guarantee', icon: <Landmark size={17} /> },
       { label: 'Duyệt hồ sơ KYC', to: '/mod/kyc', icon: <ShieldCheck size={17} /> },
       { label: 'Kiểm duyệt đơn hàng', to: '/mod/orders', icon: <PackageSearch size={17} /> },
       { label: 'Khiếu nại và kháng nghị', to: '/mod/complaints', icon: <Scale size={17} /> },

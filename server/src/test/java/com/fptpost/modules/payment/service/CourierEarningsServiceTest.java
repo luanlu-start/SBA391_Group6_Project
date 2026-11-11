@@ -1,5 +1,7 @@
 package com.fptpost.modules.payment.service;
 
+import com.fptpost.modules.catalog.dto.internal.ParameterSnapshot;
+import com.fptpost.modules.catalog.service.ParameterService;
 import com.fptpost.modules.identity.enums.CourierTier;
 import com.fptpost.modules.identity.model.CourierProfile;
 import com.fptpost.modules.identity.repository.CourierProfileRepository;
@@ -11,6 +13,8 @@ import com.fptpost.modules.payment.dto.CourierStatsResponse;
 import com.fptpost.modules.payment.model.Escrow;
 import com.fptpost.modules.payment.model.EscrowStatus;
 import com.fptpost.modules.payment.repository.EscrowRepository;
+import com.fptpost.modules.reputation.model.TrustScore;
+import com.fptpost.modules.reputation.repository.TrustScoreRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,7 +25,9 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -36,6 +42,10 @@ class CourierEarningsServiceTest {
     private EscrowRepository escrowRepository;
     @Mock
     private CourierProfileRepository courierProfileRepository;
+    @Mock
+    private ParameterService parameterService;
+    @Mock
+    private TrustScoreRepository trustScoreRepository;
 
     private CourierEarningsService courierEarningsService;
 
@@ -44,8 +54,32 @@ class CourierEarningsServiceTest {
         courierEarningsService = new CourierEarningsService(
                 orderRepository,
                 escrowRepository,
-                courierProfileRepository
+                courierProfileRepository,
+                parameterService,
+                trustScoreRepository
         );
+    }
+
+    /** Giá trị mặc định của PRM-074..090 trong catalog tham số. */
+    private static ParameterSnapshot trustParameters() {
+        Map<String, String> values = new LinkedHashMap<>();
+        values.put("TRUST_INIT", "50");
+        values.put("W_ONTIME", "0.35");
+        values.put("W_RATING", "0.3");
+        values.put("W_COMPLETE", "0.2");
+        values.put("W_COMPLAINT", "0.15");
+        values.put("TRUST_RESTRICT", "30");
+        values.put("TRUST_REVIEW", "20");
+        values.put("CANCEL_PENALTY", "5");
+        values.put("CANCEL_LIMIT", "3");
+        values.put("CANCEL_BAN", "3");
+        values.put("TIER_BRONZE", "≥ 55 điểm & ≥ 5 đơn");
+        values.put("TIER_SILVER", "≥ 70 điểm & ≥ 20 đơn");
+        values.put("TIER_GOLD", "≥ 85 điểm & ≥ 60 đơn");
+        values.put("TIER_DIAMOND", "≥ 95 điểm & ≥ 150 đơn");
+        Map<String, Long> versions = new LinkedHashMap<>();
+        values.keySet().forEach(key -> versions.put(key, 1L));
+        return new ParameterSnapshot(values, versions, Instant.parse("2026-11-10T00:00:00Z"));
     }
 
     @Test
@@ -120,14 +154,46 @@ class CourierEarningsServiceTest {
 
         when(courierProfileRepository.findByUserId(userId)).thenReturn(Optional.of(profile));
         when(orderRepository.findByCourierIdOrderByCreatedAtDesc(userId)).thenReturn(List.of());
+        when(parameterService.getSnapshot()).thenReturn(trustParameters());
+        when(trustScoreRepository.findById(userId)).thenReturn(Optional.empty());
 
         CourierStatsResponse stats = courierEarningsService.getMyStats(userId);
 
         assertEquals("BRONZE", stats.getCurrentTier());
         assertEquals("SILVER", stats.getNextTier());
-        assertEquals(30, stats.getNextTierMinOrders());
-        assertEquals(10, stats.getOrdersNeededForNextTier());
-        assertEquals(0, BigDecimal.valueOf(5.0).compareTo(stats.getScoreNeededForNextTier()));
-        assertTrue(stats.getOrdersProgressPercent() > 60);
+        assertEquals(20, stats.getNextTierMinOrders());
+        assertEquals(0, stats.getOrdersNeededForNextTier());
+        assertEquals(0, BigDecimal.ZERO.compareTo(stats.getScoreNeededForNextTier()));
+        assertEquals(100, stats.getOrdersProgressPercent());
+        assertNull(stats.getOnTimeRate());
+        assertNull(stats.getRatingAvg());
+        assertEquals(0.0, stats.getComplaintRate());
+    }
+
+    @Test
+    void getMyStats_readsPerformanceFromTrustScoreAndTopTierStaysAtDiamond() {
+        Long userId = 16L;
+        CourierProfile profile = new CourierProfile();
+        profile.setUserId(userId);
+        profile.setTier(CourierTier.DIAMOND);
+        profile.setTrustScore(BigDecimal.valueOf(96.0));
+        profile.setCompletedOrders(180);
+        TrustScore score = TrustScore.builder().courierId(userId).score(BigDecimal.valueOf(96.0)).tier(CourierTier.DIAMOND)
+                .ontimeRate(new BigDecimal("0.8833")).ratingAverage(new BigDecimal("4.80")).ratingCount(20)
+                .completionRate(new BigDecimal("0.9700")).complaintRate(new BigDecimal("0.0300"))
+                .completedOrders(180).lostComplaints(20).recentCancellations(0).calculatedAt(Instant.now()).build();
+
+        when(courierProfileRepository.findByUserId(userId)).thenReturn(Optional.of(profile));
+        when(orderRepository.findByCourierIdOrderByCreatedAtDesc(userId)).thenReturn(List.of());
+        when(parameterService.getSnapshot()).thenReturn(trustParameters());
+        when(trustScoreRepository.findById(userId)).thenReturn(Optional.of(score));
+
+        CourierStatsResponse stats = courierEarningsService.getMyStats(userId);
+
+        assertEquals("DIAMOND", stats.getNextTier());
+        assertEquals(150, stats.getNextTierMinOrders());
+        assertEquals(88.3, stats.getOnTimeRate());
+        assertEquals(4.8, stats.getRatingAvg());
+        assertEquals(10.0, stats.getComplaintRate());
     }
 }

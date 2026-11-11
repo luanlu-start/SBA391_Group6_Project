@@ -1,5 +1,6 @@
 package com.fptpost.modules.payment.service;
 
+import com.fptpost.modules.catalog.service.ParameterService;
 import com.fptpost.modules.identity.enums.CourierTier;
 import com.fptpost.modules.identity.model.CourierProfile;
 import com.fptpost.modules.identity.repository.CourierProfileRepository;
@@ -13,6 +14,9 @@ import com.fptpost.modules.payment.dto.CourierStatsResponse;
 import com.fptpost.modules.payment.model.Escrow;
 import com.fptpost.modules.payment.model.EscrowStatus;
 import com.fptpost.modules.payment.repository.EscrowRepository;
+import com.fptpost.modules.reputation.model.TrustScore;
+import com.fptpost.modules.reputation.repository.TrustScoreRepository;
+import com.fptpost.modules.reputation.service.TrustScorePolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +44,8 @@ public class CourierEarningsService {
     private final OrderRepository orderRepository;
     private final EscrowRepository escrowRepository;
     private final CourierProfileRepository courierProfileRepository;
+    private final ParameterService parameterService;
+    private final TrustScoreRepository trustScoreRepository;
 
     @Transactional(readOnly = true)
     public CourierEarningsResponse getMyEarnings(Long userId, String period, LocalDate from, LocalDate to) {
@@ -197,16 +203,15 @@ public class CourierEarningsService {
                 ? roundOneDecimal((effectiveCompleted * 100.0) / effectiveTotal)
                 : 100.0;
 
-        double scoreVal = trustScore.doubleValue();
-        double onTimeRate = effectiveCompleted > 0
-                ? roundOneDecimal(Math.min(100.0, Math.max(80.0, 75.0 + scoreVal * 0.25)))
-                : 100.0;
-        double ratingAvg = effectiveCompleted > 0
-                ? roundOneDecimal(Math.min(5.0, Math.max(3.8, 3.5 + (scoreVal / 100.0) * 1.5)))
-                : 5.0;
-        double complaintRate = effectiveTotal > 0
-                ? roundOneDecimal(Math.max(0.0, (cancelledOrders * 50.0) / effectiveTotal))
-                : 0.0;
+        // Chỉ số hiệu suất lấy từ điểm uy tín đã tính (UC-49); chưa có dữ liệu thì để trống thay vì ước lượng.
+        TrustScore score = trustScoreRepository.findById(userId).orElse(null);
+        Double onTimeRate = score != null && score.getOntimeRate() != null
+                ? roundOneDecimal(score.getOntimeRate().doubleValue() * 100) : null;
+        Double ratingAvg = score != null && score.getRatingCount() > 0 && score.getRatingAverage() != null
+                ? roundOneDecimal(score.getRatingAverage().doubleValue()) : null;
+        long lostComplaints = score == null ? 0 : score.getLostComplaints();
+        long handled = effectiveCompleted + lostComplaints;
+        double complaintRate = handled > 0 ? roundOneDecimal(lostComplaints * 100.0 / handled) : 0.0;
 
         TierRequirement nextReq = resolveNextTierRequirement(currentTier);
 
@@ -273,13 +278,12 @@ public class CourierEarningsService {
         return Math.round(value * 10.0) / 10.0;
     }
 
+    /** Điều kiện hạng kế tiếp theo tham số TIER_* (PRM-079..082), cùng nguồn với job tính hạng UC-49. */
     private TierRequirement resolveNextTierRequirement(CourierTier currentTier) {
-        return switch (currentTier) {
-            case NEW -> new TierRequirement(CourierTier.BRONZE, 10, BigDecimal.valueOf(65.0));
-            case BRONZE -> new TierRequirement(CourierTier.SILVER, 30, BigDecimal.valueOf(75.0));
-            case SILVER -> new TierRequirement(CourierTier.GOLD, 80, BigDecimal.valueOf(85.0));
-            case GOLD, DIAMOND -> new TierRequirement(CourierTier.DIAMOND, 200, BigDecimal.valueOf(92.0));
-        };
+        TrustScorePolicy policy = TrustScorePolicy.from(parameterService.getSnapshot());
+        TrustScorePolicy.TierRule rule = Optional.ofNullable(policy.next(currentTier))
+                .orElseGet(() -> policy.tiers().getFirst());
+        return new TierRequirement(rule.tier(), (int) rule.minOrders(), rule.minScore());
     }
 
     private record TierRequirement(CourierTier tier, int minOrders, BigDecimal minScore) {
