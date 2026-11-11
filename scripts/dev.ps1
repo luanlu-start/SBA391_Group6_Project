@@ -156,14 +156,29 @@ function Get-ServiceState([string]$ServiceName) {
 
 function Start-Infrastructure {
     Assert-Docker
-    & $dockerExecutable compose --env-file $rootEnvironmentPath up -d sqlserver-init mongodb
-    $composeStartExitCode = $LASTEXITCODE
-    Require-Success 'Start project SQL Server, database initialization and MongoDB' $composeStartExitCode
+    if ($usesExternalSql) {
+        # SQLSERVER_URL in root .env points at a SQL Server outside Compose, so only MongoDB is started here.
+        & $dockerExecutable compose --env-file $rootEnvironmentPath up -d mongodb
+        $composeMongoExitCode = $LASTEXITCODE
+        Require-Success 'Start MongoDB' $composeMongoExitCode
+    } else {
+        & $dockerExecutable compose --env-file $rootEnvironmentPath up -d sqlserver-init mongodb
+        $composeStartExitCode = $LASTEXITCODE
+        Require-Success 'Start project SQL Server, database initialization and MongoDB' $composeStartExitCode
+    }
     $readinessDeadline = (Get-Date).AddSeconds(180)
     while ((Get-Date) -lt $readinessDeadline) {
+        $mongoState = Get-ServiceState 'mongodb'
+        if ($usesExternalSql) {
+            if ($mongoState -and $mongoState.Health.Status -eq 'healthy') {
+                Write-Host "Infrastructure ready: SQL Server from SQLSERVER_URL in root .env, MongoDB on localhost:$mongoPort."
+                return
+            }
+            Start-Sleep -Seconds 2
+            continue
+        }
         $sqlState = Get-ServiceState 'sqlserver'
         $initializationState = Get-ServiceState 'sqlserver-init'
-        $mongoState = Get-ServiceState 'mongodb'
         if ($initializationState -and $initializationState.Status -eq 'exited' -and $initializationState.ExitCode -ne 0) {
             throw 'Project SQL database initialization failed. Check docker compose logs sqlserver-init.'
         }
@@ -228,8 +243,10 @@ function Write-EnvironmentFileAtomically([string]$RelativePath, [string[]]$Setti
 function Sync-LocalEnvironmentFiles {
     $serverSettingNames = @('SERVER_PORT', 'SPRING_PROFILES_ACTIVE', 'SQLSERVER_URL', 'SQLSERVER_USERNAME',
         'SQLSERVER_PASSWORD', 'MONGODB_URI', 'ALLOWED_ORIGINS', 'JWT_SECRET', 'AUTH_COOKIE_SECURE',
+        'KYC_ENCRYPTION_KEYS', 'KYC_ACTIVE_KEY_ID', 'KYC_HASH_KEY', 'PICKUP_QR_SECRET',
         'SMTP_HOST', 'SMTP_PORT', 'SMTP_USERNAME', 'SMTP_PASSWORD', 'SMTP_AUTH', 'SMTP_STARTTLS',
-        'MAIL_FROM', 'MAIL_FROM_NAME', 'MAIL_TEMPLATE_CACHE')
+        'MAIL_FROM', 'MAIL_FROM_NAME', 'MAIL_TEMPLATE_CACHE',
+        'VNPAY_TMN_CODE', 'VNPAY_HASH_SECRET', 'VNPAY_RETURN_URL', 'PAYOUT_PROVIDER')
     Write-EnvironmentFileAtomically 'server/.env' $serverSettingNames
     Write-EnvironmentFileAtomically 'client/.env' @('VITE_API_URL', 'VITE_DEV_PORT')
     Write-Host 'Synced server/.env and client/.env from root .env.'
@@ -254,12 +271,27 @@ try {
     if ($jwtBytes.Length -lt 32) { throw 'JWT_SECRET in root .env must contain at least 32 random bytes.' }
     Set-ProcessSetting 'SERVER_PORT' ([string]$backendPort)
     Set-ProcessSetting 'SPRING_PROFILES_ACTIVE' (Get-Setting $rootSettings 'BACKEND_PROFILES' 'dev,demo')
-    Set-ProcessSetting 'SQLSERVER_URL' "jdbc:sqlserver://localhost:$sqlPort;databaseName=group6_project_db;encrypt=true;trustServerCertificate=true"
-    Set-ProcessSetting 'SQLSERVER_USERNAME' 'sa'
+    $externalSqlUrl = Get-Setting $rootSettings 'SQLSERVER_URL' ''
+    $usesExternalSql = -not [string]::IsNullOrWhiteSpace($externalSqlUrl)
+    if ($Mode -eq 'Docker') {
+        # Compose resolves SQLSERVER_URL itself: the value from root .env, or its own sqlserver service when empty.
+        Set-ProcessSetting 'SQLSERVER_URL' $(if ($usesExternalSql) { $externalSqlUrl } else { $null })
+    } elseif ($usesExternalSql) {
+        # host.docker.internal only resolves for containers; a backend on the host reaches the same server on localhost.
+        Set-ProcessSetting 'SQLSERVER_URL' $externalSqlUrl.Replace('host.docker.internal', 'localhost')
+        Set-ProcessSetting 'SQLSERVER_USERNAME' (Get-Setting $rootSettings 'SQLSERVER_USERNAME' 'sa')
+    } else {
+        Set-ProcessSetting 'SQLSERVER_URL' "jdbc:sqlserver://localhost:$sqlPort;databaseName=group6_project_db;encrypt=true;trustServerCertificate=true"
+        Set-ProcessSetting 'SQLSERVER_USERNAME' 'sa'
+    }
     Set-ProcessSetting 'MONGODB_URI' "mongodb://localhost:$mongoPort/group6_project_db"
     Set-ProcessSetting 'ALLOWED_ORIGINS' (Get-Setting $rootSettings 'ALLOWED_ORIGINS' "http://localhost:$frontendPort,http://127.0.0.1:$frontendPort")
     Set-ProcessSetting 'AUTH_COOKIE_SECURE' (Get-Setting $rootSettings 'AUTH_COOKIE_SECURE' 'false')
     Set-ProcessSetting 'MAIL_TEMPLATE_CACHE' (Get-Setting $rootSettings 'MAIL_TEMPLATE_CACHE' 'false')
+    if ($Mode -ne 'Docker') {
+        # VNPay sends the browser back to the frontend, which then confirms the payment with the API.
+        Set-ProcessSetting 'VNPAY_RETURN_URL' (Get-Setting $rootSettings 'VNPAY_RETURN_URL' "http://localhost:$frontendPort/payment/vnpay-return")
+    }
     Set-ProcessSetting 'VITE_API_URL' "http://localhost:$backendPort/api/v1"
     Set-ProcessSetting 'VITE_DEV_PORT' ([string]$frontendPort)
     if ($Mode -eq 'Sync') { Sync-LocalEnvironmentFiles; return }
@@ -278,10 +310,11 @@ try {
         Write-Host "Maven: $($mavenTool.VersionLines[0])"
         Invoke-Npm @('--version') 'Check npm'
         Assert-Docker
-        & $dockerExecutable compose --env-file $rootEnvironmentPath ps -a sqlserver sqlserver-init mongodb
+        $databaseServices = if ($usesExternalSql) { @('mongodb') } else { @('sqlserver', 'sqlserver-init', 'mongodb') }
+        & $dockerExecutable compose --env-file $rootEnvironmentPath ps -a @databaseServices
         $composeStatusExitCode = $LASTEXITCODE
         Require-Success 'Check project database containers' $composeStatusExitCode
-        foreach ($serviceName in @('sqlserver', 'sqlserver-init', 'mongodb')) {
+        foreach ($serviceName in $databaseServices) {
             $serviceState = Get-ServiceState $serviceName
             $serviceStatus = if (-not $serviceState) { 'not started' }
                 elseif ($serviceName -eq 'sqlserver-init') { "$($serviceState.Status), exit $($serviceState.ExitCode)" }
