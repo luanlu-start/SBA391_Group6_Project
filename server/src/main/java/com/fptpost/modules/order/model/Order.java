@@ -3,6 +3,7 @@ package com.fptpost.modules.order.model;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.Nationalized;
+import org.hibernate.annotations.Formula;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -121,7 +122,8 @@ public class Order {
     private Instant endedAt;
 
     @Builder.Default
-    @Column(name = "is_relay", nullable = false)
+    // Relay orders have persisted legs; derive the flag without requiring a redundant orders.is_relay column.
+    @Formula("(case when exists (select 1 from order_legs relay_leg where relay_leg.order_id = id) then 1 else 0 end)")
     private Boolean isRelay = false;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)

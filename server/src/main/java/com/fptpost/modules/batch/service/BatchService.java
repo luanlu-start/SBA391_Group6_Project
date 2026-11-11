@@ -17,6 +17,7 @@ import com.fptpost.modules.batch.service.routing.ChCrpRoutingEngine.GeoPoint;
 import com.fptpost.modules.batch.service.routing.ChCrpRoutingEngine.RouteOptimizationPlan;
 import com.fptpost.modules.identity.model.User;
 import com.fptpost.modules.order.model.Order;
+import com.fptpost.modules.order.exception.OrderErrorCode;
 import com.fptpost.modules.order.model.OrderStatus;
 import com.fptpost.modules.order.repository.OrderRepository;
 import com.fptpost.modules.trip.model.Trip;
@@ -41,6 +42,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class BatchService implements IBatchService {
+    private static final Set<OrderStatus> RETURN_STATUSES = EnumSet.of(OrderStatus.DELIVERY_FAILED, OrderStatus.RETURNING, OrderStatus.RETURNED);
 
     private static final int BATCH_MAX_ORDERS = 5; // [PRM-101]
     private static final int BATCH_MIN_ORDERS = 2;
@@ -67,6 +69,7 @@ public class BatchService implements IBatchService {
         // Lọc các đơn hàng chưa hoàn thành, chưa hủy và đang trong giai đoạn giao nhận
         return courierOrders.stream()
                 .filter(o -> o.getStatus() != OrderStatus.COMPLETED && o.getStatus() != OrderStatus.CANCELLED)
+                .filter(o -> !RETURN_STATUSES.contains(o.getStatus()))
                 .map(this::mapToEligibleOrderResponse)
                 .collect(Collectors.toList());
     }
@@ -414,6 +417,9 @@ public class BatchService implements IBatchService {
             throw new AppException(GlobalErrorCode.RESOURCE_NOT_FOUND, "Một số đơn hàng được chọn không tồn tại trên hệ thống");
         }
         for (Order o : orders) {
+            if (RETURN_STATUSES.contains(o.getStatus())) {
+                throw new AppException(OrderErrorCode.ORDER_NOT_AVAILABLE);
+            }
             if (o.getCourierId() == null || !o.getCourierId().equals(courierId)) {
                 throw new AppException(GlobalErrorCode.FORBIDDEN,
                         "Đơn hàng " + o.getOrderCode() + " không thuộc quyền giao hàng của bạn");

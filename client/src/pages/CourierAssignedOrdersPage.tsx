@@ -10,6 +10,8 @@ import ApiErrorNotice from '../components/ApiErrorNotice';
 import PageHeader from '../components/ui/PageHeader';
 import SectionCard from '../components/ui/SectionCard';
 import Button from '../components/ui/Button';
+import ConfirmPickupPanel from '../components/order/ConfirmPickupPanel';
+import DeliveryIncidentPanel from '../components/order/DeliveryIncidentPanel';
 
 export default function CourierAssignedOrdersPage() {
   const navigate = useNavigate();
@@ -75,18 +77,31 @@ export default function CourierAssignedOrdersPage() {
                   flexWrap: 'wrap',
                 }}
               >
+                {/* Thông tin đơn hàng */}
                 <div>
                   <strong>{order.orderCode}</strong>
                   <p>{order.productName}</p>
                   <p>Trạng thái: {order.status}</p>
                 </div>
 
+                {/* UC-25: Xác nhận lấy hàng bằng QR và ảnh */}
+                {order.status === 'SHIPPER_ASSIGNED' && (
+                  <ConfirmPickupPanel
+                    orderId={order.id}
+                    onSuccess={() => void loadOrders()}
+                  />
+                )}
+
+                <DeliveryIncidentPanel orderId={order.id} canReport={order.status === 'IN_DELIVERY'} />
+                <Button variant="secondary" onClick={() => navigate(`/orders/${order.id}/return`)}>
+                  {order.status === 'IN_DELIVERY' ? 'Giao thất bại / hoàn hàng' : 'Theo dõi hoàn hàng'}
+                </Button>
+
+                {/* UC-24: Chat Sender - Courier */}
                 <Button
                   variant="primary"
                   icon={<MessageCircle size={16} />}
-                  onClick={() =>
-                    navigate(`/orders/${order.id}/chat`)
-                  }
+                  onClick={() => navigate(`/orders/${order.id}/chat`)}
                 >
                   Nhắn tin
                 </Button>

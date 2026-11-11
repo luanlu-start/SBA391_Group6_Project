@@ -1,4 +1,5 @@
 export type OrderStatus =
+  | 'DELIVERY_FAILED'
   | 'PENDING'
   | 'DRAFT'
   | 'PENDING_CONFIRMATION'
@@ -28,6 +29,7 @@ export interface OrderStatusConfig {
 }
 
 export const ORDER_STATUS_MAP: Record<OrderStatus, OrderStatusConfig> = {
+  DELIVERY_FAILED: { label: 'Giao hàng thất bại', tone: 'danger' },
   PENDING: { label: 'Chờ kiểm duyệt', tone: 'warning' },
   DRAFT: { label: 'Bản nháp', tone: 'neutral' },
   PENDING_CONFIRMATION: { label: 'Chờ xác nhận', tone: 'warning' },

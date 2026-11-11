@@ -44,6 +44,31 @@ export const orderApi = {
       '/orders/assigned-to-me'
     );
   },
+  getPickupQr: (orderId: number | string) => {
+    return axiosClient.get<
+      unknown,
+      ApiResponse<{ qrToken: string }>
+    >(`/orders/${orderId}/pickup-qr`);
+  },
+
+  confirmPickup: (
+    orderId: number | string,
+    qrToken: string,
+    photo: File
+  ) => {
+    const formData = new FormData();
+    formData.append('qrToken', qrToken);
+    formData.append('photo', photo);
+
+    return axiosClient.post<unknown, ApiResponse<Order>>(
+      `/orders/${orderId}/confirm-pickup`,
+      formData,
+      {
+        // Override the JSON default; Axios lets the browser add the multipart boundary.
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }
+    );
+  },
 
   uploadImages: (files: File[]) => {
     const formData = new FormData();

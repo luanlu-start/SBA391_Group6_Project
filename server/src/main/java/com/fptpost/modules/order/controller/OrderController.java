@@ -7,6 +7,7 @@ import com.fptpost.modules.order.dto.OrderResponse;
 import com.fptpost.modules.order.dto.PricingEstimateRequest;
 import com.fptpost.modules.order.dto.PricingEstimateResponse;
 import com.fptpost.modules.order.service.OrderService;
+import com.fptpost.modules.order.service.PickupConfirmationService;
 import com.fptpost.modules.order.service.PricingCalculatorService;
 import com.fptpost.modules.order.service.RelayOrderService;
 import com.fptpost.modules.order.dto.request.RelayOrderRequest;
@@ -37,6 +38,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -50,6 +52,7 @@ public class OrderController {
     private final PricingCalculatorService pricingCalculatorService;
     private final UserRepository userRepository;
     private final RelayOrderService relayOrderService;
+    private final PickupConfirmationService pickupConfirmationService;
 
     @PostMapping("/pricing/estimate")
     @Operation(summary = "Ước tính giá và cước phí đơn hàng (UC-11, API-029)",
@@ -186,6 +189,50 @@ public class OrderController {
                 ApiResponse.success(
                         "Assigned orders retrieved successfully",
                         orders
+                )
+        );
+    }
+
+    @GetMapping("/{id}/pickup-qr")
+    @PreAuthorize("hasRole('SENDER')")
+    @Operation(summary = "UC-25 - Lấy QR xác nhận lấy hàng")
+    public ResponseEntity<ApiResponse<Map<String, String>>> getPickupQr(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        Long senderId = resolveUserId(jwt);
+        String qrToken = pickupConfirmationService.getPickupQr(id, senderId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Pickup QR generated",
+                        Map.of("qrToken", qrToken)
+                )
+        );
+    }
+
+    @PostMapping(
+            value = "/{id}/confirm-pickup",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    @PreAuthorize("hasRole('COURIER')")
+    @Operation(summary = "UC-25 - Xác nhận lấy hàng bằng QR và ảnh")
+    public ResponseEntity<ApiResponse<OrderResponse>> confirmPickup(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam("qrToken") String qrToken,
+            @RequestParam("photo") MultipartFile photo) {
+
+        Long courierId = resolveUserId(jwt);
+
+        OrderResponse result = pickupConfirmationService.confirmPickup(
+                id, courierId, qrToken, photo
+        );
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Pickup confirmed successfully",
+                        result
                 )
         );
     }

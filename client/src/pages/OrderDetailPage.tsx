@@ -13,7 +13,8 @@ import {
   Pencil,
   XCircle,
 } from 'lucide-react';
-import type { Order, OrderLeg } from '../types/order';
+import type { Order } from '../types/order';
+import DeliveryIncidentPanel from '../components/order/DeliveryIncidentPanel';
 import { ORDER_STATUS_MAP } from '../types/order';
 import { orderApi } from '../api/orderApi';
 import type { ApiError } from '../api/ApiError';
@@ -27,13 +28,9 @@ import Alert from '../components/ui/Alert';
 import Input from '../components/ui/Input';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ApiErrorNotice from '../components/ApiErrorNotice';
-import OrderModerationNotice from '../features/order-moderation/components/OrderModerationNotice';
-import type { EscrowResponse, RefundToSourceResponse } from '../types/payment';
+import type { EscrowResponse } from '../types/payment';
 import { getSessionState } from '../auth/authSession';
-import ReportViolationButton from '../features/violation-reports/components/ReportViolationButton';
-import { ShieldCheck, CheckCircle, AlertTriangle, Send, GitFork, CreditCard } from 'lucide-react';
-import InviteCourierModal from '../features/order/components/InviteCourierModal';
-import SuggestedCouriersCard from '../features/matching/components/SuggestedCouriersCard';
+import { ShieldCheck, CheckCircle, AlertTriangle } from 'lucide-react';
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -41,15 +38,11 @@ export default function OrderDetailPage() {
 
   const [order, setOrder] = useState<Order | null>(null);
   const [escrow, setEscrow] = useState<EscrowResponse | null>(null);
-  const [refundRequests, setRefundRequests] = useState<RefundToSourceResponse[]>([]);
-  const [refundingSource, setRefundingSource] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
   const [releasing, setReleasing] = useState(false);
   const [releaseSuccess, setReleaseSuccess] = useState<string | null>(null);
   const [releaseError, setReleaseError] = useState<string | null>(null);
-  const [legs, setLegs] = useState<OrderLeg[]>([]);
-  const [loadingLegs, setLoadingLegs] = useState(false);
 
   const currentUser = getSessionState().user;
   const isAdmin = currentUser?.roles?.includes('ADMIN') ?? false;
@@ -59,18 +52,10 @@ export default function OrderDetailPage() {
       .getEscrow(orderId)
       .then(res => setEscrow(res.data))
       .catch(() => setEscrow(null));
-    orderApi
-      .getRefundRequests(orderId)
-      .then(res => setRefundRequests(res.data || []))
-      .catch(() => setRefundRequests([]));
   };
 
-  // Trạng thái modal hủy đơn, giải ngân & hoàn tiền
+  // Trạng thái modal hủy đơn
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
-  const [isReleaseModalOpen, setIsReleaseModalOpen] = useState(false);
-  const [isRefundSourceModalOpen, setIsRefundSourceModalOpen] = useState(false);
-  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-  const [invitedCourierId, setInvitedCourierId] = useState<number | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<ApiError | null>(null);
@@ -87,14 +72,7 @@ export default function OrderDetailPage() {
       .then(res => {
         if (mounted) {
           setOrder(res.data);
-          fetchEscrow(res.data.id);
-          if (res.data.isRelay) {
-            setLoadingLegs(true);
-            orderApi.getOrderLegs(res.data.id)
-              .then(legsRes => { if (mounted) setLegs(legsRes.data); })
-              .catch(e => console.error("Lỗi tải chặng tiếp sức:", e))
-              .finally(() => { if (mounted) setLoadingLegs(false); });
-          }
+          fetchEscrow(id);
         }
       })
       .catch(cause => {
@@ -110,19 +88,20 @@ export default function OrderDetailPage() {
   }, [id]);
 
   const handleReleaseEscrow = async () => {
-    if (!order) return;
+    if (!id) return;
+    if (!window.confirm('Bạn có chắc chắn muốn giải ngân tiền ký quỹ cho người giao hàng?')) {
+      return;
+    }
     setReleasing(true);
     setReleaseSuccess(null);
     setReleaseError(null);
     try {
-      const res = await orderApi.releaseEscrow(order.id);
+      const res = await orderApi.releaseEscrow(id);
       setReleaseSuccess(res.data.message || 'Giải ngân tiền ký quỹ thành công!');
-      setIsReleaseModalOpen(false);
-      fetchEscrow(order.id);
+      fetchEscrow(id);
     } catch (err) {
       const apiErr = getApiError(err);
       setReleaseError(apiErr.message);
-      setIsReleaseModalOpen(false);
     } finally {
       setReleasing(false);
     }
@@ -135,34 +114,12 @@ export default function OrderDetailPage() {
     try {
       const res = await orderApi.cancel(order.id, cancelReason.trim() || undefined);
       setOrder(res.data);
-      fetchEscrow(order.id);
       setIsCancelModalOpen(false);
       setCancelReason('');
     } catch (cause) {
       setCancelError(getApiError(cause));
     } finally {
       setCancelling(false);
-    }
-  }
-
-  async function handleRefundToSource() {
-    if (!order) return;
-    setRefundingSource(true);
-    setReleaseSuccess(null);
-    setReleaseError(null);
-    try {
-      const res = await orderApi.refundToSource(order.id, {
-        reason: `Người gửi yêu cầu hoàn tiền đơn ${order.orderCode} về nguồn VNPay`,
-      });
-      setReleaseSuccess(res.data.message || 'Hoàn tiền về nguồn VNPay thành công!');
-      setIsRefundSourceModalOpen(false);
-      fetchEscrow(order.id);
-    } catch (err) {
-      const apiErr = getApiError(err);
-      setReleaseError(apiErr.message);
-      setIsRefundSourceModalOpen(false);
-    } finally {
-      setRefundingSource(false);
     }
   }
 
@@ -209,21 +166,8 @@ export default function OrderDetailPage() {
     tone: 'neutral',
   };
 
-  const canPayEscrow =
-    !escrow &&
-    (order.status === 'PENDING' ||
-      order.status === 'PENDING_ESCROW' ||
-      order.status === 'FINDING_SHIPPER' ||
-      order.status === 'AWAITING_PAYMENT');
-
-  const canEdit = order.status === 'PENDING' || (order.status === 'FINDING_SHIPPER' && !order.courierId);
-  const canCancel =
-    order.status === 'PENDING' ||
-    order.status === 'PENDING_ESCROW' ||
-    order.status === 'ESCROWED' ||
-    order.status === 'FINDING_SHIPPER' ||
-    order.status === 'AWAITING_PAYMENT' ||
-    order.status === 'SHIPPER_ASSIGNED';
+  const canEdit = order.status === 'PENDING';
+  const canCancel = order.status === 'PENDING' || order.status === 'FINDING_SHIPPER';
 
   return (
     <div className="ui-stack">
@@ -236,25 +180,10 @@ export default function OrderDetailPage() {
             <Badge dot tone={statusConfig.tone}>
               {statusConfig.label}
             </Badge>
-            {order.isRelay && (
-              <Badge tone="info">
-                TIẾP SỨC
-              </Badge>
-            )}
-            {canPayEscrow && !isAdmin && (
-              <Button
-                variant="primary"
-                size="md"
-                icon={<CreditCard size={15} />}
-                onClick={() => navigate(`/orders/${order.id}/payment`)}
-              >
-                Thanh toán &amp; Ký quỹ
-              </Button>
-            )}
             {canEdit && (
               <Button
                 variant="secondary"
-                size="md"
+                size="sm"
                 icon={<Pencil size={15} />}
                 onClick={() => navigate(`/sender/orders/${order.id}/edit`)}
               >
@@ -264,7 +193,7 @@ export default function OrderDetailPage() {
             {canCancel && (
               <Button
                 variant="secondary"
-                size="md"
+                size="sm"
                 icon={<XCircle size={15} style={{ color: 'var(--accent-rose, #ffa6b3)' }} />}
                 onClick={() => {
                   setCancelError(null);
@@ -274,10 +203,6 @@ export default function OrderDetailPage() {
               >
                 Hủy đơn hàng
               </Button>
-            )}
-            {order.courierId && (
-              <ReportViolationButton targetType="ORDER" targetId={String(order.id)}
-                targetName={`Đơn ${order.orderCode}: báo cáo hành vi của người giao`} />
             )}
             <Button
               variant="ghost"
@@ -290,7 +215,8 @@ export default function OrderDetailPage() {
         }
       />
 
-      <OrderModerationNotice orderId={order.id} status={order.status} />
+      {currentUser && <DeliveryIncidentPanel orderId={order.id} />}
+      {currentUser && <Button variant="secondary" onClick={() => navigate(`/orders/${order.id}/return`)}>Giao thất bại / nhận lại hàng</Button>}
 
       <div className="ui-showcase-grid">
         {/* Left Column: Shipment & Product Details */}
@@ -336,134 +262,6 @@ export default function OrderDetailPage() {
               </div>
             </div>
           </SectionCard>
-
-          {/* Hành trình tiếp sức (Relay Delivery - BR-F-062) */}
-          {order.isRelay && (
-            <SectionCard
-              title="Hành trình giao tiếp sức (Relay Delivery)"
-              description="Hành trình được chia thành các chặng giao tiếp sức độc lập qua điểm hẹn an toàn"
-            >
-              <div className="ui-stack" style={{ gap: '14px' }}>
-                <div
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: 'var(--radius-sm, 6px)',
-                    background: 'var(--brand-soft, rgba(243, 112, 33, 0.12))',
-                    border: '1px solid var(--brand-border, rgba(243, 112, 33, 0.3))',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    color: 'var(--text-accent, #ffb17d)',
-                    fontSize: '0.85rem',
-                  }}
-                >
-                  <GitFork size={16} style={{ color: 'var(--primary, #f37021)', flexShrink: 0 }} />
-                  <span>
-                    Đơn hàng chia thành <strong>{legs.length > 0 ? legs.length : 2} chặng</strong>. Cước phí được chia theo tỷ lệ quãng đường (BR-R-047).
-                  </span>
-                </div>
-
-                {loadingLegs ? (
-                  <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>
-                    <LoadingSpinner />
-                    <span style={{ marginLeft: '8px' }}>Đang tải tiến trình từng chặng…</span>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {legs.map(leg => {
-                      const legStatus = ORDER_STATUS_MAP[leg.status] || {
-                        label: leg.status,
-                        tone: 'neutral' as const,
-                      };
-                      return (
-                        <div
-                          key={leg.id || leg.legNo}
-                          style={{
-                            padding: '12px 14px',
-                            borderRadius: 'var(--radius-md, 10px)',
-                            background: 'var(--bg-tertiary, #242d39)',
-                            border: '1px solid var(--border-subtle, #333d4c)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '8px',
-                          }}
-                        >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span
-                                style={{
-                                  background: 'var(--primary, #f37021)',
-                                  color: '#fff',
-                                  fontSize: '0.75rem',
-                                  fontWeight: 700,
-                                  padding: '2px 8px',
-                                  borderRadius: 'var(--radius-full, 999px)',
-                                }}
-                              >
-                                Chặng {leg.legNo}
-                              </span>
-                              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                                {leg.distanceKm} km
-                              </span>
-                            </div>
-                            <Badge dot tone={legStatus.tone}>
-                              {legStatus.label}
-                            </Badge>
-                          </div>
-
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.85rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
-                              <MapPin size={14} style={{ color: 'var(--primary)', marginTop: '2px', flexShrink: 0 }} />
-                              <span style={{ color: 'var(--text-secondary)' }}>
-                                <strong style={{ color: 'var(--text-primary)' }}>Điểm đi:</strong> {leg.pickupAddress}
-                              </span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
-                              <MapPin size={14} style={{ color: 'var(--accent-emerald)', marginTop: '2px', flexShrink: 0 }} />
-                              <span style={{ color: 'var(--text-secondary)' }}>
-                                <strong style={{ color: 'var(--text-primary)' }}>Điểm đến:</strong> {leg.deliveryAddress}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div
-                            style={{
-                              marginTop: '4px',
-                              paddingTop: '6px',
-                              borderTop: '1px dashed var(--border-subtle, #333d4c)',
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                              fontSize: '0.8rem',
-                            }}
-                          >
-                            <span style={{ color: 'var(--text-muted)' }}>
-                              Bưu tá chặng: {leg.courierId ? '#' + leg.courierId : 'Chưa có tài xế nhận'}
-                            </span>
-                            <span style={{ fontWeight: 600, color: 'var(--accent-emerald)' }}>
-                              Cước chặng: {Number(leg.legFee).toLocaleString('vi-VN')} đ
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </SectionCard>
-          )}
-
-          {/* Gợi ý tài xế có chuyến đi tiện đường */}
-          {order.status === 'FINDING_SHIPPER' && (
-            <SuggestedCouriersCard
-              orderId={order.id}
-              isOrderOpen={true}
-              onInviteCourier={(courierId) => {
-                setInvitedCourierId(courierId);
-                setIsInviteModalOpen(true);
-              }}
-            />
-          )}
 
           {/* Chi tiết kiện hàng */}
           <SectionCard
@@ -566,24 +364,14 @@ export default function OrderDetailPage() {
                 <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
                   Đơn hàng đang mở trên sàn. Bưu tá có thể gửi chào giá hoặc nhận đơn theo giá niêm yết.
                 </p>
-                <div className="ui-stack" style={{ gap: '8px' }}>
-                  <Button
-                    variant="primary"
-                    icon={<Send size={16} />}
-                    onClick={() => setIsInviteModalOpen(true)}
-                    style={{ width: '100%' }}
-                  >
-                    Mời tài xế trực tiếp
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    icon={<DollarSign size={16} />}
-                    onClick={() => navigate(`/sender/orders/${order.id}/offers`)}
-                    style={{ width: '100%' }}
-                  >
-                    Xem danh sách chào giá
-                  </Button>
-                </div>
+                <Button
+                  variant="primary"
+                  icon={<DollarSign size={16} />}
+                  onClick={() => navigate(`/sender/orders/${order.id}/offers`)}
+                  style={{ width: '100%' }}
+                >
+                  Xem danh sách chào giá
+                </Button>
               </div>
             </SectionCard>
           )}
@@ -636,31 +424,6 @@ export default function OrderDetailPage() {
               </div>
             </div>
           </SectionCard>
-
-          {/* Thanh toán & Ký quỹ nếu đơn chưa ký quỹ (UC-35) */}
-          {!escrow && canPayEscrow && (
-            <SectionCard
-              title="Thanh toán & Ký quỹ (Escrow)"
-              description="Đơn hàng chưa được thanh toán ký quỹ — số dư ví của bạn chưa bị trừ hay tạm giữ."
-              actions={<Badge dot tone="warning">CHƯA KÝ QUỸ</Badge>}
-            >
-              <div className="ui-stack" style={{ gap: '12px' }}>
-                <Alert tone="info">
-                  Hãy chọn phương thức thanh toán qua <strong>Ví FPTPost</strong> hoặc <strong>Cổng VNPay</strong> để ký quỹ bảo đảm an toàn cho đơn hàng này.
-                </Alert>
-                {!isAdmin && (
-                  <Button
-                    variant="primary"
-                    icon={<CreditCard size={16} />}
-                    onClick={() => navigate(`/orders/${order.id}/payment`)}
-                    style={{ width: '100%' }}
-                  >
-                    Chọn phương thức &amp; Thanh toán ký quỹ
-                  </Button>
-                )}
-              </div>
-            </SectionCard>
-          )}
 
           {/* Thông tin Ký quỹ & Giải ngân */}
           {escrow && (
@@ -775,64 +538,13 @@ export default function OrderDetailPage() {
                   )}
                 </div>
 
-                {/* Thông tin & Nút yêu cầu hoàn tiền về nguồn VNPay (UC-37) */}
-                {refundRequests.length > 0 && (
-                  <div
-                    style={{
-                      padding: '10px 12px',
-                      backgroundColor: 'rgba(59, 130, 246, 0.08)',
-                      border: '1px solid rgba(59, 130, 246, 0.25)',
-                      borderRadius: 'var(--radius-sm)',
-                      fontSize: '0.85rem',
-                    }}
-                  >
-                    <div style={{ fontWeight: 600, marginBottom: 4 }}>
-                      Hoàn tiền về nguồn VNPay ({refundRequests[0].kind === 'PARTIAL' ? 'Một phần' : 'Toàn bộ'}):
-                    </div>
-                    <div>
-                      Số tiền hoàn: <strong>{Number(refundRequests[0].amount).toLocaleString('vi-VN')} VNĐ</strong>
-                      {refundRequests[0].cancellationFee > 0 && (
-                        <span> (Phí hủy trả bưu tá: {Number(refundRequests[0].cancellationFee).toLocaleString('vi-VN')} VNĐ)</span>
-                      )}
-                    </div>
-                    <div>
-                      Trạng thái:{' '}
-                      <strong>
-                        {refundRequests[0].status === 'SUCCESS'
-                          ? `Thành công (Mã: ${refundRequests[0].vnpayRefundRef})`
-                          : refundRequests[0].status === 'FAILED'
-                          ? 'VNPay từ chối — Tiền được giữ tại ví FPTPost'
-                          : 'Đang xử lý'}
-                      </strong>
-                    </div>
-                  </div>
-                )}
-
-                {escrow.paymentMethod === 'VNPAY' &&
-                  (escrow.status === 'REFUNDED' ||
-                    escrow.status === 'PARTIALLY_REFUNDED' ||
-                    order.status === 'CANCELLED' ||
-                    order.status === 'EXPIRED') &&
-                  !refundRequests.some(r => r.status === 'SUCCESS' || r.status === 'PENDING') && (
-                    <div style={{ marginTop: '8px' }}>
-                      <Button
-                        variant="secondary"
-                        onClick={() => setIsRefundSourceModalOpen(true)}
-                        disabled={refundingSource}
-                        style={{ width: '100%' }}
-                      >
-                        {refundingSource ? 'Đang gửi yêu cầu hoàn VNPay…' : 'Hoàn tiền về nguồn VNPay (UC-37)'}
-                      </Button>
-                    </div>
-                  )}
-
                 {/* Nút hành động giải ngân dành cho ADMIN */}
                 {isAdmin && escrow.status === 'HELD' && !escrow.frozen && (
                   <div style={{ marginTop: '8px' }}>
                     <Button
                       variant="primary"
                       icon={<ShieldCheck size={16} />}
-                      onClick={() => setIsReleaseModalOpen(true)}
+                      onClick={handleReleaseEscrow}
                       disabled={releasing || !order.courierId}
                       style={{ width: '100%' }}
                     >
@@ -895,81 +607,6 @@ export default function OrderDetailPage() {
           </div>
         </div>
       </Modal>
-
-      {/* Modal xác nhận giải ngân cho người giao (UC-36) */}
-      <Modal
-        isOpen={isReleaseModalOpen}
-        onClose={() => !releasing && setIsReleaseModalOpen(false)}
-        closeDisabled={releasing}
-        title="Xác nhận giải ngân tiền ký quỹ"
-        description={`Giải ngân khoản tiền ký quỹ của đơn hàng ${order.orderCode} vào ví người giao?`}
-        size="md"
-      >
-        <div className="ui-stack" style={{ gap: '12px' }}>
-          <Alert tone="info">
-            Số tiền ký quỹ sẽ được chuyển từ trạng thái giam giữ sang số dư khả dụng của người giao hàng.
-          </Alert>
-          <div className="ui-row" style={{ justifyContent: 'flex-end', gap: '8px' }}>
-            <Button variant="secondary" disabled={releasing} onClick={() => setIsReleaseModalOpen(false)}>
-              Đóng
-            </Button>
-            <Button
-              variant="primary"
-              loading={releasing}
-              loadingText="Đang giải ngân…"
-              onClick={() => void handleReleaseEscrow()}
-            >
-              Xác nhận giải ngân
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Modal xác nhận hoàn tiền về nguồn VNPay (UC-37) */}
-      <Modal
-        isOpen={isRefundSourceModalOpen}
-        onClose={() => !refundingSource && setIsRefundSourceModalOpen(false)}
-        closeDisabled={refundingSource}
-        title="Xác nhận hoàn tiền về nguồn VNPay"
-        description={`Yêu cầu hoàn khoản tiền của đơn hàng ${order.orderCode} từ ví FPTPost về cổng thanh toán VNPay gốc?`}
-        size="md"
-      >
-        <div className="ui-stack" style={{ gap: '12px' }}>
-          <Alert tone="warning">
-            Sau khi hoàn về nguồn VNPay thành công, số tiền tương ứng sẽ được khấu trừ khỏi số dư ví FPTPost của bạn.
-          </Alert>
-          <div className="ui-row" style={{ justifyContent: 'flex-end', gap: '8px' }}>
-            <Button variant="secondary" disabled={refundingSource} onClick={() => setIsRefundSourceModalOpen(false)}>
-              Đóng
-            </Button>
-            <Button
-              variant="primary"
-              loading={refundingSource}
-              loadingText="Đang gửi yêu cầu…"
-              onClick={() => void handleRefundToSource()}
-            >
-              Xác nhận hoàn VNPay
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Modal mời tài xế giao hàng trực tiếp */}
-      {id && order && (
-        <InviteCourierModal
-          isOpen={isInviteModalOpen}
-          onClose={() => {
-            setIsInviteModalOpen(false);
-            setInvitedCourierId(null);
-          }}
-          orderId={id}
-          orderCode={order.orderCode}
-          onSuccess={() => {
-            orderApi.getById(id).then(res => setOrder(res.data));
-          }}
-          initialCourierId={invitedCourierId}
-        />
-      )}
     </div>
   );
 }
