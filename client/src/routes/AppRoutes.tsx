@@ -48,7 +48,6 @@ import EditOrderPage from '../pages/EditOrderPage';
 import OrderDetailPage from '../pages/OrderDetailPage';
 import OrderOffersPage from '../pages/OrderOffersPage';
 import ChatPage from '../pages/ChatPage';
-import CourierTrustPage from '../pages/CourierTrustPage';
 import AdminTrustPage from '../pages/AdminTrustPage';
 import ComplaintQueuePage from '../pages/ComplaintQueuePage';
 import ComplaintReviewPage from '../pages/ComplaintReviewPage';
@@ -63,6 +62,7 @@ import RequireRole from './RequireRole';
 import CourierAssignedOrdersPage from '../pages/CourierAssignedOrdersPage';
 import CourierBatchPage from '../pages/CourierBatchPage';
 import CourierEarningsPage from '../pages/CourierEarningsPage';
+import CourierRelayHandoverPage from '../pages/CourierRelayHandoverPage';
 
 const UiKitPage = import.meta.env.DEV ? lazy(() => import('../pages/UiKitPage')) : null;
 
@@ -123,7 +123,10 @@ export default function AppRoutes() {
           path="courier/earnings"
           element={<CourierEarningsPage />}
         />
-        <Route path="courier/trust" element={<CourierTrustPage />} />
+        <Route
+          path="courier/relay"
+          element={<CourierRelayHandoverPage />}
+        />
       </Route>
         <Route index element={<HomePage />} />
         <Route path="products" element={<ProductsPage />} />
