@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fptpost.common.exception.*;
 import com.fptpost.config.SecurityConfig;
 import com.fptpost.modules.batch.controller.BatchController;
+import com.fptpost.modules.catalog.dto.internal.ParameterSnapshot;
+import com.fptpost.modules.catalog.service.ParameterService;
+import com.fptpost.modules.reputation.repository.TrustScoreRepository;
 import com.fptpost.modules.batch.repository.*;
 import com.fptpost.modules.batch.service.BatchService;
 import com.fptpost.modules.batch.service.routing.ChCrpRoutingEngine;
@@ -52,6 +55,7 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -95,7 +99,26 @@ class CourierReadApiSchemaTest {
                     profiles, mock(OrderSubmissionScreening.class));
         }
         @Bean CourierEarningsService earningsService(OrderRepository orders, EscrowRepository escrows, CourierProfileRepository profiles) {
-            return new CourierEarningsService(orders, escrows, profiles);
+            Map<String, String> tiers = new LinkedHashMap<>();
+            tiers.put("TRUST_INIT", "50");
+            tiers.put("W_ONTIME", "0.35");
+            tiers.put("W_RATING", "0.3");
+            tiers.put("W_COMPLETE", "0.2");
+            tiers.put("W_COMPLAINT", "0.15");
+            tiers.put("TRUST_RESTRICT", "30");
+            tiers.put("TRUST_REVIEW", "20");
+            tiers.put("CANCEL_PENALTY", "5");
+            tiers.put("CANCEL_LIMIT", "3");
+            tiers.put("CANCEL_BAN", "3");
+            tiers.put("TIER_BRONZE", "≥ 55 điểm & ≥ 5 đơn");
+            tiers.put("TIER_SILVER", "≥ 70 điểm & ≥ 20 đơn");
+            tiers.put("TIER_GOLD", "≥ 85 điểm & ≥ 60 đơn");
+            tiers.put("TIER_DIAMOND", "≥ 95 điểm & ≥ 150 đơn");
+            Map<String, Long> versions = new LinkedHashMap<>();
+            tiers.keySet().forEach(key -> versions.put(key, 1L));
+            ParameterService parameters = mock(ParameterService.class);
+            when(parameters.getSnapshot()).thenReturn(new ParameterSnapshot(tiers, versions, Instant.EPOCH));
+            return new CourierEarningsService(orders, escrows, profiles, parameters, mock(TrustScoreRepository.class));
         }
         @Bean BatchService batchService(OrderRepository orders) {
             return new BatchService(mock(DeliveryBatchRepository.class), mock(DeliveryBatchStopRepository.class), orders,
