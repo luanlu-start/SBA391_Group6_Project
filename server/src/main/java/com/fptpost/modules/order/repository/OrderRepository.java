@@ -26,6 +26,15 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     java.util.List<Order> findBySenderIdOrderByCreatedAtDesc(Long senderId);
     List<Order> findByCourierIdOrderByCreatedAtDesc(Long courierId);
+
+    @Query("""
+        select distinct o
+        from Order o
+        left join o.legs l
+        where o.courierId = :courierId or l.courierId = :courierId
+        order by o.createdAt desc
+    """)
+    List<Order> findByCourierIdOrLegCourierIdOrderByCreatedAtDesc(@org.springframework.data.repository.query.Param("courierId") Long courierId);
     @Query("""
         select o
         from Order o
@@ -78,4 +87,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @org.springframework.data.repository.query.Param("courierId") Long courierId,
             @org.springframework.data.repository.query.Param("statuses") List<com.fptpost.modules.order.model.OrderStatus> statuses
     );
+
+    @Query("select distinct o from Order o join o.legs l order by o.createdAt desc")
+    List<Order> findAllRelayOrders();
 }

@@ -65,6 +65,8 @@ import RequireRole from './RequireRole';
 import CourierAssignedOrdersPage from '../pages/CourierAssignedOrdersPage';
 import CourierBatchPage from '../pages/CourierBatchPage';
 import CourierEarningsPage from '../pages/CourierEarningsPage';
+import RelayHandoverPage from '../pages/RelayHandoverPage';
+import CourierRelayPage from '../pages/CourierRelayPage';
 
 const UiKitPage = import.meta.env.DEV ? lazy(() => import('../pages/UiKitPage')) : null;
 
@@ -116,6 +118,18 @@ export default function AppRoutes() {
         <Route
           path="courier/orders"
           element={<CourierAssignedOrdersPage />}
+        />
+        <Route
+          path="courier/relay"
+          element={<CourierRelayPage />}
+        />
+        <Route
+          path="courier/orders/:orderId/handover"
+          element={<RelayHandoverPage />}
+        />
+        <Route
+          path="courier/orders/:orderId/legs/:legNo/handover"
+          element={<RelayHandoverPage />}
         />
         <Route
           path="courier/batch"

@@ -25,6 +25,16 @@ public class OrderLegResponse {
     private BigDecimal distanceKm;
     private BigDecimal legFee;
     private Long courierId;
+    private String courierPublicId;
+    private String courierName;
+    private String courierPhone;
+    private String courierEmail;
     private OrderStatus status;
+    private String handoverPhotoUrl;
+    private String handoverNote;
+    private Instant handoverAt;
+    private String handoverMeetingPoint;
+    private BigDecimal handoverLatitude;
+    private BigDecimal handoverLongitude;
     private Instant createdAt;
 }

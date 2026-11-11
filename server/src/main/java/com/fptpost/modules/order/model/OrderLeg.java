@@ -65,6 +65,26 @@ public class OrderLeg {
     @Builder.Default
     private OrderStatus status = OrderStatus.FINDING_SHIPPER;
 
+    @Column(name = "handover_photo_url", length = 1000)
+    private String handoverPhotoUrl;
+
+    @Nationalized
+    @Column(name = "handover_note", length = 500, columnDefinition = "nvarchar(500)")
+    private String handoverNote;
+
+    @Column(name = "handover_at")
+    private Instant handoverAt;
+
+    @Nationalized
+    @Column(name = "handover_meeting_point", length = 255, columnDefinition = "nvarchar(255)")
+    private String handoverMeetingPoint;
+
+    @Column(name = "handover_latitude", precision = 10, scale = 7)
+    private BigDecimal handoverLatitude;
+
+    @Column(name = "handover_longitude", precision = 10, scale = 7)
+    private BigDecimal handoverLongitude;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
